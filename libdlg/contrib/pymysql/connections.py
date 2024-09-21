@@ -213,7 +213,7 @@ class MysqlPacket(object):
     self.__recv_packet()
 
   def __recv_packet(self):
-    """P4QRecordSet the packet header and read entire packet payload into buffer."""
+    """DLGRecordSet the packet header and read entire packet payload into buffer."""
     packet_header = self.connection.rfile.read(4)
     if len(packet_header) < 4:
         raise OperationalError(2013, "Lost connection to MySQL server during query")
@@ -356,7 +356,7 @@ class FieldDescriptorPacket(MysqlPacket):
     self.__parse_field_descriptor()
 
   def __parse_field_descriptor(self):
-    """P4QRecordSet the 'Field Descriptor' (Metadata) packet.
+    """DLGRecordSet the 'Field Descriptor' (Metadata) packet.
 
     This is compatible with MySQL 4.1+ (not compatible with MySQL 4.0).
     """

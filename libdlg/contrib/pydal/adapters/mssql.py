@@ -64,7 +64,7 @@ class MSSQL(SQLAdapter):
             if not db:
                 raise SyntaxError('Database name required')
             port = m.group('port') or '1433'
-            # P4QRecordSet the optional url name-value arg pairs after the '?'
+            # DLGRecordSet the optional url name-value arg pairs after the '?'
             # (in the form of arg1=value1&arg2=value2&...)
             # (drivers like FreeTDS insist on uppercase parameter keys)
             argsdict = {'DRIVER': '{SQL Server}'}

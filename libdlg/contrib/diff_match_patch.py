@@ -1901,7 +1901,7 @@ class diff_match_patch:
         return "".join(text)
 
     def patch_fromText(self, textline):
-        """P4QRecordSet a textual representation of patches and return a list of patch
+        """DLGRecordSet a textual representation of patches and return a list of patch
     objects.
 
     Args:

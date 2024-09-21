@@ -88,7 +88,7 @@ class StartupMessage(object):
 
 
 ##
-# P4QRecordSet message.  Creates a prepared statement in the DB session.
+# DLGRecordSet message.  Creates a prepared statement in the DB session.
 # <p>
 # Stability: This is an internal class.  No stability guarantee is made.
 #
@@ -105,9 +105,9 @@ class Parse(object):
         self.type_oids = type_oids
 
     def __repr__(self):
-        return "<P4QRecordSet ps=%r qs=%r>" % (self.ps, self.qs)
+        return "<DLGRecordSet ps=%r qs=%r>" % (self.ps, self.qs)
 
-    # Byte1('P') - Identifies the message as a P4QRecordSet command.
+    # Byte1('P') - Identifies the message as a DLGRecordSet command.
     # Int32 -   Message length, including self.
     # String -  Prepared statement name.  An empty string selects the unnamed
     #           prepared statement.
@@ -119,7 +119,7 @@ class Parse(object):
         val = self.ps + "\x00" + self.qs + "\x00"
         val = val + struct.pack("!h", len(self.type_oids))
         for oid in self.type_oids:
-            # P4QRecordSet message doesn't seem to handle the -1 type_oid for NULL
+            # DLGRecordSet message doesn't seem to handle the -1 type_oid for NULL
             # values that other messages handle.  So we'll provide type_oid 705,
             # the PG "unknown" type.
             if oid == -1: oid = 705
@@ -533,7 +533,7 @@ class NoData(object):
 
 
 ##
-# Message representing a successful P4QRecordSet.
+# Message representing a successful DLGRecordSet.
 # <p>
 # Stability: This is an internal class.  No stability guarantee is made.
 class ParseComplete(object):
@@ -1194,7 +1194,7 @@ class Connection(object):
         # - No Prepared Statement support, each query is parsed every time
         # - Basic implementation: minimal error recovery and type support
         # PROS: 
-        # - compact: equivalent to P4QRecordSet, Bind, Describe, Execute, Close, Sync
+        # - compact: equivalent to DLGRecordSet, Bind, Describe, Execute, Close, Sync
         # - doesn't returns ParseComplete, BindComplete, CloseComplete, NoData
         # - it supports multiple statements in a single query string
         # - it is available when the Streaming Replication Protocol is actived
