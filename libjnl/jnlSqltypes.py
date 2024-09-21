@@ -7,7 +7,7 @@ from libdlg.dlgStore import (
     Lst
 )
 from libdlg.dlgQuery_and_operators import *
-from libdlg.dlgRecords import P4QRecords
+from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgSchemaTypes import SchemaType
 from libdlg.dlgUtilities import (
     reg_ipython_builtin,
@@ -493,7 +493,7 @@ class JNLTable(object):
     def insert(self, *args, **kwargs):
         kwargs = Storage(kwargs)
         records = self.iterQuery(*args, **kwargs)
-        records = P4QRecords(
+        records = DLGRecords(
             records=records,
             cols=self.oQuery.cols,
             objp4=self.objp4
@@ -516,7 +516,7 @@ class JNLTable(object):
         '''
         kwargs = Storage(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = P4QRecords(
+        records = DLGRecords(
             records=records,
             cols=self.oQuery.cols,
             objP4=self.objP4
@@ -531,7 +531,7 @@ class JNLTable(object):
         '''
         (args, kwargs) = (Lst(args), Storage(kwargs))
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = P4QRecords(
+        records = DLGRecords(
             records=records,
             cols=self.oQuery.cols,
             objP4=self.objP4
@@ -546,7 +546,7 @@ class JNLTable(object):
         '''
         kwargs = Storage(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = P4QRecords(
+        records = DLGRecords(
             records=records,
             cols=self.oQuery.cols,
             objP4=self.objP4
@@ -566,11 +566,11 @@ class JNLTable(object):
         return record
 
 
-class JNLField(P4QExpression):
+class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"
 
     def update_instance(self, op=None, left=None, right=None, **kwargs):
-        '''  attributes for operators instead of P4Query class reference?
+        '''  attributes for operators instead of DLGQuery class reference?
         '''
         [setattr(self, argitem.__name__, argitem)
          for argitem in (op, left, right)

@@ -2,7 +2,7 @@ import re
 
 from libdlg.dlgStore import *
 from libdlg.dlgQuery_and_operators import AND, OR
-from libdlg.dlgRecord import P4QRecord
+from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgUtilities import Flatten, bail
 
 
@@ -153,7 +153,7 @@ class SpecIO(object):
                         (outrecord.data is not None)
                 ):
                     return (outrecord)
-            if (isinstance(outrecord, P4QRecord)):
+            if (isinstance(outrecord, DLGRecord)):
                 outrecord = outrecord.as_dict()
             '''     we will likely need to flatten a record's fields when using -G. I.e.:
 

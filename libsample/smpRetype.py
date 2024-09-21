@@ -70,7 +70,7 @@ class Retype(object):
         ''' 2. Query p4d for files that defined in qry1, select the target records. 
 
             The difference between select() and _select() is that _select() 
-            doesn't cast the p4 records as P4QRecords objects.
+            doesn't cast the p4 records as DLGRecords objects.
 
             Note that _select's first arg must be the field object that the
             target files belong to.
@@ -79,11 +79,11 @@ class Retype(object):
 
                 {'objp4': <Py4 anastasia.local:1777 >,
                  'op': <function p4qOp_and_Query.AND(*args, **kwargs)>,
-                 'left': <P4QExpression {'left': <Py4Field action>,
+                 'left': <DLGExpression {'left': <Py4Field action>,
                                          'objp4': <Py4 anastasia.local:1777 >,
                                          'op': <function BELONGS at 0x110e36020>,
                                          'right': ('add', 'edit')}>,
-                 'right': <P4Query {'left': <Py4Field type>,
+                 'right': <DLGQuery {'left': <Py4Field type>,
                                     'objp4': <Py4 anastasia.local:1777 >,
                                     'op': <function NE at 0x110e34f40>,
                                     'right': 'ktext'}>}            
@@ -93,7 +93,7 @@ class Retype(object):
         #targetfiles2 = oP4(qry1).select('depotFile')
         ''' Note: Records are selected with the help `_select' as opposed to 
                   `select` as we would normally do. The difference is in 
-                  the values it returns. `select` will return records (P4QRecords
+                  the values it returns. `select` will return records (DLGRecords
                   class references) and `sellect' will give us the value of the
                   field specified as `_select`'s single paramater (a Py4Field object).
                   In this case, we get a list of `depotFile`s (`targetfiels`) which 

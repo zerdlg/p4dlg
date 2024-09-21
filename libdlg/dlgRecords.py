@@ -1,6 +1,6 @@
 import os
 from types import LambdaType
-from libdlg.dlgRecord import P4QRecord
+from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgStore import Lst, Storage, objectify
 from libdlg.dlgSearch import Search
 # from libdlg.p4qLogger import LogHandler
@@ -13,11 +13,11 @@ from libdlg.dlgError import *
      [$Author: mart $]
 '''
 
-__all__ = ['P4QRecords']
+__all__ = ['DLGRecords']
 
 # TODO: add compounds like: split, apply (agregate), combine (merge)
-class P4QRecords(object):
-    __repr__ = lambda self: f'<P4QRecords ({len(self)})>'
+class DLGRecords(object):
+    __repr__ = lambda self: f'<DLGRecords ({len(self)})>'
     __str__ = __repr__
     __bool__ = lambda self: True \
         if (self.first() is not None) \
@@ -51,10 +51,10 @@ class P4QRecords(object):
         return self(-1)
 
     def copy(self):
-        return P4QRecords(self[:])
+        return DLGRecords(self[:])
 
     def empty_records(self):
-        return P4QRecords(Lst(), Lst(), self.objp4)
+        return DLGRecords(Lst(), Lst(), self.objp4)
 
     def count(self):
         return len(self)
@@ -67,7 +67,7 @@ class P4QRecords(object):
             **kwargs
     ):
         self.objp4 = objp4 or Storage()
-        self.records = Lst(P4QRecord(record) for record in records)
+        self.records = Lst(DLGRecord(record) for record in records)
         self.cols = cols
         self.oSearch = Search()
 
@@ -75,7 +75,7 @@ class P4QRecords(object):
             self,
             idx,
             default=None,
-            cast=P4QRecord
+            cast=DLGRecord
     ):
         '''  Don't raise an  exception on IndexError, return default
         '''
@@ -104,7 +104,7 @@ class P4QRecords(object):
             except Exception as err:
                 print(err)
         if (isinstance(record, dict) is True):
-            record = P4QRecord(record)
+            record = DLGRecord(record)
         return record
 
     def get_record(
@@ -147,7 +147,7 @@ class P4QRecords(object):
 
     def __add__(self, other):
         if (isinstance(other, list) is True):
-            other = P4QRecords(other)
+            other = DLGRecords(other)
         if (len(self.cols) == 0):
             try:
                 self.cols = other.cols or other.first().getkeys()
@@ -159,7 +159,7 @@ class P4QRecords(object):
         othercols = other.cols
         if (cols == other.cols):
             records = (records + othercols)
-            return P4QRecords(records, cols, self.objp4)
+            return DLGRecords(records, cols, self.objp4)
         else:
             bail(
                 f'Cannot add records with different fields\n\
@@ -168,31 +168,31 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
     def __and__(self, altrecords):
         if (self.cols == altrecords.cols):
-            records = P4QRecords()
-            alt_records = P4QRecords(altrecords.records)
+            records = DLGRecords()
+            alt_records = DLGRecords(altrecords.records)
             for record in self.records:
                 if (record in alt_records):
                     records.append(record)
                     alt_records.remove(record)
-            return P4QRecords(records, self.cols, self.objp4)
+            return DLGRecords(records, self.cols, self.objp4)
 
     def __or__(self, altrecords):
         if (self.cols == altrecords.cols):
             records = Lst([
                     record for record in altrecords.records if (not record in self.records)
             ] + self.records)
-            return P4QRecords(records, self.cols, self.objp4)
+            return DLGRecords(records, self.cols, self.objp4)
 
     def __eq__(self, altrecords):
         return (self.records == altrecords.records) \
-            if (isinstance(altrecords, P4QRecords)) \
+            if (isinstance(altrecords, DLGRecords)) \
             else False
 
     def __getitem__(self, key):
         record = self.records(key)
         if (isinstance(record, list)):
             return record
-        if (type(record).__name__ == 'P4QRecord'):
+        if (type(record).__name__ == 'DLGRecord'):
             record = record.as_dict()
         if (isinstance(record, Storage)):
             keys = record.getkeys()
@@ -205,11 +205,11 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             yield self[i]
 
     def append(self, record):
-        self.records.append(P4QRecord(record))
+        self.records.append(DLGRecord(record))
 
     def insert(self, record):
         try:
-            self.records.append(P4QRecord(record))
+            self.records.append(DLGRecord(record))
         except Exception as err:
             bail(
                 f'Failed to insert new record: {record}\nError: {err}'
@@ -218,8 +218,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
     def bulkinsert(self, *records):
         try:
             [
-                self.records.append(P4QRecord(record) \
-                    if (type(record) is not P4QRecord) \
+                self.records.append(DLGRecord(record) \
+                    if (type(record) is not DLGRecord) \
                     else record) for record in records
             ]
         except Exception as err:
@@ -234,7 +234,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         '''
         records = self
         if (len(records) == 0):
-            return P4QRecords(Lst(), self.cols, self.objp4)
+            return DLGRecords(Lst(), self.cols, self.objp4)
 
         i = 0
         while (i < len(self)):
@@ -249,7 +249,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
     def update(self, func, **update_fields):
         records = self
         if (len(records) == 0):
-            return P4QRecords(Lst(), self.cols, self.objp4)
+            return DLGRecords(Lst(), self.cols, self.objp4)
 
         i = 0
         while (i < len(self)):
@@ -287,7 +287,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             idx += 1
             if (idx == end):
                 break
-        return P4QRecords(outrecords, self.cols, self.objp4)
+        return DLGRecords(outrecords, self.cols, self.objp4)
 
     '''     find, exclude, sortby, orderby
 
@@ -318,7 +318,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
         records = self
         if (len(records) == 0):
-            return P4QRecords(Lst(), self.cols, self.objp4)
+            return DLGRecords(Lst(), self.cols, self.objp4)
 
         outrecords = Lst()
         (start, end) = limitby or (0, len(self))
@@ -330,10 +330,10 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 idx += 1
                 if (idx == end):
                     break
-        return P4QRecords(outrecords, self.cols, self.objp4)
+        return DLGRecords(outrecords, self.cols, self.objp4)
 
     def exclude(self, func):
-        ''' returns a new set of P4QRecords / modifies the original.
+        ''' returns a new set of DLGRecords / modifies the original.
 
                 e.g.
                 >>> for record in records.exclude(lambda record: record.fieldname.startswith('M'))
@@ -349,7 +349,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 del self.records[i]
             else:
                 i += 1
-        return P4QRecords(excluded, self.cols, self.objp4)
+        return DLGRecords(excluded, self.cols, self.objp4)
 
     def sortby(
             self,
@@ -357,7 +357,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             reverse=False,
             records=None
     ):
-        ''' returns a new set of P4QRecords / does not modify the original.
+        ''' returns a new set of DLGRecords / does not modify the original.
         '''
 
         if (records is None):
@@ -385,7 +385,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                     reverse=reverse
                 )
             )
-        return P4QRecords(outrecords, self.cols, self.objp4)
+        return DLGRecords(outrecords, self.cols, self.objp4)
 
     def orderby(
             self,
@@ -437,7 +437,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                         >>> qry = (oJnl.domain.type=='99')
                         >>> records = oJnl(qry).select("id","type","name","mount","owner","options")
                         >>> records
-                        <P4QRecords (500)>
+                        <DLGRecords (500)>
                         >>> grecs = records.groupby('name',orderby='idx')
                         # list of last record of each group name
                         >>> grecs_list = {grp_name: grecs[grp_name].last() for grp_name in grecs}
@@ -536,7 +536,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 recordgroup = self.orderby(orderby, records=recordgroup)
                 records_by_group.update(
                     **{
-                        recfield: P4QRecords(
+                        recfield: DLGRecords(
                             recordgroup,
                             self.cols,
                             self.objp4
@@ -546,7 +546,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         if (groupdict is False):
             for rgroup in records_by_group.getkeys():
                 outrecords += records_by_group[rgroup].records
-            return P4QRecords(outrecords, self.cols, self.objp4)
+            return DLGRecords(outrecords, self.cols, self.objp4)
         '''     return grouped records
 
                 {group_name: < Records([<{record}>

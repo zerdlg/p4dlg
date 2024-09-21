@@ -4,18 +4,27 @@
 '''
 
 __all__ = [
-    'P4QError',
+    'DLGError',
     'MutuallyExclusiveError',
     'InternalRCSError',
     'CreateRevisionError',
     'InvalidEditScript',
-    'MissingRevision'
+    'MissingRevision',
+    'LockingError',
+    'InvertError',
 ]
 
-class P4QError(Exception): pass
-class MutuallyExclusiveError(P4QError):
+class DLGError(Exception): pass
+
+class LockingError(DLGError): pass
+
+class InvertError(DLGError): pass
+
+class ExtractError(DLGError): pass
+
+class MutuallyExclusiveError(DLGError):
     def __init__(self, *args):
-        P4QError.__init__(self)
+        DLGError.__init__(self)
         (
             self.left,
             self.right,
@@ -30,12 +39,12 @@ class MutuallyExclusiveError(P4QError):
 
 ''' RCS SPECIFIC ERRORS
 '''
-class InternalRCSError(P4QError): pass
-class CreateRevisionError(P4QError): pass
-class InvalidEditScript(P4QError): pass
-class MissingRevision(P4QError):
+class InternalRCSError(DLGError): pass
+class CreateRevisionError(DLGError): pass
+class InvalidEditScript(DLGError): pass
+class MissingRevision(DLGError):
     def __init__(self, RCSobject, revstring):
-        P4QError.__init__(self)
+        DLGError.__init__(self)
         self.RCSobject = RCSobject
         self.revstring = revstring
 

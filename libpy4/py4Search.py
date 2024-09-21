@@ -3,7 +3,7 @@ from collections import deque
 from functools import reduce
 from pprint import pprint
 
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgUtilities import bail
 from  libdlg.dlgFileIO import ispath
@@ -52,7 +52,7 @@ __all__ = ['Search']
     +------------------+-------------------+--------------------+------------------------------------------------------------------------------------------+ 
 '''
 
-class Search(P4QControl):
+class Search(DLGControl):
     def __init__(
                     self,
                     objp4=None,

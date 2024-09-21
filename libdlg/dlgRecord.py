@@ -3,7 +3,7 @@ from datetime import date, datetime, time
 
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgUtilities import reg_objdict, bail, Flatten
-from libdlg.dlgDateTime import P4QDateTime
+from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgTables import DataTable
 
 '''  [$File: //dev/p4dlg/libdlg/dlgRecord.py $] [$Change: 474 $] [$Revision: #11 $]
@@ -11,13 +11,13 @@ from libdlg.dlgTables import DataTable
      [$Author: mart $]
 '''
 
-__all__ = ['P4QRecord']
+__all__ = ['DLGRecord']
 
 from pprint import pformat
 
-class P4QRecord(Storage):
+class DLGRecord(Storage):
 
-    __str__ = __repr__ = lambda self: f'<P4QRecord {pformat(self.as_dict())}>'
+    __str__ = __repr__ = lambda self: f'<DLGRecord {pformat(self.as_dict())}>'
 
     def __getitem__(self, item, other=None):
         record = self.as_dict()
@@ -60,11 +60,11 @@ class P4QRecord(Storage):
 
     has_key = has_field = lambda self, key: key in self.__dict__
     __nonzero__ = lambda self: len(self.__dict__) > 0
-    __copy__ = lambda self: P4QRecord(self)
+    __copy__ = lambda self: DLGRecord(self)
     fieldnames = lambda self: Storage(self.__dict__).getkeys()
 
     def as_dict(self, datetime_tostr=False):
-        self.oDate = P4QDateTime()
+        self.oDate = DLGDateTime()
         serializabletypes = [
             str,
             int,
@@ -84,7 +84,7 @@ class P4QRecord(Storage):
                 fieldvalue = record[field]
                 if record[field] is None:
                     continue
-                elif (isinstance(fieldvalue, P4QRecord) is True):
+                elif (isinstance(fieldvalue, DLGRecord) is True):
                     record[field] = fieldvalue.as_dict()
                 elif (isinstance(fieldvalue, decimal.Decimal) is True):
                     record[field] = float(fieldvalue)

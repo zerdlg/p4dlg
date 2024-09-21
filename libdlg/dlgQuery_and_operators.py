@@ -1,12 +1,11 @@
+import sys
 import re
 from functools import reduce
 from types import FunctionType
-
-import sys
 from datetime import date, time, datetime
 from pprint import pformat
-#from libdlg.p4qTypes import DomainType
-from libdlg.dlgDateTime import P4QDateTime
+
+from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgStore import Storage, Lst, StorageIndex
 from libdlg.dlgUtilities import (
     bail,
@@ -50,12 +49,12 @@ __all__ = [
            'is_strType', 'is_dictType', 'is_fieldType',
            'is_qType', 'is_recordsType', 'is_recordType',
            'is_expressionType', 'is_tableType', 'is_field_tableType',
-           'is_qType_or_field',
-\
-           'P4Query', 'P4QExpression'
+           'is_qType_or_field', \
+ \
+    'DLGQuery', 'DLGExpression'
            ]
 
-qtypes = ('P4Query', 'P4QExpression')
+qtypes = ('DLGQuery', 'DLGExpression')
 
 def is_recordType(left, right=None):
     if OR(
@@ -66,13 +65,13 @@ def is_recordType(left, right=None):
     if (right is not None):
         ret = True \
             if AND(
-                    (type(left).__name__ == 'P4QRecord'),
-                    (type(right).__name__ == 'P4QRecord')
+                    (type(left).__name__ == 'DLGRecord'),
+                    (type(right).__name__ == 'DLGRecord')
         ) \
             else False
     else:
         ret = True \
-            if (type(left).__name__ == 'P4QRecord') \
+            if (type(left).__name__ == 'DLGRecord') \
             else False
     return ret
 
@@ -85,13 +84,13 @@ def is_recordsType(left, right=None):
     if (right is not None):
         ret = True \
             if AND(
-                    (type(left).__name__ == 'P4QRecords'),
-                    (type(right).__name__ == 'P4QRecords')
+                    (type(left).__name__ == 'DLGRecords'),
+                    (type(right).__name__ == 'DLGRecords')
             ) \
                 else False
     else:
         ret = True \
-            if (type(left).__name__ == 'P4QRecords') \
+            if (type(left).__name__ == 'DLGRecords') \
             else False
     return ret
 
@@ -190,13 +189,13 @@ def is_expressionType(left, right=None):
     if (right is not None):
         ret = True \
             if AND(
-                    (type(left).__name__ == 'P4QExpression'),
-                    (type(right).__name__ == 'P4QExpression')
+                    (type(left).__name__ == 'DLGExpression'),
+                    (type(right).__name__ == 'DLGExpression')
                 ) \
             else False
     else:
         ret = True \
-            if (type(left).__name__ == 'P4QExpression') \
+            if (type(left).__name__ == 'DLGExpression') \
             else False
     return ret
 
@@ -209,13 +208,13 @@ def is_queryType(left, right=None):
     if (right is not None):
         ret = True \
             if AND(
-                    (type(left).__name__ == 'P4Query'),
-                    (type(right).__name__ == 'P4Query')
+                    (type(left).__name__ == 'DLGQuery'),
+                    (type(right).__name__ == 'DLGQuery')
             ) \
             else False
     else:
         ret = True \
-            if (type(left).__name__ == 'P4Query') \
+            if (type(left).__name__ == 'DLGQuery') \
             else False
     return ret
 
@@ -576,7 +575,7 @@ class QClass(object):
         if (hasattr(left, 'left')):
             if (left.left is not None):
                 try:
-                    if (not type(left.left).__name__ in ('P4Query', 'P4QExpression')):
+                    if (not type(left.left).__name__ in ('DLGQuery', 'DLGExpression')):
                         left = self.build(left)
                 except Exception as err:
                     pass
@@ -585,7 +584,7 @@ class QClass(object):
         if (hasattr(left, 'right')):
             if (left.right is not None):
                 try:
-                    if (not type(left.right).__name__ in ('P4Query', 'P4QExpression')):
+                    if (not type(left.right).__name__ in ('DLGQuery', 'DLGExpression')):
                         right = self.build(right)
                 except Exception as err:
                     pass
@@ -781,7 +780,7 @@ class QClass(object):
             try:
                 # "@some[?,#,?#,op]@[?,#,?#,op]"
                 (tablename, field, value, op) = (None, None, None, None)
-                if (type(qry).__name__ in ('Storage', 'P4Query')):
+                if (type(qry).__name__ in ('Storage', 'DLGQuery')):
                     tablename = qry.left.tablename
                     fieldname = qry.left.fieldname
                     value = qry.right
@@ -835,7 +834,7 @@ class QClass(object):
     def validate_field_type(self, left, right=None):
         field_type = None
         left_right_are_valid = False
-        if AND((type(right).__name__ == "P4QRecords"),
+        if AND((type(right).__name__ == "DLGRecords"),
                (type(left).__name__ in ('Py4Field', 'JNLField'))):
             rec0 = right(0)
             fieldvalue0 = rec0[left.fieldname]
@@ -918,13 +917,13 @@ class clsAND(QClass):
             >>> Query2 = (oP4.clients.owner == 'mart')
             >>> qry = AND(Query1, Query2)
             >>> qry
-            <P4Query {'left': <P4Query {'left': <Py4Field client>,
+            <DLGQuery {'left': <DLGQuery {'left': <Py4Field client>,
                                         'objp4': <Py4 anastasia.local:1777 >,
                                         'op': <function STARTSWITH at 0x1052036a0>,
                                         'right': 'ana'}>,
                       'objp4': <Py4 anastasia.local:1777 >,
                       'op': <function AND at 0x13f1e0e00>,
-                      'right': <P4Query {'left': <Py4Field Owner>,
+                      'right': <DLGQuery {'left': <Py4Field Owner>,
                                          'objp4': <Py4 anastasia.local:1777 >,
                                          'op': <function EQ at 0x105203740>,
                                          'right': 'mart'}>}>
@@ -950,10 +949,10 @@ class clsAND(QClass):
             try:
                 if (type(left).__name__ == 'Storage'):
                     qres = Storage({'op': AND, 'left': left, 'right': right})
-                elif (type(left).__name__ == 'P4Query'):
-                    qres = P4Query(left.objp4, AND, left, right)
-                elif (type(left).__name__ == 'P4QExpression'):
-                    qres = P4QExpression(left.objp4, AND, left, right)
+                elif (type(left).__name__ == 'DLGQuery'):
+                    qres = DLGQuery(left.objp4, AND, left, right)
+                elif (type(left).__name__ == 'DLGExpression'):
+                    qres = DLGExpression(left.objp4, AND, left, right)
                 elif (isinstance(left, str) is True):
                     (tablename, fieldname, value, op) = getTableOpKeyValue(left)
                     qres = Storage(
@@ -1010,19 +1009,19 @@ class clsOR(QClass):
                 >>> Query3 = (oP4.clients.Description.contains('mart'))
                 >>> nestedQuery = OR((AND(Query1, Query2)),(Query3))
                 >>> nestedQuery
-                <P4Query {'left': <P4Query {'left': <P4Query {'left': <Py4Field client>,
+                <DLGQuery {'left': <DLGQuery {'left': <DLGQuery {'left': <Py4Field client>,
                                                               'objp4': <Py4 anastasia.local:1777 >,
                                                               'op': <function STARTSWITH at 0x103d0bd80>,
                                                               'right': 'x'}>,
                                             'objp4': <Py4 anastasia.local:1777 >,
                                             'op': <function AND at 0x147ad8f40>,
-                                            'right': <P4Query {'left': <Py4Field Owner>,
+                                            'right': <DLGQuery {'left': <Py4Field Owner>,
                                                                'objp4': <Py4 anastasia.local:1777 >,
                                                                'op': <function EQ at 0x103d0b920>,
                                                                'right': 'mart'}>}>,
                           'objp4': <Py4 anastasia.local:1777 >,
                           'op': <function OR at 0x147ad8fe0>,
-                          'right': <P4Query {'left': <Py4Field Description>,
+                          'right': <DLGQuery {'left': <Py4Field Description>,
                                              'objp4': <Py4 anastasia.local:1777 >,
                                              'op': <function CONTAINS at 0x103d0bce0>,
                                              'right': 'mart'}>}>
@@ -1033,10 +1032,10 @@ class clsOR(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': OR, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, OR, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, OR, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, OR, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, OR, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1077,8 +1076,8 @@ class clsXOR(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': XOR, 'left': left, 'right': right})
-            elif (type(left).__name__ in ('P4Query', 'P4QExpression')):
-                qres = P4Query(left.objp4, XOR, left, right)
+            elif (type(left).__name__ in ('DLGQuery', 'DLGExpression')):
+                qres = DLGQuery(left.objp4, XOR, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1114,7 +1113,7 @@ class clsINVERT(QClass):
     '''
     q = NOT((oP4.clients.Owner=='mart'))
 
-    <P4QExpression {'left': <P4Query {'left': <Py4Field Owner>,
+    <DLGExpression {'left': <DLGQuery {'left': <Py4Field Owner>,
                                       'objp4': <Py4 anastasia.local:1777 >,
                                       'op': <function EQ at 0x1075ff6a0>,
                                       'right': 'mart'}>,
@@ -1130,8 +1129,8 @@ class clsINVERT(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': INVERT, 'left': left, 'right': right})
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'P4Query')):
-                qres = P4QExpression(left.objp4, INVERT, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'DLGQuery')):
+                qres = DLGExpression(left.objp4, INVERT, left, right)
             elif ((isinstance(left, (bool, int)))):
                 qres = not left
             elif (isinstance(left, str) is True):
@@ -1163,7 +1162,7 @@ class clsNOT(QClass):
     '''
     q = NOT((oP4.clients.Owner=='mart'))
 
-    <P4QExpression {'left': <P4Query {'left': <Py4Field Owner>,
+    <DLGExpression {'left': <DLGQuery {'left': <Py4Field Owner>,
                                       'objp4': <Py4 anastasia.local:1777 >,
                                       'op': <function EQ at 0x1075ff6a0>,
                                       'right': 'mart'}>,
@@ -1180,8 +1179,8 @@ class clsNOT(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': NOT, 'left': left, 'right': right, 'inversion': True})
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'P4Query')):
-                qres = P4QExpression(left.objp4, NOT, left, right, inversion=True)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'DLGQuery')):
+                qres = DLGExpression(left.objp4, NOT, left, right, inversion=True)
             elif ((isinstance(left, (bool, int)))):
                 qres = not left
             elif (isinstance(left, str) is True):
@@ -1219,10 +1218,10 @@ class clsNE_OLD(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': NE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, NE, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, NE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, NE, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, NE, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1261,12 +1260,12 @@ class clsNE(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': NE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, NE, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, NE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, NE, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, NE, left, right)
             elif (type(left).__name__ in ('Py4Field', 'JNLField')):
-                qres = P4Query(
+                qres = DLGQuery(
                     **objectify(
                         {
                             'objp4': left.objp4,
@@ -1284,7 +1283,7 @@ class clsNE(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                qres = P4Query(
+                qres = DLGQuery(
                     **objectify(
                         {
                             'objp4': self,
@@ -1318,12 +1317,12 @@ class clsEQ(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': EQ, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, EQ, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, EQ, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, EQ, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, EQ, left, right)
             elif (type(left).__name__ in ('Py4Field', 'JNLField')):
-                 qres = P4Query(
+                 qres = DLGQuery(
                                  **objectify({
                                     'objp4': left.objp4,
                                     'op': EQ,
@@ -1353,7 +1352,7 @@ class clsEQ(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                qres = P4Query(
+                qres = DLGQuery(
                                 **objectify({
                                   'objp4': self,
                                   'op': EQ,
@@ -1386,10 +1385,10 @@ class clsLT(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LT, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, LT, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, LT, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, LT, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, LT, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1428,10 +1427,10 @@ class clsLE(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, LE, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, LE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, LE, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, LE, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1469,10 +1468,10 @@ class clsGT(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': GT, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, GT, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, GT, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, GT, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, GT, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1512,10 +1511,10 @@ class clsGE(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': GE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, GE, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, GE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, GE, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, GE, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1554,10 +1553,10 @@ class clsCONTAINS(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': CONTAINS, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, CONTAINS, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, CONTAINS, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, CONTAINS, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, CONTAINS, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1615,15 +1614,15 @@ class clsBELONGS(QClass):
             if AND((type(left).__name__ == 'Storage'), (is_array(right) is True)):
                 qres = Storage({'op': BELONGS, 'left': left, 'right': right})
             elif AND(
-                        (type(left).__name__ == 'P4Query'),
+                        (type(left).__name__ == 'DLGQuery'),
                         (is_array(right) is True)
             ):
-                qres = P4Query(left.objp4, BELONGS, left, right)
+                qres = DLGQuery(left.objp4, BELONGS, left, right)
             elif AND(
-                        (type(left).__name__ in ('Py4Field', 'JNLField', 'P4QExpression')),
+                        (type(left).__name__ in ('Py4Field', 'JNLField', 'DLGExpression')),
                         (is_array(right) is True)
             ):
-                qres = P4QExpression(left.objp4, BELONGS, left, right)
+                qres = DLGExpression(left.objp4, BELONGS, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1671,10 +1670,10 @@ class clsSTARTSWITH(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': STARTSWITH, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, STARTSWITH, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(self.objp4, STARTSWITH, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, STARTSWITH, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(self.objp4, STARTSWITH, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1716,10 +1715,10 @@ class clsENDSWITH(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': ENDSWITH, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, ENDSWITH, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, ENDSWITH, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, ENDSWITH, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, ENDSWITH, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1761,10 +1760,10 @@ class clsMATCH(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': MATCH, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, MATCH, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, MATCH, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, MATCH, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, MATCH, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1806,10 +1805,10 @@ class clsSEARCH(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': SEARCH, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, SEARCH, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, SEARCH, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, SEARCH, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, SEARCH, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1851,10 +1850,10 @@ class clsADD(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': ADD, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, ADD, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, ADD, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, ADD, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, ADD, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1894,10 +1893,10 @@ class clsSUB(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': SUB, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, SUB, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, SUB, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, SUB, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, SUB, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1937,10 +1936,10 @@ class clsMUL(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': MUL, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, MUL, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, MUL, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, MUL, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, MUL, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -1980,10 +1979,10 @@ class clsTRUEDIV(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': TRUEDIV, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, TRUEDIV, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, TRUEDIV, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, TRUEDIV, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, TRUEDIV, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -2024,10 +2023,10 @@ class clsMOD(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': MOD, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, MOD, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, MOD, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, MOD, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, MOD, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -2097,7 +2096,7 @@ class clsAVG(QClass):
         length = len(left) \
             if (isinstance(left, tuple) is True) \
             else len(right) \
-            if (type(right).__name__ == 'P4QRecords') \
+            if (type(right).__name__ == 'DLGRecords') \
             else 0
         try:
             if AND((current_type is None),
@@ -2242,10 +2241,10 @@ class clsCASE(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': CASE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, CASE, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, CASE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, CASE, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, CASE, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -2283,10 +2282,10 @@ class clsCASEELSE(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': CASEELSE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, CASEELSE, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, CASEELSE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, CASEELSE, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, CASEELSE, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -2346,10 +2345,10 @@ class clsLIKE(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LIKE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, LIKE, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, LIKE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, LIKE, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, LIKE, left, right)
             elif AND(
                         (isinstance(left, (bool, int))),
                         (isinstance(right, (bool, int)))
@@ -2408,10 +2407,10 @@ class clsILIKE(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LIKE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, LIKE, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, LIKE, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, LIKE, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, LIKE, left, right)
             elif AND(
                         (isinstance(left, (bool, int))),
                         (isinstance(right, (bool, int)))
@@ -2459,10 +2458,10 @@ class clsLOWER(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LOWER, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, LOWER, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, LOWER, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, LOWER, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, LOWER, left, right)
             elif (isinstance(left, (bool, int))):
                 return left.lower()
             elif (isinstance(left, str) is True):
@@ -2505,10 +2504,10 @@ class clsUPPER(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': UPPER, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, UPPER, left, right)
-            elif (type(left).__name__ == 'P4QExpression'):
-                qres = P4QExpression(left.objp4, UPPER, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, UPPER, left, right)
+            elif (type(left).__name__ == 'DLGExpression'):
+                qres = DLGExpression(left.objp4, UPPER, left, right)
             elif (isinstance(left, (bool, int))):
                 qres = reduce(lambda left: left.upper(), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
@@ -2547,14 +2546,14 @@ class clsEPOCH(QClass):
         #is_str_type = isinstance(right, str)
         #is_date_type = isinstance(right, (datetime.date, datetime.time, datetime.datetime))
         #oConvert = DateTimeConvert()
-        oDateTime = P4QDateTime()
+        oDateTime = DLGDateTime()
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': EPOCH, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, EPOCH, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, EPOCH, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, EPOCH, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, EPOCH, left, right)
             elif (isinstance(left, (int, float, datetime.datetime)) is True):
                 qres = oDateTime.to_epoch(left)
             elif (isinstance(left, str) is True):
@@ -2584,10 +2583,10 @@ class clsDIFF(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': DIFF, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'P4Query'):
-                qres = P4Query(left.objp4, DIFF, left, right)
-            elif (type(left).__name__ in ('P4QExpression', 'Py4Field', 'JNLField')):
-                qres = P4QExpression(left.objp4, DIFF, left, right)
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, DIFF, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, DIFF, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -2630,7 +2629,7 @@ class clsCOUNT(QClass):
             qcount = len(left) \
                 if (isinstance(left, tuple) is True) \
                 else len(right) \
-                if (type(right).__name__ == 'P4QRecords') \
+                if (type(right).__name__ == 'DLGRecords') \
                 else 0
             return qcount
         except Exception as err:
@@ -2712,23 +2711,23 @@ class clsLEFTJOIN(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 
-''' P4Query & P4QExpression live here now to avoid circular imports
+''' DLGQuery & DLGExpression live here now to avoid circular imports
 '''
 
 """
-<P4Query {'left': <P4Query {'left': <Py4Field depotFile>,
+<DLGQuery {'left': <DLGQuery {'left': <Py4Field depotFile>,
                             'objp4': <Py4 anastasia.local:1777 >,
                             'op': <function ENDSWITH at 0x1062123e0>,
                             'right': '\\.py'}>,
           'objp4': <Py4 anastasia.local:1777 >,
           'op': <function AND at 0x168224f40>,
-          'right': <P4QExpression {'left': <P4Query {'left': <P4Query {'left': <Py4Field type>,
+          'right': <DLGExpression {'left': <DLGQuery {'left': <DLGQuery {'left': <Py4Field type>,
                                                                        'objp4': <Py4 anastasia.local:1777 >,
                                                                        'op': <function EQ at 0x106211ee0>,
                                                                        'right': 'ktext'}>,
                                                      'objp4': <Py4 anastasia.local:1777 >,
                                                      'op': <function AND at 0x168224f40>,
-                                                     'right': <P4QExpression {'left': <Py4Field action>,
+                                                     'right': <DLGExpression {'left': <Py4Field action>,
                                                                               'objp4': <Py4 anastasia.local:1777 >,
                                                                               'op': <function MATCH at 0x106212480>,
                                                                               'right': 'add|edit'}>}>,
@@ -2749,7 +2748,7 @@ AND(
  """
 
 
-class P4Query(object):
+class DLGQuery(object):
     def __init__(
              self,
              objp4,
@@ -2785,7 +2784,7 @@ class P4Query(object):
         self.left = left
         self.right = right
         self.inversion=kwargs.inversion or inversion
-        self.oDate = P4QDateTime()
+        self.oDate = DLGDateTime()
 
         (
             self.tablename,
@@ -2831,34 +2830,34 @@ class P4Query(object):
                 'inversion': self.inversion
             }
         )
-        return f'<P4Query {qdict}>'
+        return f'<DLGQuery {qdict}>'
 
     __str__ = __repr__
 
     def __and__(self, value):
-        return P4Query(self.objp4, AND, self, value)
+        return DLGQuery(self.objp4, AND, self, value)
 
     def __or__(self, value):
-        return P4Query(self.objp4, OR, self, value)
+        return DLGQuery(self.objp4, OR, self, value)
 
     def __xor__(self, value):
-        return P4Query(self.objp4, XOR, self, value)
+        return DLGQuery(self.objp4, XOR, self, value)
 
     __rand__ = __and__
     __ror__ = __or__
 
     def __invert__(self):
         self.inversion = True
-        return P4Query(self.objp4, NOT, self, inversion=True)
+        return DLGQuery(self.objp4, NOT, self, inversion=True)
 
     def __eq__(self, value):
-        return P4Query(self.objp4, EQ, self, value)
+        return DLGQuery(self.objp4, EQ, self, value)
 
     def __ne__(self, value):
-        return P4Query(self.objp4, NE, self, value)
+        return DLGQuery(self.objp4, NE, self, value)
 
     def case(self, true=1, false=0):
-        return P4QExpression(self.objp4, CASE, self, (True, False))
+        return DLGExpression(self.objp4, CASE, self, (True, False))
 
     def as_dict(self, flat=False):
         def loop(q):
@@ -2869,7 +2868,7 @@ class P4Query(object):
                         if ((isinstance(value, self.__class__)) or
                             (type(value).__name__ == fieldType(self.objp4))) \
                         else {"tablename": value.tablename, "fieldname": value.fieldname} \
-                        if (isinstance(value, P4QExpression)) \
+                        if (isinstance(value, DLGExpression)) \
                         else self.oDate.to_string(value) \
                         if (isinstance(value, (date, time, datetime))) \
                         else value
@@ -2888,7 +2887,7 @@ class P4Query(object):
                     resd.merge({key: value})
             return resd
 
-class P4QExpression(object):
+class DLGExpression(object):
     def __init__(
             self,
             objp4,
@@ -2923,7 +2922,7 @@ class P4QExpression(object):
         self.op = op
         self.left = left
         self.right = right
-        self.oDate = P4QDateTime()
+        self.oDate = DLGDateTime()
 
         (
             self.tablename,
@@ -2982,7 +2981,7 @@ class P4QExpression(object):
                 'inversion': self.inversion
             }
         )
-        return f'<P4QExpression {qdict}>'
+        return f'<DLGExpression {qdict}>'
 
     __str__ = __repr__
 
@@ -2997,7 +2996,7 @@ class P4QExpression(object):
                     elif (type(v).__name__ == fieldType(self.objp4)):
                         newd[k] = {"tablename": v.tablename,
                                    "fieldname": v.name}
-                    elif (isinstance(v, P4QExpression)):
+                    elif (isinstance(v, DLGExpression)):
                         newd[k] = loop(v.__dict__)
                     elif (isinstance(v, serializable)):
                         newd[k] = v
@@ -3037,7 +3036,7 @@ class P4QExpression(object):
                 else f'({self.len()} - {(abs(stop) - 1)} - {pos0})' \
                 if (stop < 0) \
                 else f'({stop + 1} - {pos0})'
-            return P4QExpression(self.objp4, SUBSTRING, self, (pos0, length))
+            return DLGExpression(self.objp4, SUBSTRING, self, (pos0, length))
         else:
             return self[i:(i + 1)]
 
@@ -3046,31 +3045,31 @@ class P4QExpression(object):
             begining the query with `~` or `NOT()` operator.
         '''
         self.inversion = True
-        return P4Query(self.objp4, NOT, self, inversion=True)
+        return DLGQuery(self.objp4, NOT, self, inversion=True)
 
     def __eq__(self, value):
-        return P4Query(self.objp4, EQ, self, value)
+        return DLGQuery(self.objp4, EQ, self, value)
 
     def __ne__(self, value):
-        return P4Query(self.objp4, NE, self, value)
+        return DLGQuery(self.objp4, NE, self, value)
 
     def __lt__(self, value):
-        return P4Query(self.objp4, LT, self, value)
+        return DLGQuery(self.objp4, LT, self, value)
 
     def __le__(self, value):
-        return P4Query(self.objp4, LE, self, value)
+        return DLGQuery(self.objp4, LE, self, value)
 
     def __gt__(self, value):
-        return P4Query(self.objp4, GT, self, value)
+        return DLGQuery(self.objp4, GT, self, value)
 
     def __ge__(self, value):
-        return P4Query(self.objp4, GE, self, value)
+        return DLGQuery(self.objp4, GE, self, value)
 
     def __len__(self):
         return lambda i: len(self.__dict__[i])
 
     def __contains__(self, value):
-        return P4Query(self.objp4, CONTAINS, self, value)
+        return DLGQuery(self.objp4, CONTAINS, self, value)
 
     def belongs(self, value):
         ''' USAGE:
@@ -3087,7 +3086,7 @@ class P4QExpression(object):
                 >>> qry2 = (oJnl.domain.name.belongs(myclients))
                 >>> clientrecords = oJnl(qry2).select()
         '''
-        return P4QExpression(self.objp4, BELONGS, self, value)
+        return DLGExpression(self.objp4, BELONGS, self, value)
 
     def contains(self, value):
         ''' USAGE:
@@ -3095,93 +3094,93 @@ class P4QExpression(object):
                 >>> qry = (oP4.files.depotFile.contains('/myProjectName'))
                 >>> record = oP4(qry).select()(0) (or .first())
         '''
-        return P4Query(self.objp4, CONTAINS, self, value)
+        return DLGQuery(self.objp4, CONTAINS, self, value)
 
     def startswith(self, value):
         ''' USAGE:
                 >>> qry = (oP4.files.depotFile.startswith('//dev/'))
                 >>> records = oP4(qry).select()
         '''
-        return P4Query(self.objp4, STARTSWITH, self, value)
+        return DLGQuery(self.objp4, STARTSWITH, self, value)
 
     def endswith(self, value):
         ''' USAGE:
                 >>> qry = (oP4.files.depotFile.endswith('.py'))
                 >>> records = oP4(qry).select()
         '''
-        return P4Query(self.objp4, ENDSWITH, self, value)
+        return DLGQuery(self.objp4, ENDSWITH, self, value)
 
     def match(self, value):
         ''' USAGE:
                 >>> qry = (oP4.files.depotFile.match('^\/\/dev\/.*.py$'))
                 >>> records = oP4(qry).select()
         '''
-        return P4QExpression(self.objp4, MATCH, self, value)
+        return DLGExpression(self.objp4, MATCH, self, value)
 
     def search(self, value):
         ''' USAGE:
                 >>> qry = (oP4.clients.client.search('art'))
                 >>> records = oP4(qry).select()
         '''
-        return P4QExpression(self.objp4, SEARCH, self, value)
+        return DLGExpression(self.objp4, SEARCH, self, value)
 
     def count(self):
-        return P4QExpression(self.objp4, COUNT, self, None)
+        return DLGExpression(self.objp4, COUNT, self, None)
 
     def sum(self):
-        return P4QExpression(self.objp4, SUM, self, None)
+        return DLGExpression(self.objp4, SUM, self, None)
 
     def max(self):
-        return P4QExpression(self.objp4, MAX, self, None)
+        return DLGExpression(self.objp4, MAX, self, None)
 
     def min(self):
-        return P4QExpression(self.objp4, MIN, self, None)
+        return DLGExpression(self.objp4, MIN, self, None)
 
     def len(self):
-        return P4QExpression(self.objp4, len, self, None)
+        return DLGExpression(self.objp4, len, self, None)
 
     def avg(self):
-        return P4QExpression(self.objp4, AVG, self, None)
+        return DLGExpression(self.objp4, AVG, self, None)
 
     def abs(self):
-        return P4QExpression(self.objp4, ABS, self, None)
+        return DLGExpression(self.objp4, ABS, self, None)
 
     def lower(self):
-        return P4QExpression(self.objp4, LOWER, self, None)
+        return DLGExpression(self.objp4, LOWER, self, None)
 
     def upper(self):
-        return P4QExpression(self.objp4, UPPER, self, None)
+        return DLGExpression(self.objp4, UPPER, self, None)
 
     def epoch(self):
-        return P4QExpression(self.objp4, EPOCH, self, None)
+        return DLGExpression(self.objp4, EPOCH, self, None)
 
     def like(self, value, case_sensitive=True):
         op = case_sensitive and LIKE or ILIKE
-        return P4Query(self.objp4, op, self, value)
+        return DLGQuery(self.objp4, op, self, value)
 
     def ilike(self, value):
         return self.like(value, case_sensitive=False)
 
     def regexp(self, value):
-        return P4Query(self.objp4, REGEX, self, value)
+        return DLGQuery(self.objp4, REGEX, self, value)
 
     def year(self, value):
-        return P4QExpression(self.objp4, YEAR, self, value)
+        return DLGExpression(self.objp4, YEAR, self, value)
 
     def month(self, value):
-        return P4QExpression(self.objp4, MONTH, self, value)
+        return DLGExpression(self.objp4, MONTH, self, value)
 
     def day(self, value):
-        return P4QExpression(self.objp4, DAY, self, value)
+        return DLGExpression(self.objp4, DAY, self, value)
 
     def hour(self, value):
-        return P4QExpression(self.objp4, HOUR, self, value)
+        return DLGExpression(self.objp4, HOUR, self, value)
 
     def minute(self, value):
-        return P4QExpression(self.objp4, MINUTE, self, value)
+        return DLGExpression(self.objp4, MINUTE, self, value)
 
     def second(self, value):
-        return P4QExpression(self.objp4, SECOND, self, value)
+        return DLGExpression(self.objp4, SECOND, self, value)
 
     def __add__(self, value):
         # stype = None
@@ -3193,7 +3192,7 @@ class P4QExpression(object):
         #    stype = self.type
         # else:
         #    bail(f"addition operation not supported for type {stype}")  # , logger = self.errorlogger)
-        return P4QExpression(self.objp4, ADD, self, value)
+        return DLGExpression(self.objp4, ADD, self, value)
 
     def __sub__(self, value):
         # stype = None
@@ -3205,19 +3204,19 @@ class P4QExpression(object):
         #    stype = self.type
         # else:
         #    bail(f"subtraction operation not supported for type {stype}")#, logger = self.errorlogger)
-        return P4QExpression(self.objp4, SUB, self, value)
+        return DLGExpression(self.objp4, SUB, self, value)
 
     def __mul__(self, value):
-        return P4QExpression(self.objp4, MUL, self, value)
+        return DLGExpression(self.objp4, MUL, self, value)
 
     def __div__(self, value):
         return self.__truediv__(value)
 
     def __truediv__(self, value):
-        return P4QExpression(self.objp4, TRUEDIV, self, value)
+        return DLGExpression(self.objp4, TRUEDIV, self, value)
 
     def __mod__(self, value):
-        return P4QExpression(self.objp4, MOD, self, value)
+        return DLGExpression(self.objp4, MOD, self, value)
 
 
 ''' rependant table, field & op stuff 

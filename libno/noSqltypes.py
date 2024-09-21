@@ -7,7 +7,7 @@ from libdlg.dlgStore import (
     Lst,
 )
 from libdlg.dlgQuery_and_operators import *
-from libdlg.dlgRecords import P4QRecords
+from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgUtilities import (
     reg_ipython_builtin,
     serializable,
@@ -129,7 +129,7 @@ class NOTable(object):
     def insert(self, *args, **kwargs):
         kwargs = Storage(kwargs)
         records = self.iterQuery(*args, **kwargs)
-        records = P4QRecords(records=records, cols=self.oQuery.cols, objp4=self.objp4)
+        records = DLGRecords(records=records, cols=self.oQuery.cols, objp4=self.objp4)
         records = self.modify_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -145,7 +145,7 @@ class NOTable(object):
     def update(self, *args, **kwargs):
         kwargs = Storage(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = P4QRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+        records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -153,7 +153,7 @@ class NOTable(object):
     def delete(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = P4QRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+        records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -161,7 +161,7 @@ class NOTable(object):
     def insert(self, *args, **kwargs):
         kwargs = Storage(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = P4QRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+        records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -174,11 +174,11 @@ class NOTable(object):
         return record
 
 
-class NOField(P4QExpression):
+class NOField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<NOField {self.fieldname}>"
 
     def update_instance(self, op=None, left=None, right=None, **kwargs):
-        '''  attributes for operators instead of P4Query class reference?
+        '''  attributes for operators instead of DLGQuery class reference?
         '''
         for argitem in (op, left, right):
             if (argitem is not None):

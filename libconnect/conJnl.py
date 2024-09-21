@@ -1,5 +1,5 @@
 from libjnl.jnlIO import P4Jnl
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgQuery_and_operators import AND
 from libdlg.dlgFileIO import is_writable, make_writable
@@ -43,7 +43,7 @@ from libdlg.dlgFileIO import is_writable, make_writable
 
 __all__ = ['ObjJnl']
 
-class ObjJnl(P4QControl):
+class ObjJnl(DLGControl):
     def __init__(self, shellObj, loglevel='INFO'):
         self.shellObj = shellObj
         self.loglevel = loglevel.upper()

@@ -31,13 +31,13 @@ from libdlg.dlgUtilities import (
     is_marshal,
     Plural,
 )
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgFileIO import *
-from libdlg.dlgRecordset import P4QRecordSet
-from libdlg.dlgRecords import P4QRecords
-from libdlg.dlgRecord import P4QRecord
+from libdlg.dlgRecordset import DLGRecordSet
+from libdlg.dlgRecords import DLGRecords
+from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgInvert import invert
-from libhelp.hlpCmds import Help
+from libhelp.hlpCmds import DLGHelp
 from libdlg.dlgSchemaTypes import SchemaType
 
 (
@@ -116,13 +116,13 @@ class Py4(object):
     credits = lambda self: self.help('credits')
 
     def __and__(self, other):
-        return P4QExpression(self.objp4, AND, self, other)
+        return DLGExpression(self.objp4, AND, self, other)
 
     def __or__(self, other):
-        return P4QExpression(self.objp4, OR, self, other)
+        return DLGExpression(self.objp4, OR, self, other)
 
     def __xor__(self, other):
-        return P4QExpression(self.objp4, XOR, self, other)
+        return DLGExpression(self.objp4, XOR, self, other)
 
     __rand__ = __and__
     __ror__ = __or__
@@ -140,7 +140,7 @@ class Py4(object):
         loglevel = loglevel
         logfile = kwargs.logfile
         loggername = Lst(__name__.split('.'))(-1)
-        self.logger = P4QControl(
+        self.logger = DLGControl(
             loggername=loggername,
             loglevel=loglevel,
             logfile=logfile
@@ -266,7 +266,7 @@ class Py4(object):
                 )
         ''' help info
         '''
-        self.oHelp = Help(self)
+        self.oHelp = DLGHelp(self)
         self.usage_items = self.usagelist()
         self.commands = self.tables = self.tablenames = self.get_allcmds()
         self.valid_globals = self.get_validglobals()
@@ -313,8 +313,8 @@ class Py4(object):
         elif OR(
                 (noneempty(query) is False),
                 (type(query).__name__ in (
-                        'P4QExpression',
-                        'P4Query',
+                        'DLGExpression',
+                        'DLGQuery',
                         'Py4Table',
                         'Py4Field',
                         'str'
@@ -350,8 +350,8 @@ class Py4(object):
                     )
                 )
             elif (type(query).__name__ in (
-                    'P4Query',
-                    'P4QExpression'
+                    'DLGQuery',
+                    'DLGExpression'
                 )
             ):
                 qries.append(query)
@@ -361,7 +361,7 @@ class Py4(object):
                 if (isinstance(qry, dict) is True):
                     if (not 'inversion' in qry):
                         qry.inversion = inversion
-                    qry = P4Query(
+                    qry = DLGQuery(
                         self,
                         qry.op,
                         qry.left,
@@ -542,7 +542,7 @@ class Py4(object):
                         (key in ('maxrows', 'compute',))
                 ):
                     setattr(self, key, value)
-            oRecordSet = P4QRecordSet(self, P4QRecords(), **tabledata)
+            oRecordSet = DLGRecordSet(self, DLGRecords(), **tabledata)
             return oRecordSet
         else:
             oRun = Py4Run(self, *cmdoptions, **tabledata)
@@ -550,9 +550,9 @@ class Py4(object):
                     (len(queries) == 0),
                     (isinstance(query, Py4Table))
             ):
-                return P4QRecordSet(self, oRun, **tabledata)
+                return DLGRecordSet(self, oRun, **tabledata)
             elif (len(queries) > 0):
-                oRecordSet = P4QRecordSet(self, oRun, **tabledata)
+                oRecordSet = DLGRecordSet(self, oRun, **tabledata)
                 '''  pass on the queries, it will return a reference to class Recordset!
                 '''
                 return oRecordSet(*queries, **kwargs)
@@ -618,7 +618,7 @@ class Py4(object):
         ]
         envvariables = Storage()
         p4UserConfig = Py4Run(self, **cdata)()
-        if (type(p4UserConfig).__name__ == 'P4QRecords'):
+        if (type(p4UserConfig).__name__ == 'DLGRecords'):
             p4UserConfig = p4UserConfig(0).data
         if (len(p4UserConfig) > 0):
             for line in re.split('\n', p4UserConfig):
@@ -792,7 +792,7 @@ class Py4(object):
             query = query(0) \
                 if (isinstance(query, Lst)) \
                 else query.left \
-                if (type(query.left) is P4Query) \
+                if (type(query.left) is DLGQuery) \
                 else query
         if (is_spec is True):
             if (tablename not in self.spec_takes_no_lastarg):
@@ -1343,7 +1343,7 @@ class Py4(object):
                 return records(0)
             return records
         tabledata = self.memoizetable(tablename)
-        return P4QRecords(
+        return DLGRecords(
             records=Lst(rec for rec in records),
             objp4=self,
             **tabledata

@@ -2,7 +2,9 @@ import re
 
 from libdlg import *
 
-class Help(object):
+__all__ = ['DLGHelp']
+
+class DLGHelp(object):
     def __init__(self, objp4):
         self.objp4 = objp4
         [
@@ -27,7 +29,7 @@ class Help(object):
     def usagelist(self):
         help = self.objp4.help()
         if (
-                (type(help).__name__ == 'P4QRecords')
+                (type(help).__name__ == 'DLGRecords')
                 | (isinstance(help, list) is True)
         ):
             help = help(0).data
@@ -44,7 +46,7 @@ class Help(object):
     def commandslist(self):
         help = self.objp4.help('commands')
         if (
-                (type(help).__name__ == 'P4QRecords')
+                (type(help).__name__ == 'DLGRecords')
                 | (isinstance(help, list) is True)
         ):
             help = help(0).data
@@ -59,7 +61,7 @@ class Help(object):
     def administrationlist(self):
         help = self.objp4.help('administration')
         if (
-                (type(help).__name__ == 'P4QRecords')
+                (type(help).__name__ == 'DLGRecords')
                 | (isinstance(help, list) is True)
         ):
             help = help(0).data
@@ -85,7 +87,7 @@ class Help(object):
     def parseundoc(self):
         undoc = self.objp4.help('undoc')
         if (
-                (type(undoc).__name__ == 'P4QRecords')
+                (type(undoc).__name__ == 'DLGRecords')
                 | (isinstance(undoc, list) is True)
         ):
             undoc = undoc(0)

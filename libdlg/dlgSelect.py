@@ -2,10 +2,10 @@ import re
 from types import LambdaType
 from pprint import pformat
 
-from libdlg.dlgDateTime import P4QDateTime
+from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgQuery_and_operators import *
-from libdlg.dlgRecords import P4QRecords
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgRecords import DLGRecords
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgUtilities import (
     is_iterable,
@@ -29,7 +29,7 @@ from libdlg.dlgUtilities import (
 
 __all__ = ('Select',)
 
-class Select(P4QControl):
+class Select(DLGControl):
     def __init__(
                 self,
                 objp4,
@@ -114,7 +114,7 @@ class Select(P4QControl):
                 if (self.is_jnlobject is False) \
                 else self.objp4.tablememo[tablename].fieldsmap
         super(Select, self).__init__()
-        self.oDateTime = P4QDateTime()
+        self.oDateTime = DLGDateTime()
 
     def get_domaintypes(self):
         datatypes = self.oSchema.p4schema.datatypes.datatype
@@ -259,7 +259,7 @@ class Select(P4QControl):
                     Lst()
                 )
         finally:
-            self.loginfo('P4QRecordSet records & query have been reset')
+            self.loginfo('DLGRecordSet records & query have been reset')
 
     def recurseQuery(self, q):
         ''' Drill into an embedded query until the query's left side
@@ -320,8 +320,8 @@ class Select(P4QControl):
                 )
             if (type(qry).__name__ in (
                     'Storage',
-                    'P4Query',
-                    'P4QExpression'
+                    'DLGQuery',
+                    'DLGExpression'
                 )
             ):
                 tablename = qry.left.tablename
@@ -448,8 +448,8 @@ class Select(P4QControl):
                 (isinstance(qry, (str, list))),
                 (type(qry).__name__ in (
                         'Storage',
-                        'P4Query',
-                        'P4QExpression'
+                        'DLGQuery',
+                        'DLGExpression'
                     )
                 )
         ):
@@ -472,8 +472,8 @@ class Select(P4QControl):
                 '''
                 receval = opfunc(value, qright) \
                     if (type(qry).__name__ in (
-                    'P4Query',
-                    'P4QExpression'
+                    'DLGQuery',
+                    'DLGExpression'
                 )
                         ) \
                     else opfunc(qright, value)
@@ -583,7 +583,7 @@ class Select(P4QControl):
                         built = self.parse(buildleft)
                         return built
                     elif not (left or right):
-                        built = P4QExpression(self.objp4, op)
+                        built = DLGExpression(self.objp4, op)
 
             elif (exp_func is not None):
                 built = self.parse(qry, record, exp_func)
@@ -604,7 +604,7 @@ class Select(P4QControl):
             elif (isinstance(qry, bool)):
                 built = qry
             elif not (left or right):
-                built = P4QExpression(self.objp4, op)
+                built = DLGExpression(self.objp4, op)
             else:
                 bail(
                     f"Operator not supported: {opname}.\n"
@@ -820,7 +820,7 @@ class Select(P4QControl):
         outrecords = Lst()
         insertrecord = outrecords.append
         if (raw_records is False):
-            outrecords = P4QRecords(Lst(), cols, self.objp4)
+            outrecords = DLGRecords(Lst(), cols, self.objp4)
             insertrecord = outrecords.insert
         ''' We have an aggregator! -> (sum, min, max, avg).            
             Handle it now & forget the rest.
@@ -838,7 +838,7 @@ class Select(P4QControl):
                         None
                 )
                 out = None
-                if AND((query is not None),(isinstance(query, P4QExpression))):
+                if AND((query is not None), (isinstance(query, DLGExpression))):
                     if (reg_dbtablename.match(tablename) is not None):
                         tablename = self.oTableFix.normalizeTableName(tablename)
                     (
@@ -855,10 +855,10 @@ class Select(P4QControl):
                     opfunc = expression_table(op)
                     out = opfunc(left, right)
                 if AND(
-                        (isinstance(right, P4QRecords) is True),
+                        (isinstance(right, DLGRecords) is True),
                         (is_array(out) is True )
                 ):
-                    out = P4QRecords(out, Lst(), self.objp4)
+                    out = DLGRecords(out, Lst(), self.objp4)
                 return out
         else:
             try:

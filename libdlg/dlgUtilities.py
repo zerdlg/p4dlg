@@ -988,7 +988,7 @@ def queryToString(qry):
     ''' something to get <table>.<field><op>value
 
      arg can be one of manyb tyoes...
-     1) P4Query
+     1) DLGQuery
      2) P4Expression
      3) Py4Field/JNLField
     '''

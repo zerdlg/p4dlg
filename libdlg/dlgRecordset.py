@@ -4,8 +4,8 @@ from pprint import pformat
 import timeit
 
 from libdlg.dlgSelect import Select
-from libdlg.dlgRecords import P4QRecords
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgRecords import DLGRecords
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import Storage, Lst, objectify
 from libdlg.dlgUtilities import noneempty, bail
 from libdlg.dlgFileIO import ispath, loadspickle
@@ -17,7 +17,7 @@ from libdlg.dlgQuery_and_operators import (
 )
 from libjnl.jnlFile import JNLFile
 
-__all__ = ['P4QRecordSet']
+__all__ = ['DLGRecordSet']
 
 '''  [$File: //dev/p4dlg/libdlg/dlgRecordset.py $] [$Change: 478 $] [$Revision: #44 $]
      [$DateTime: 2024/09/18 23:56:29 $]
@@ -27,7 +27,7 @@ __all__ = ['P4QRecordSet']
 '''
     RECORD PARSING USAGE:
 
-            SOURCE = file/path or file object or a list of records or a set of P4QRecords
+            SOURCE = file/path or file object or a list of records or a set of DLGRecords
 
                     * a list of records can be a list of dicts
                       or a list of lists --> in this case record[0] MUST be the column names
@@ -84,15 +84,15 @@ __all__ = ['P4QRecordSet']
     Records
 '''
 
-class P4QRecordSet(object):
+class DLGRecordSet(object):
     __hash__ = lambda self: hash(
         (frozenset(self),
          frozenset(Storage(self.__dict__).getvalues()))
     )
     __bool__ = lambda self: True
     __copy__ = lambda self: self
-    __str__ = lambda self: f'<P4QRecordSet ({type(self.recordset)}) >'
-    __repr__ = lambda self: f'<P4QRecordSet ({type(self.recordset)}) >'
+    __str__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
+    __repr__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
 
     def error(self, left, right, op, err):
         ''' badly formatted queries & other errors, return False
@@ -382,7 +382,7 @@ class P4QRecordSet(object):
                 if (len(self.cols) == 0):
                     self.cols = records.first().getkeys()
                 return enumerate(records, start=1)
-            if (isinstance(records, P4QRecords) is True):
+            if (isinstance(records, DLGRecords) is True):
                 if (len(records) > 0):
                     record = records.first().tostorage()
                     if AND(
@@ -451,7 +451,7 @@ class P4QRecordSet(object):
             self.query = None
             self.cols = Lst()
         finally:
-            self.loginfo('P4QRecordSet records & query have been reset')
+            self.loginfo('DLGRecordSet records & query have been reset')
 
     ''' extending P4QRecordSets/filters for p4 specific records (actions on files, changes/revs, spec/specs, ...
 
@@ -624,7 +624,7 @@ class P4QRecordSet(object):
             cmdargs = self.objp4.p4globals + options
             out = Lst(self.objp4.p4Output('sync', *cmdargs))
             syncrecords.append(out)
-            return P4QRecords(syncrecords, cols, self.objp4)
+            return DLGRecords(syncrecords, cols, self.objp4)
         except Exception as err:
             bail(err)
         finally:
@@ -635,7 +635,7 @@ class P4QRecordSet(object):
         if ((col.name in ('depotFile', 'clientFile')) & (col.type == 'File'))]
 
             USAGE:
-            >>> searchrecords = P4QRecords([], cols=self.cols, objp4=self.objp4)
+            >>> searchrecords = DLGRecords([], cols=self.cols, objp4=self.objp4)
 
             >>> filename = '//dev/p4dlg/p4/libpy4/py4IO.py'
             >>> printed = oP4.print(filename)
@@ -779,7 +779,7 @@ class P4QRecordSet(object):
                     idx += 1
                     if (idx == end):
                         break
-            return P4QRecords(searchrecords, cols, self.objp4)
+            return DLGRecords(searchrecords, cols, self.objp4)
         except Exception as err:
             bail(err)
         finally:
@@ -817,7 +817,7 @@ class P4QRecordSet(object):
     #def update(self, *args, **kwargs):
     #    kwargs = Storage(kwargs)
     #    records = self.oQuery.iterQuery(*args, **kwargs)
-    #    records = P4QRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+    #    records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
     #    records = self.filter_records(records, **kwargs)
     #    self.oQuery.query = Lst()
     #    return records
@@ -825,7 +825,7 @@ class P4QRecordSet(object):
     #def delete(self, *args, **kwargs):
     #    (args, kwargs) = (Lst(args), Storage(kwargs))
     #    records = self.oQuery.iterQuery(*args, **kwargs)
-    #    records = P4QRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+    #    records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
     #    records = self.filter_records(records, **kwargs)
     #    self.oQuery.query = Lst()
     #    return records
@@ -833,7 +833,7 @@ class P4QRecordSet(object):
     # def insert(self, *args, **kwargs):
     #    kwargs = Storage(kwargs)
     #    records = self.oQuery.iterQuery(*args, **kwargs)
-    #    records = P4QRecords(records=records, cols=self.oQuery.cols, objp4=self.objp4)
+    #    records = DLGRecords(records=records, cols=self.oQuery.cols, objp4=self.objp4)
     #    records = self.filter_records(records, **kwargs)
     #    self.oQuery.query = Lst()
     #    return records
@@ -915,7 +915,7 @@ class P4QRecordSet(object):
             cols,
             query
         )
-        outrecords = P4QRecords([], cols=self.cols, objp4=objp4)
+        outrecords = DLGRecords([], cols=self.cols, objp4=objp4)
         tablename = self.tablename
         if (len(fieldnames) == 0):
             fieldnames = self.fieldnames or cols

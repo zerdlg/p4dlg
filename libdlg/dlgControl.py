@@ -11,7 +11,7 @@ from libdlg.dlgLogger import LogHandler
      [$Author: mart $]
 '''
 
-__all__ = ['P4QControl']
+__all__ = ['DLGControl']
 
 def make_or_remove(logfile, logdir):
     try:
@@ -134,10 +134,10 @@ class LogHandler(object):
     def __call__(self, loggername, logfile=None, loglevel=None):
         return self
 
-class P4QControl(object):
+class DLGControl(object):
     def __init__(
             self,
-            loggername='P4Q',
+            loggername='P4DLG',
             loglevel='INFO',
             logfile=None,
             *args,

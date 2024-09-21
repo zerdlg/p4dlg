@@ -1,7 +1,7 @@
 import re
 
-from libdlg.dlgRecords import P4QRecords
-from libdlg.dlgRecord import P4QRecord
+from libdlg.dlgRecords import DLGRecords
+from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgStore import (
     Lst,
     objectify,
@@ -190,9 +190,9 @@ class Py4Options(object):
             )
             datarecord = self.objp4.p4OutPut(self.tablename, *cmdargs)
             if (len(datarecord) > 0):
-                if (isinstance(datarecord, (list, P4QRecords))):
+                if (isinstance(datarecord, (list, DLGRecords))):
                     datarecord = datarecord.first()
-                if (isinstance(datarecord, (Storage, P4QRecord))):
+                if (isinstance(datarecord, (Storage, DLGRecord))):
                     (
                         generic,
                         code,
@@ -320,8 +320,8 @@ class Py4Options(object):
                         more_cmdargs = self.get_more_table_options(keywords)
                 cmdargs = cmdargs + more_cmdargs
                 records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)
-                if (isinstance(records, (P4QRecords, Lst)) is True):
-                    if (isinstance(records(0), (Storage, P4QRecord))):
+                if (isinstance(records, (DLGRecords, Lst)) is True):
+                    if (isinstance(records(0), (Storage, DLGRecord))):
                         rec0 = records(0)
                         fieldnames = rec0.getkeys()
                         rec_results = Lst(

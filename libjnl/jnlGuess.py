@@ -2,7 +2,7 @@ import os
 import re
 from copy import copy
 
-from libdlg.dlgRecordset import P4QRecordSet
+from libdlg.dlgRecordset import DLGRecordSet
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgFileIO import loadpickle, fileopen
 
@@ -115,7 +115,7 @@ class GuessRelease(object):
                         query1 = (lambda rec: rec.table == table)
                         query2 = (lambda rec: rec.numFields == (len(fields) + 4))
                         query3 = (lambda rec: rec.tableVersion == journaltableversion)
-                        drecords = P4QRecordSet(datarecords)(*[query1, query2, query3]).select(orderby=['table', 'release'])
+                        drecords = DLGRecordSet(datarecords)(*[query1, query2, query3]).select(orderby=['table', 'release'])
                         results.merge({table: [record.release for record in drecords]})
                 except StopIteration:
                     EOR = True

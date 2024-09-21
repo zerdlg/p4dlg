@@ -4,7 +4,7 @@ from types import *
 import datetime
 
 from libdlg.dlgStore import Storage, Lst, objectify
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgUtilities import (
     annoying_ipython_attributes,
@@ -125,7 +125,7 @@ __all__ = [
        
             or
        
-        <P4Query {'left': <JNLField user>,
+        <DLGQuery {'left': <JNLField user>,
                   'objp4': <P4Jnl /Users/gc/anastasia/dev/p4dlg/resc/journals/journal.8>,
                   'op': <function EQ at 0x10387cd60>,
                   'right': 'mart'}>
@@ -154,13 +154,13 @@ class P4Jnl(object):
         iter(self)
 
     def __and__(self, other):
-        return P4Query(self.objp4, AND, self, other)
+        return DLGQuery(self.objp4, AND, self, other)
 
     def __or__(self, other):
-        return P4Query(self.objp4, OR, self, other)
+        return DLGQuery(self.objp4, OR, self, other)
 
     def __xor__(self, other):
-        return P4Query(self.objP4, XOR, self, other)
+        return DLGQuery(self.objP4, XOR, self, other)
 
     __rand__ = __and__
     __ror__ = __or__
@@ -177,7 +177,7 @@ class P4Jnl(object):
         self.loglevel = kwargs.loglevel or 'DEBUG'
         logfile = kwargs.logfile
         loggername = Lst(__name__.split('.'))(-1)
-        self.logger = P4QControl(
+        self.logger = DLGControl(
             loggername=loggername,
             loglevel=self.loglevel,
             logfile=logfile)
@@ -435,9 +435,9 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         if (
                 (left.tablename, left.fieldname) != (None, None)
         ):
-            if (type(left).__name__ not in ('P4Query', 'P4QExpression')):
+            if (type(left).__name__ not in ('DLGQuery', 'DLGExpression')):
                 ''' a slight modification to field `idx` then convert 
-                    the qry to a P4Query & make sure `right` is an int
+                    the qry to a DLGQuery & make sure `right` is an int
                 '''
                 if (isinstance(left, dict) is True):
                     if (type(left).__name__ != 'Storage'):
@@ -449,7 +449,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         left.type = 'Int'
                     else:
                         left.type = 'String'
-                    qry = P4Query(
+                    qry = DLGQuery(
                         self,
                         op,
                         left,
@@ -469,7 +469,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                                 (hasattr(right, 'right'))
                         ):
                             qry = self.resolve_datatype_value(right)
-            elif (type(left).__name__ in ('P4Query', 'P4QExpression')):
+            elif (type(left).__name__ in ('DLGQuery', 'DLGExpression')):
                 left = self.resolve_datatype_value(left)
                 qry.left = left
                 right = self.resolve_datatype_value(right)
@@ -500,8 +500,8 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             tablename = query.tablename
             tabledata = self.memoizetable(tablename)
         elif ((noneempty(query) is False) | (type(query).__name__ in (
-                'P4QExpression',
-                'P4Query',
+                'DLGExpression',
+                'DLGQuery',
                 'Py4Table',
                 'Py4Field'
                 )
@@ -517,7 +517,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                     (type(query) is LambdaType)
             ):
                 qries =  objectify(Lst([query]))
-            elif (type(query).__name__ in ('P4Query', 'P4QExpression')):
+            elif (type(query).__name__ in ('DLGQuery', 'DLGExpression')):
                 qries =  Lst([query])
             for qry in qries:
                 if (tablename is None):
@@ -543,7 +543,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 if (not 'inversion' in qry):
                     qry.inversion = inversion
 
-                qry = P4Query(
+                qry = DLGQuery(
                     self,
                     qry.op,
                     qry.left,
@@ -625,9 +625,9 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 (len(queries) == 0),
                 (isinstance(query, JNLTable))
         ):
-            return P4QRecordSet(self, oJNLFile, **tabledata)
+            return DLGRecordSet(self, oJNLFile, **tabledata)
 
-        oRecordSet = P4QRecordSet(self, oJNLFile, **tabledata)
+        oRecordSet = DLGRecordSet(self, oJNLFile, **tabledata)
 
         return oRecordSet() \
             if (len(jnlQueries) == 0) \

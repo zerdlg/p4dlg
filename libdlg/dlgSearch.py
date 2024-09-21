@@ -6,7 +6,7 @@ from pprint import pprint
 from libdlg.dlgFileIO import ispath
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgUtilities import bail
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgQuery_and_operators import AND
 from libdlg.contrib.prettytable.prettytable import PrettyTable
 
@@ -52,7 +52,7 @@ __all__ = ['Search']
 
 regex_word = re.compile(u'[\w\-\<\>\(\)]+')
 
-class Search(P4QControl):
+class Search(DLGControl):
     def __init__(
             self,
             objp4=None,

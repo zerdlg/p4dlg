@@ -1,9 +1,9 @@
 
 from libdlg import bail
 from libdlg.dlgStore import Storage, Lst, objectify
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 
-class NOFile(P4QControl):
+class NOFile(DLGControl):
     def __init__(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), objectify(kwargs))
         self.locked = True

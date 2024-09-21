@@ -5,7 +5,7 @@ from ast import literal_eval
 from libdlg.dlgUtilities import *
 from libdlg.dlgFileIO import isanyfile
 from libdlg.dlgStore import Storage, objectify, Lst, StorageIndex
-from libdlg.dlgDateTime import P4QDateTime
+from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgQuery_and_operators import *
 from libdlg.contrib.prettytable.prettytable import PrettyTable as PT
 
@@ -105,7 +105,7 @@ class Ascii(object):
         options = Storage(options)
         self.datatable = None
         self.dataoption = Storage()
-        self.oDateTime = P4QDateTime()
+        self.oDateTime = DLGDateTime()
 
         for opt in (
                 'hrules',
@@ -241,7 +241,7 @@ class DataGrid(Ascii):
                     rows.mergeright({key: rows[key]})
         elif (type(rows) in (enumerate, Generator)):
             rows = objectify([row for row in rows])
-        elif (type(rows).__name__ == 'P4QRecords'):
+        elif (type(rows).__name__ == 'DLGRecords'):
             rows = Lst(rows)
         elif (isinstance(rows, StorageIndex) is True):
             rows = storageIndexToList(rows)
@@ -278,7 +278,7 @@ class DataGrid(Ascii):
         if (noneempty(fields) is True):
             if (noneempty(kwargs.fields) is False):
                 fields = Lst(kwargs.pop('fields'))
-            if (type(self.rows).__name__ == 'P4QRecords'):
+            if (type(self.rows).__name__ == 'DLGRecords'):
                 fields = self.rows.cols
             elif (isinstance(self.rows(0), dict)):
                 fields = Storage(self.rows(0)).getkeys()
@@ -419,7 +419,7 @@ class DataTable(Ascii):
         options = Storage(options)
         reservedatts = ['get', 'set']
         self.__dict__ = Storage(self.__dict__)
-        self.oDateTime = P4QDateTime()
+        self.oDateTime = DLGDateTime()
         self.record = objectify(record) \
             if (
             isinstance(
@@ -651,7 +651,7 @@ class DataTable(Ascii):
                 typeindex = 1 \
                     if (self.dataoption.includeid is True) \
                     else 0
-                fieldtype = '<P4QTable.P4QDataTable>'
+                fieldtype = '<DLGTable.DLGDataTable>'
             else:
                 (fieldtype, typeindex) = self.getfieldtype(value, fieldtype)
             keyidx += 1

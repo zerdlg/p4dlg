@@ -1,8 +1,8 @@
 import datetime
 import re
 
-from libdlg.dlgRecords import P4QRecords
-from libdlg.dlgRecord import P4QRecord
+from libdlg.dlgRecords import DLGRecords
+from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgStore import Lst, Storage, objectify
 from libdlg.dlgUtilities import (
     bail,
@@ -13,7 +13,7 @@ from libdlg.dlgUtilities import (
     reg_default,
     reg_ipython_builtin
 )
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 from libdlg.dlgQuery_and_operators import *
 
 '''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 479 $] [$Revision: #33 $]
@@ -158,7 +158,7 @@ class Py4Table(object):
             p4ret = Storage(p4ret)
         ''' Whatever the case, p4ret should end up being a Storage at this point!
         '''
-        if (isinstance(p4ret, (Storage, P4QRecord))):
+        if (isinstance(p4ret, (Storage, DLGRecord))):
             try:
                 if AND(
                         AND(
@@ -175,7 +175,7 @@ class Py4Table(object):
             if (p4ret.data is not None):
                 p4ret = p4ret.data
         if (isinstance(p4ret, Lst)):
-            p4ret = P4QRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self)
+            p4ret = DLGRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self)
         return p4ret
     ''' p4 keyed tables... get a table's `keying` attributes
     '''
@@ -227,7 +227,7 @@ class Py4Table(object):
                 >>> oJnl.rev.fields()               --> no args, returns list of all fields for for this table
                 [{'comment': '',
                   'default': '',
-                  'desc': 'P4QRecord number as read in',
+                  'desc': 'DLGRecord number as read in',
                   'fieldname': 'id',
                   'label': '',
                   'name': 'id',
@@ -330,7 +330,7 @@ class Py4Table(object):
 
     def insert(self, *args, **kwargs):
         records = self.iterQuery(*args, **kwargs)
-        records = P4QRecords(
+        records = DLGRecords(
             records=records,
             cols=self.oQuery.cols,
             objp4=self.objp4
@@ -391,12 +391,12 @@ class Py4Table(object):
             return dgen
         return objectify(mergeKeyValue(self.__dict__))
 
-class Py4Field(P4QExpression):
+class Py4Field(DLGExpression):
 
     __str__ = __repr__ = lambda self: f"<Py4Field {self.fieldname}>"
 
     def update_instance(self, op=None, left=None, right=None, **kwargs):
-        '''  attributes for operators instead of P4Query class reference?
+        '''  attributes for operators instead of DLGQuery class reference?
         '''
         for argitem in (op, left, right):
             if (argitem is not None):

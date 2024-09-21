@@ -1,5 +1,5 @@
 from libdlg.dlgStore import Storage, Lst
-from libdlg.dlgControl import P4QControl
+from libdlg.dlgControl import DLGControl
 
 '''  [$File: //dev/p4dlg/libpy4/py4Filetypes.py $] [$Change: 452 $] [$Revision: #6 $]
      [$DateTime: 2024/07/30 12:39:25 $]
@@ -11,7 +11,7 @@ __all__ = ['Py4Filetypes']
 ''' TODO:
 '''
 
-class Py4Filetypes(P4QControl):
+class Py4Filetypes(DLGControl):
     def __init__(self, objp4, *args, **kwargs):
         self.objp4 = objp4
         if (self.objp4 is None):

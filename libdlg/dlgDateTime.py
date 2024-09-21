@@ -12,7 +12,7 @@ from libdlg.dlgUtilities import noneempty
 
 ''' USAGE:
 
-    >>> oDateTime = P4QDateTime()
+    >>> oDateTime = DLGDateTime()
     
     Guess
     >>> oDateTime.guess('2019/07/26') 
@@ -36,7 +36,7 @@ from libdlg.dlgUtilities import noneempty
     1567468800.0
 '''
 
-__all__ = ['P4QDateTime']
+__all__ = ['DLGDateTime']
 
 reg_time = re.compile('([^0-9 ]+(?P<m>[0-9 ]+))?([^0-9ap ]+(?P<s>[0-9]*))?')
 reg_epochtime = re.compile(r'^\d*(\.\d+)?$')
@@ -49,7 +49,7 @@ reg_isosep = re.compile('-')
 '''     a class to facilitate datetime related stuff                                         '''
 '''                                                                                          '''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-class P4QDateTime(object):
+class DLGDateTime(object):
     def __init__(
              self,
              sep='/',
@@ -305,7 +305,7 @@ class P4QDateTime(object):
             well formatted p4 str repsesentation
 
             USAGE:
-                >>> oP4QDT = P4QDateTime
+                >>> oP4QDT = DLGDateTime
                 >>> dt = oP4QDT.guess('2024/04/03 23:36:12')
                 >>> oP4QDT.to_string('2024/04/03 23:36:12')
                 '2024/04/03 23:36:12'
@@ -341,7 +341,7 @@ class P4QDateTime(object):
             return guess_dt(*args)
 
     def string_to_datetime(self, arg):
-        ''' >>> oDT= P4QDateTime()
+        ''' >>> oDT= DLGDateTime()
             >>> oDT.string_to_datetime('2019/08/29')
             datetime.datetime(2019, 8, 29, 0, 0)
             >>> oDT.string_to_datetime('2019 08 29')
@@ -360,7 +360,7 @@ class P4QDateTime(object):
     def to_epoch(self, *args):
         '''  convert a p4 date ('2019/08/29')/datetime/tuple (y,m,d)/ list [y,m,d] to epoch
 
-                >>> oP4QDT = P4QDateTime()
+                >>> oP4QDT = DLGDateTime()
                 >>> oConvert.to_epoch(datetime(2019, 8, 29, 0, 0))
                 1567123200.0
                 >>> oP4QDT.to_epoch('2019/08/29')
@@ -412,7 +412,7 @@ class P4QDateTime(object):
                 return datetime(*dtargs)
 
     def to_datetime(self, *args, **kwargs):
-        ''' >>> oP4QDT = P4QDateTime()
+        ''' >>> oP4QDT = DLGDateTime()
             >>> oP4QDT.to_datetime(2019,8,19)
             datetime(2019,8,19,0,0)
             >>> oP4QDT.to_datetime(*[2019,8,19])
@@ -452,7 +452,7 @@ class P4QDateTime(object):
 
              USAGE:
 
-                 >>> oP4QDT = P4QDateTime()
+                 >>> oP4QDT = DLGDateTime()
                  >>> oP4QDT.to_p4date(2019,8,19)
                  '2019/8/1'
                  >>> oP4QDT.to_p4date('2019','8','19')

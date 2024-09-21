@@ -22,6 +22,7 @@ except ImportError:
 
 from libdlg.dlgStore import Storage, Lst, StorageIndex
 from libdlg.dlgQuery_and_operators import AND,OR, XOR, NOT
+from libdlg.dlgError import LockingError
 
 '''  [$File: //dev/p4dlg/libdlg/dlgFileIO.py $] [$Change: 467 $] [$Revision: #10 $]
      [$DateTime: 2024/08/24 08:15:42 $]
@@ -36,13 +37,9 @@ def bail(err, exit=True, exception=None, logger=None):
         else err.args[0] if (hasattr(err, 'args')) \
         else pformat(err) if (isinstance(err, dict) is True) \
         else str(err)
-    if msg == "No module named 'libpy4.p4model'":
-        print('here')
     msg = f'Bailing...{msg}'
     if (logger is not None):
         logger(msg)
-    #else:
-    #    print(msg)
     if AND(
             (exit is True),
             (exception is None)
@@ -75,7 +72,7 @@ except:
         #bail('no file locking unless you install the win32 extensions' \
         #        if (platform.system() == 'Windows') \
         #        else f'ImportError: {err}')
-        raise raiseException(ImportError,
+        raise raiseException(LockingError,
             'no file locking unless you install the win32 extensions' \
                 if (platform.system() == 'Windows') \
                 else f'ImportError: {err}')
@@ -174,7 +171,7 @@ def definemode(mode):
 
     Interesting solution from StackOverflow for validating locked files on windows
 
-    os.access on windows return bad value (returns True even if you have no permissions on it), 
+    os.access on windows returns bad value (returns True even if you have no permissions on it), 
 """
 def isFileLocked(filePath):
     '''

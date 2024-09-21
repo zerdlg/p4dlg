@@ -1,8 +1,8 @@
 from types import LambdaType
 from libdlg.dlgStore import Storage, objectify, Lst
 from libdlg.dlgQuery_and_operators import AND, OR
-from libdlg.dlgControl import P4QControl
-from libdlg.dlgRecordset import P4QRecordSet
+from libdlg.dlgControl import DLGControl
+from libdlg.dlgRecordset import DLGRecordSet
 from libdlg.dlgUtilities import queryStringToStorage, bail, noneempty, ALLLOWER
 from libno.noSqltypes import NOTable
 
@@ -13,7 +13,7 @@ from libno.noSqltypes import NOTable
 
 __all__ = ['P4NO']
 
-class P4NO(P4QControl):
+class P4NO(DLGControl):
     def __init__(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), objectify(kwargs))
         loglevel = kwargs.loglevel or 'DEBUG'
@@ -25,7 +25,7 @@ class P4NO(P4QControl):
 
     def __call__(self, *queries, **tabledata):
 
-        oRecordSet = P4QRecordSet(self, self.records, **tabledata)
+        oRecordSet = DLGRecordSet(self, self.records, **tabledata)
         return oRecordSet() if (len(queries) == 0) else oRecordSet(*queries)
 
 
@@ -44,7 +44,7 @@ class P4NO(P4QControl):
             tablename = query.tablename
             tabledata = self.memoizetable(tablename)
         elif ((noneempty(query) is False) | (type(query).__name__ in \
-                ('P4QExpression', 'P4Query', 'Py4Table', 'Py4Field'))):
+                ('DLGExpression', 'DLGQuery', 'Py4Table', 'Py4Field'))):
             qries = Lst()
             if (isinstance(query, str)):
                 qries = objectify(Lst(queryStringToStorage(q) for q in query.split()))
@@ -52,7 +52,7 @@ class P4NO(P4QControl):
                 qries = objectify(Lst(query))
             elif OR((isinstance(query, dict)),(type(query) is LambdaType)):
                 qries =  objectify(Lst([query]))
-            elif (type(query).__name__ in ('P4Query', 'P4QExpression')):
+            elif (type(query).__name__ in ('DLGQuery', 'DLGExpression')):
                 qries =  Lst([query])
             for qry in qries:
                 if (tablename is None):
@@ -120,8 +120,8 @@ class P4NO(P4QControl):
                 })
         oSource = enumerate(self.records)
         if AND((len(queries) == 0), (isinstance(query, NOTable))):
-            return P4QRecordSet(self, oSource, **tabledata)
-        oRecordSet = P4QRecordSet(self, oSource, **tabledata)
+            return DLGRecordSet(self, oSource, **tabledata)
+        oRecordSet = DLGRecordSet(self, oSource, **tabledata)
         return oRecordSet() if (len(noQueries) == 0) else oRecordSet(*noQueries)
 
     def getfieldmaps(self, tablename='notable'):

@@ -215,7 +215,7 @@ class Py4Run(object):
                                 )
                     if AND(
                             (tablename in self.objp4.nocommands),
-                            (type(output).__name__ == 'P4QRecords')
+                            (type(output).__name__ == 'DLGRecords')
                     ):
                         if (len(output) == 1):
                             output = output(0)
