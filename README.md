@@ -4,10 +4,11 @@
 
 While I work on formal documentation, this README should at least give you an idea of what *p4dlg* is. There are also working samples and examples in /p4q/libsample.
 
-### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality, generally. The following example can be applied, conceptually, to any abstraction.
+### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction.
 
 ## Where?
-Though DLG can be imported and used in script or broader programs (which was the initial intention), you can also use it interactively by launching an IPython QTConsole where DLG is baked into it. To open the interactive shell, simply open a command prompt and type the following command line:
+Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell where p4dlg is fully baked into it. Just type the following cmdline:
+
 
 ```Python
 %> python dlg.py shell
@@ -20,7 +21,7 @@ Though DLG can be imported and used in script or broader programs (which was the
 # P4Jnl
 ### Access all your metadata without being hindered by proprietary hurdles and without any perforce client program or admin program.
 
-A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the data to an ongoing journal (which generally gets truncated based on the requirements set by a admin). In other words, your collection of journals should be pretty much equivalent to a freshly outputted checkpoint (apart from the delta between the 2). Conversely, you can rebuild your database by inputting (importing) the same checkpoint, or a modified checkpoint (and/or journals). They can be used to insert, update and delete records. Throughout this README, ```checkpoint``` and ```journal``` are used interchangeably. Enough said. 
+A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the data to an ongoing journal (until truncated). Conversely, they can be used to rebuild your database by replaying a checkpoint (or set of journals), or a modified checkpoint (or fragment thereof) to modify existing records (checkpoint surgery). In opther words, they can be used to insert, update and delete records. 
 
 ### A sample journal fragment.
 
@@ -31,9 +32,9 @@ A checkpoint is a snapshot, a textual representation of your Perforce DB. As rec
 @pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 1 131072 0 11 1615560173 1614326814 B72B933FC28A76969DB23DA8A219091A 46151 0 0 @//depot/codesamples/squery/squery.py@ @1.11@ 131072
 ```
 
-It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, in order, as it occures and belonging to any of P4D's supported tables. So, to successfuly query journal records, we must rely on close familiarity to the p4 schema. As you might have guessed, DLG has intimate knowledge of p4 schemas, belonging to any release.
+It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is needed. Luckely, the knowledge is built-in to p4dlg, for any server/schema release.
 
-## Connect
+## Create or load an existing connection.
 ```Python
 # Use `jnlconnect` to manage connections.
 # methods:    create - load - update - unload - destroy - purge
