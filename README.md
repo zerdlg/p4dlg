@@ -1,21 +1,21 @@
-# dlg
+# p4dlg
 
 ### A set of *abstractions* that use SQL, supported by a common set of APIs, to interact with your Perforce instance and its resources. 
 
-While I work on formal documentation, this README should at least give you an idea of what *P4q* is. There are also working samples and examples in /p4q/libsample.
+While I work on formal documentation, this README should at least give you an idea of what *p4dlg* is. There are also working samples and examples in /p4q/libsample.
 
 ### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality, generally. The following example can be applied, conceptually, to any abstraction.
 
 ## Where?
-Though P4Q can be imported and used in script or broader programs (which was the initial intention), you can also use it interactively by launching an IPython QTConsole where P4Q is baked into it. To open the interactive shell, simply open a command prompt and type the following command line:
+Though DLG can be imported and used in script or broader programs (which was the initial intention), you can also use it interactively by launching an IPython QTConsole where DLG is baked into it. To open the interactive shell, simply open a command prompt and type the following command line:
 
 ```Python
-%> python p4qmain.py shell
+%> python dlg.py shell
 ```
 
 ![image](https://github.com/user-attachments/assets/940c69f3-77cd-4282-99d0-3d95c9fbcea7)
 
-* Please look into the /p4q/libsample directory for a more detailed examples.
+* Please look into the /p4dlg/libsample directory for a more detailed examples.
 
 # P4Jnl
 ### Access all your metadata without being hindered by proprietary hurdles and without any perforce client program or admin program.
@@ -31,7 +31,7 @@ A checkpoint is a snapshot, a textual representation of your Perforce DB. As rec
 @pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 1 131072 0 11 1615560173 1614326814 B72B933FC28A76969DB23DA8A219091A 46151 0 0 @//depot/codesamples/squery/squery.py@ @1.11@ 131072
 ```
 
-It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, in order, as it occures and belonging to any of P4D's supported tables. So, to successfuly query journal records, we must rely on close familiarity to the p4 schema. As you might have guessed, P4Q has intimate knowledge of p4 schemas, belonging to any release.
+It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, in order, as it occures and belonging to any of P4D's supported tables. So, to successfuly query journal records, we must rely on close familiarity to the p4 schema. As you might have guessed, DLG has intimate knowledge of p4 schemas, belonging to any release.
 
 ## Connect
 ```Python
@@ -54,7 +54,7 @@ Reference (jnl3) created
 # 1 paramter: name of the connection
 
 In [1]: jnlconnect.load('oJnl')
-Out[1]: <P4Jnl /Users/gc/anastasia/dev/p4q/resc/journals/checkpoint.rasp>
+Out[1]: <P4Jnl /Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.rasp>
 ```
 ## Query syntax
 ```Python
@@ -74,19 +74,19 @@ In [2]: qry = (oJnl.domain.type == 'client')           # select all columns from
 
 In [3]: qry                                            # a query is an object
 Out[3]:
-<P4Query {'inversion': False,
+<DLGuery {'inversion': False,
  'left': <JNLField type>,
- 'objp4': <P4Jnl /Users/gc/anastasia/dev/p4q/resc/journals/checkpoint.rasp>,
+ 'objp4': <P4Jnl /Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.rasp>,
  'op': <function EQ at 0x107fa1da0>,
  'right': 'client'}>
 
 In [3]: clients = oJnl(qry).select()                   # the journal connector is callable, and takes a query
-In [4]: clients                                        # select() returns a P4QRecords object
-Out[4]: <P4QRecords (6)>                               
+In [4]: clients                                        # select() returns a DLGRecords object
+Out[4]: <DLGRecords (6)>                               
 
 In [5]: clients.first()                                # `first` record
 Out[5]: 
-<P4QRecord {'accessDate': '2021/03/12',                # each record in a P4QRecords object is a P4QRecord
+<DLGRecord {'accessDate': '2021/03/12',                # each record in a DLGRecords object is a DLGRecord
  'db_action': 'pv',
  'description': 'Created by mart.\n',
  'extra': '',
@@ -157,30 +157,30 @@ In [9]: clients = oJnl(qry).select()
 # group clients by client name and orderby db_action (pv, dv, ...)
 In  [10]: clients_by_name = clients.groupby('name', orderby='db_action', as_recordlist=False)
 In  [11]: clients_by_name
-{'mart_macos': <P4QRecords (2)>,
- 'p4vtest': <P4QRecords (23)>,
- 'pycharmclient': <P4QRecords (1)>,
- 'lpycharmclient': <P4QRecords (32)>,
- 'linuxclient': <P4QRecords (4)>,
- 'lxcharlotte_pycharm': <P4QRecords (10)>,
- 'source': <P4QRecords (1)>,
- 'mscharlotte': <P4QRecords (3)>,
- 'upycharmclient': <P4QRecords (13)>,
- 'test': <P4QRecords (3)>,
- 'bsclient': <P4QRecords (2)>,
- 'martclient': <P4QRecords (1)>,
- 'anastasia': <P4QRecords (9)>,
- 'gc_pycharm': <P4QRecords (36)>,
- 'computer_depot': <P4QRecords (29)>,
- 'miscclient': <P4QRecords (1)>,
- 'projclient': <P4QRecords (8)>,
- 'gc_local': <P4QRecords (4)>,
- 'gc_charlotte': <P4QRecords (1)>,
- 'gc_fred': <P4QRecords (3)>,
- 'uxcharlotte_pycharm': <P4QRecords (1)>}
+{'mart_macos': <DLGRecords (2)>,
+ 'p4vtest': <DLGRecords (23)>,
+ 'pycharmclient': <DLGRecords (1)>,
+ 'lpycharmclient': <DLGRecords (32)>,
+ 'linuxclient': <DLGRecords (4)>,
+ 'lxcharlotte_pycharm': <DLGRecords (10)>,
+ 'source': <DLGRecords (1)>,
+ 'mscharlotte': <DLGRecords (3)>,
+ 'upycharmclient': <DLGRecords (13)>,
+ 'test': <DLGRecords (3)>,
+ 'bsclient': <DLGRecords (2)>,
+ 'martclient': <DLGRecords (1)>,
+ 'anastasia': <DLGRecords (9)>,
+ 'gc_pycharm': <DLGRecords (36)>,
+ 'computer_depot': <DLGRecords (29)>,
+ 'miscclient': <DLGRecords (1)>,
+ 'projclient': <DLGRecords (8)>,
+ 'gc_local': <DLGRecords (4)>,
+ 'gc_charlotte': <DLGRecords (1)>,
+ 'gc_fred': <DLGRecords (3)>,
+ 'uxcharlotte_pycharm': <DLGRecords (1)>}
 
 In  [12]: clients_by_name.gc_fred
-<P4QRecords (3)>
+<DLGRecords (3)>
 
 In  [13]: for record in clients_by_name.gc_fred:
           ... print(record.db_action, record.accessDate)
@@ -188,7 +188,7 @@ pv 2021/11/17
 rv 2021/11/17
 rv 2021/11/17
 
-# NOTE: setting the `as_recordlist' argument to True (the default) will return a P4QRecords object containg the grouped records, otherwise as above (a dict).
+# NOTE: setting the `as_recordlist' argument to True (the default) will return a DLGRecords object containg the grouped records, otherwise as above (a dict).
 
 
 ```
@@ -212,8 +212,8 @@ def clients():
                                                 # where each key/value pair consists of clientname/relevent_domain_records
                                                 
                                                 #     i.e.: 
-                                                #           {'my_client': [P4QRecords],
-                                                #            'other_client': [P4QRecords],
+                                                #           {'my_client': [DLGRecords],
+                                                #            'other_client': [DLGRecords],
                                                 #            ... } 
     )
     
