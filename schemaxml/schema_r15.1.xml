@@ -1,0 +1,5098 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE p4schema SYSTEM "schema.dtd">
+<?xml-stylesheet title="XSL_formatting" type="text/xsl" href="schema.xsl"?>
+<!-- 
+	
+This document describes the Perforce schema in a presentation-independent
+way. It should be viewed in a browser that supports XSLT but may be 
+converted into plain-old-html by xsltproc or similar.
+
+Changes to this document must conform to the DTD referenced above, so make sure
+all changes are validated against the DTD before being submitted. Note that
+the order of the element in the DTD is significant, and must appear in the
+document in the same order as they appear in the DTD.
+
+$Id: //dev/p4dlg/schemaxml/schema_r15.1.xml#1 $
+
+Copyright 1999-2014 Perforce Software. All rights reserved.
+
+-->
+<p4schema version="2015.1" numUpgrades="23">
+    <tables>
+
+	<!-- Table definitions go here -->
+
+	<table>
+	    <name>db.config</name>
+	    <type>Config</type>
+	    <version>1</version>
+	    <classic_lockseq>1</classic_lockseq>
+	    <peek_lockseq>1</peek_lockseq>
+	    <keying>serverName, name</keying>
+	    <desc>
+		Perforce server configurations table
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.counters</name>
+	    <type>Counters</type>
+	    <version>1</version>
+	    <classic_lockseq>2</classic_lockseq>
+	    <peek_lockseq>2</peek_lockseq>
+	    <keying>name</keying>
+	    <desc>
+		Perforce counters table
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.nameval</name>
+	    <type>Keys</type>
+	    <version>1</version>
+	    <classic_lockseq>3</classic_lockseq>
+	    <peek_lockseq>3</peek_lockseq>
+	    <keying>name</keying>
+	    <desc>
+		A table to store key/value pairs 
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.logger</name>
+	    <type>Logger</type>
+	    <version>0</version>
+	    <classic_lockseq>4</classic_lockseq>
+	    <peek_lockseq>4</peek_lockseq>
+	    <keying>seq</keying>
+	    <desc>
+		Support for 'p4 logger' command. Logs any changes to 
+		changelists and jobs
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.server</name>
+	    <type>Server</type>
+	    <version>1</version>
+	    <classic_lockseq>5</classic_lockseq>
+	    <peek_lockseq>5</peek_lockseq>
+	    <keying>id</keying>
+	    <desc>
+		Perforce server specifications 
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.svrview</name>
+	    <type>SvrView</type>
+	    <version>0</version>
+	    <classic_lockseq>6</classic_lockseq>
+	    <peek_lockseq>6</peek_lockseq>
+	    <keying>id, type, seq</keying>
+	    <desc>
+		View data for servers specifications
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.remote</name>
+	    <type>Remote</type>
+	    <version>0</version>
+	    <classic_lockseq>7</classic_lockseq>
+	    <peek_lockseq>7</peek_lockseq>
+	    <keying>id</keying>
+	    <desc>
+		Perforce remote specifications 
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.rmtview</name>
+	    <type>RmtView</type>
+	    <version>0</version>
+	    <classic_lockseq>8</classic_lockseq>
+	    <peek_lockseq>8</peek_lockseq>
+	    <keying>id, seq</keying>
+	    <desc>
+		View data for remote specifications
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.stash</name>
+	    <type>Stash</type>
+	    <version>0</version>
+	    <classic_lockseq>9</classic_lockseq>
+	    <peek_lockseq>9</peek_lockseq>
+	    <keying>client, stream, type, seq</keying>
+	    <desc>
+		Perforce stash data
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.user.rp</name>
+	    <type>User</type>
+	    <version>7</version>
+	    <classic_lockseq>10</classic_lockseq>
+	    <peek_lockseq>10</peek_lockseq>
+	    <keying>user</keying>
+	    <desc>
+		 Used by replica server's to store login information
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.user</name>
+	    <type>User</type>
+	    <version>7</version>
+	    <classic_lockseq>11</classic_lockseq>
+	    <peek_lockseq>11</peek_lockseq>
+	    <keying>user</keying>
+	    <desc>Perforce users</desc>
+	</table>
+
+	<table>
+	    <name>db.group</name>
+	    <type>Group</type>
+	    <version>8</version>
+	    <classic_lockseq>12</classic_lockseq>
+	    <peek_lockseq>12</peek_lockseq>
+	    <keying>user, group</keying>
+	    <desc>Groups of Perforce users</desc>
+	</table>
+
+	<table>
+	    <name>db.groupx</name>
+	    <type>GroupX</type>
+	    <version>0</version>
+	    <classic_lockseq>13</classic_lockseq>
+	    <peek_lockseq>13</peek_lockseq>
+	    <keying>group</keying>
+	    <desc>Contains per-group data to support Perforce group membership controlled by AD/LDAP group membership</desc>
+	</table>
+
+	<table>
+	    <name>db.depot</name>
+	    <type>Depot</type>
+	    <version>1</version>
+	    <classic_lockseq>14</classic_lockseq>
+	    <peek_lockseq>14</peek_lockseq>
+	    <keying>name</keying>
+	    <desc>Perforce depots</desc>
+	</table>
+
+	<table>
+        <name>db.stream</name>
+        <type>Stream</type>
+        <version>1</version>
+        <classic_lockseq>15</classic_lockseq>
+        <peek_lockseq>15</peek_lockseq>
+        <keying>stream</keying>
+        <desc>
+            Perforce streams
+        </desc>
+        </table>
+
+	<table>
+	    <name>db.domain</name>
+	    <type>Domain</type>
+	    <version>6</version>
+	    <classic_lockseq>16</classic_lockseq>
+	    <peek_lockseq>16</peek_lockseq>
+	    <keying>name</keying>
+	    <desc>
+		Domains: depots, clients, labels, branches, streams, and typemap
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.template</name>
+	    <type>Template</type>
+	    <version>1</version>
+	    <classic_lockseq>17</classic_lockseq>
+	    <peek_lockseq>17</peek_lockseq>
+	    <keying>name, change, sequence</keying>
+	    <desc>
+		Streams templates
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.view.rp</name>
+	    <type>View</type>
+	    <version>1</version>
+	    <classic_lockseq>18</classic_lockseq>
+	    <peek_lockseq>18</peek_lockseq>
+	    <keying>name seq</keying>
+	    <desc>
+		Contains views for clients of build-server replicas
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.view</name>
+	    <type>View</type>
+	    <version>1</version>
+	    <classic_lockseq>19</classic_lockseq>
+	    <peek_lockseq>19</peek_lockseq>
+	    <keying>name, seq</keying>
+	    <desc>
+		Contains views for domains
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.review</name>
+	    <type>Review</type>
+	    <version>1</version>
+	    <classic_lockseq>20</classic_lockseq>
+	    <peek_lockseq>20</peek_lockseq>
+	    <keying>user, seq</keying>
+	    <desc>
+		Contains user's review mappings
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.integed</name>
+	    <type>Integed</type>
+	    <version>0</version>
+	    <classic_lockseq>21</classic_lockseq>
+	    <peek_lockseq>24</peek_lockseq>
+	    <keying>
+		toFile, fromFile, startFromRev, endFromRev, 
+		startToRev, endToRev
+	    </keying>
+	    <desc>
+		Permanent integration records
+	    </desc>
+	    <seeAlso>db.resolve</seeAlso>
+	</table>
+
+	<table>
+	    <name>db.integtx</name>
+	    <type>Integed</type>
+	    <version>0</version>
+	    <classic_lockseq>22</classic_lockseq>
+	    <peek_lockseq>25</peek_lockseq>
+	    <keying>
+		toFile, fromFile, startFromRev, endFromRev, 
+		startToRev, endToRev
+	    </keying>
+	    <desc>
+		Task stream integration records
+	    </desc>
+	    <seeAlso>db.resolve</seeAlso>
+	</table>
+
+	<table>
+	    <name>db.resolve</name>
+	    <type>Resolve</type>
+	    <version>1</version>
+	    <classic_lockseq>23</classic_lockseq>
+	    <peek_lockseq>26</peek_lockseq>
+	    <keying>
+		toFile, fromFile, startFromRev
+	    </keying>
+	    <desc>
+		Pending integration records
+	    </desc>
+	    <seeAlso>db.integed</seeAlso>
+	</table>
+
+	<table>
+	    <name>db.resolvex</name>
+	    <type>Resolve</type>
+	    <version>1</version>
+	    <classic_lockseq>24</classic_lockseq>
+	    <peek_lockseq>27</peek_lockseq>
+	    <keying>
+		toFile, fromFile, startFromRev
+	    </keying>
+	    <desc>
+		Pending integration records for shelved files
+	    </desc>
+	    <seeAlso>db.integed</seeAlso>
+	</table>
+
+	<table>
+	    <name>db.have.rp</name>
+	    <type>Have</type>
+	    <version>3</version>
+	    <classic_lockseq>25</classic_lockseq>
+	    <peek_lockseq>22</peek_lockseq>
+	    <keying>clientFile depotFile haveRev</keying>
+	    <desc>
+		Contains the 'have-list' for clients of build-server replicas
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.have</name>
+	    <type>Have</type>
+	    <version>3</version>
+	    <classic_lockseq>26</classic_lockseq>
+	    <peek_lockseq>23</peek_lockseq>
+	    <keying>clientFile</keying>
+	    <desc>
+		Contains the 'have-list' for all clients
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.label</name>
+	    <type>Label</type>
+	    <version>0</version>
+	    <classic_lockseq>27</classic_lockseq>
+	    <peek_lockseq>21</peek_lockseq>
+	    <keying>name, depotFile</keying>
+	    <desc>
+		Lists the revisions of files in labels
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.locks</name>
+	    <type>Locks</type>
+	    <version>2</version>
+	    <classic_lockseq>28</classic_lockseq>
+	    <peek_lockseq>39</peek_lockseq>
+	    <keying>depotFile, client</keying>
+	    <desc>Locked/Unlocked files</desc>
+	</table>
+
+	<table>
+	    <name>db.excl</name>
+	    <type>ExclusiveLock</type>
+	    <version>1</version>
+	    <classic_lockseq>29</classic_lockseq>
+	    <peek_lockseq>42</peek_lockseq>
+	    <keying>depotFile</keying>
+	    <desc>Exclusively locked files -  enables coordinated file locking in commit/edge server environments </desc>
+	</table>
+
+	<table>
+	    <name>db.archmap</name>
+	    <type>ArchMap</type>
+	    <version>0</version>
+	    <classic_lockseq>30</classic_lockseq>
+	    <peek_lockseq>28</peek_lockseq>
+	    <keying>lbrFile, depotFile</keying>
+	    <desc>
+		Mappings entries for lazy-copies
+	    </desc>
+	    <note>
+		Supercedes db.archive
+	    </note>
+	</table>
+
+	<table>
+	    <name>db.rev</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>31</classic_lockseq>
+	    <peek_lockseq>37</peek_lockseq>
+	    <keying>depotFile, depotRev</keying>
+	    <desc>
+		Revision records
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.revtx</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>32</classic_lockseq>
+	    <peek_lockseq>38</peek_lockseq>
+	    <keying>depotFile, depotRev</keying>
+	    <desc>
+		Task stream revision records
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.revcx</name>
+	    <type>RevCx</type>
+	    <version>0</version>
+	    <classic_lockseq>33</classic_lockseq>
+	    <peek_lockseq>36</peek_lockseq>
+	    <keying>change, depotFile</keying>
+	    <desc>
+		Secondary index of db.rev
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.revdx</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>34</classic_lockseq>
+	    <peek_lockseq>29</peek_lockseq>
+	    <keying>depotFile</keying>
+	    <desc>
+		Revision records for revisions deleted at the head revision
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.revhx</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>35</classic_lockseq>
+	    <peek_lockseq>30</peek_lockseq>
+	    <keying>depotFile</keying>
+	    <desc>
+		Revision records for revisions NOT deleted at the head revision
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.revpx</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>36</classic_lockseq>
+	    <peek_lockseq>31</peek_lockseq>
+	    <keying>depotFile, depotRev</keying>
+	    <desc>
+		Pending revision records 
+	    </desc>
+	    <note>
+		Only populated during content trigger execution to allow 
+		triggers access to the revisions being submitted.
+	    </note>
+	</table>
+
+	<table>
+	    <name>db.revsx</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>37</classic_lockseq>
+	    <peek_lockseq>32</peek_lockseq>
+	    <keying>depotFile, depotRev</keying>
+	    <desc>
+		Revision records for spec depot files
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.revsh</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>38</classic_lockseq>
+	    <peek_lockseq>33</peek_lockseq>
+	    <keying>depotFile, depotRev, type, action, change</keying>
+	    <desc>
+		Revision records for shelved files
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.revbx</name>
+        <type>Rev</type>
+        <version>9</version>
+        <classic_lockseq>39</classic_lockseq>
+        <peek_lockseq>34</peek_lockseq>
+        <keying>depotFile, depotRev</keying>
+        <desc>
+        Revision records for archived files
+        </desc>
+	</table>
+
+	<table>
+	    <name>db.revux</name>
+	    <type>Rev</type>
+	    <version>9</version>
+	    <classic_lockseq>40</classic_lockseq>
+	    <peek_lockseq>35</peek_lockseq>
+	    <keying>depotFile</keying>
+	    <desc>
+		Revision records for unload depot files
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.working</name>
+	    <type>Working</type>
+	    <version>10</version>
+	    <classic_lockseq>41</classic_lockseq>
+	    <peek_lockseq>40</peek_lockseq>
+	    <keying>clientFile</keying>
+	    <desc>
+		Records for work in progress
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.workingx</name>
+	    <type>Working</type>
+	    <version>10</version>
+	    <classic_lockseq>42</classic_lockseq>
+	    <peek_lockseq>41</peek_lockseq>
+	    <keying>clientFile</keying>
+	    <desc>
+		Records for shelved open files
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.traits</name>
+	    <type>Trait</type>
+	    <version>0</version>
+	    <classic_lockseq>43</classic_lockseq>
+	    <peek_lockseq>43</peek_lockseq>
+	    <keying>traitLot, name</keying>
+	    <desc>
+		Attributes associated with file revisions
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.trigger</name>
+	    <type>Trigger</type>
+	    <version>3</version>
+	    <classic_lockseq>44</classic_lockseq>
+	    <peek_lockseq>44</peek_lockseq>
+	    <keying>seq</keying>
+	    <desc>
+		Trigger specifications
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.change</name>
+	    <type>Change</type>
+	    <version>2</version>
+	    <classic_lockseq>45</classic_lockseq>
+	    <peek_lockseq>45</peek_lockseq>
+	    <keying>change</keying>
+	    <desc>
+		Changelists
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.changex</name>
+	    <type>Change</type>
+	    <version>2</version>
+	    <classic_lockseq>46</classic_lockseq>
+	    <peek_lockseq>46</peek_lockseq>
+	    <keying>change</keying>
+	    <desc>
+		Subset of db.change - records for pending changelists only 
+	    </desc>
+	    <note>contains records for pending changelists only.</note>
+	</table>
+
+	<table>
+	    <name>db.desc</name>
+	    <type>Desc</type>
+	    <version>0</version>
+	    <classic_lockseq>47</classic_lockseq>
+	    <peek_lockseq>47</peek_lockseq>
+	    <keying>descKey</keying>
+	    <desc>
+		Change descriptions
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.job</name>
+	    <type>Job</type>
+	    <version>0</version>
+	    <classic_lockseq>48</classic_lockseq>
+	    <peek_lockseq>48</peek_lockseq>
+	    <keying>job</keying>
+	    <desc>
+		Job records
+	    </desc>
+	    <seeAlso>db.bodtext</seeAlso>
+	</table>
+
+	<table>
+	    <name>db.fix</name>
+	    <type>Fix</type>
+	    <version>1</version>
+	    <classic_lockseq>49</classic_lockseq>
+	    <peek_lockseq>49</peek_lockseq>
+	    <keying>job, change</keying>
+	    <desc>
+		Fix records - indexed by job
+	    </desc>
+	    <seeAlso>db.fixrev</seeAlso>
+	</table>
+
+	<table>
+	    <name>db.fixrev</name>
+	    <type>Fix</type>
+	    <version>1</version>
+	    <classic_lockseq>50</classic_lockseq>
+	    <peek_lockseq>50</peek_lockseq>
+	    <keying>change, job</keying>
+	    <desc>
+		Fix records - indexed by change 
+	    </desc>
+	    <seeAlso>db.fix</seeAlso>
+	</table>
+
+	<table>
+	    <name>db.bodtext</name>
+	    <type>BodyText</type>
+	    <version>1</version>
+	    <classic_lockseq>51</classic_lockseq>
+	    <peek_lockseq>51</peek_lockseq>
+	    <keying>key, attr</keying>
+	    <desc>
+		Job data for job attributes
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.ixtext</name>
+	    <type>IndexText</type>
+	    <version>0</version>
+	    <classic_lockseq>52</classic_lockseq>
+	    <peek_lockseq>52</peek_lockseq>
+	    <keying>word, attr, value</keying>
+	    <desc>
+		Indexing data for generic and job attributes
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.uxtext</name>
+	    <type>IndexText</type>
+	    <version>0</version>
+	    <classic_lockseq>53</classic_lockseq>
+	    <peek_lockseq>53</peek_lockseq>
+	    <keying>word, attr, value</keying>
+	    <desc>
+		Indexing data for Swarm
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.protect</name>
+	    <type>Protect</type>
+	    <version>4</version>
+	    <classic_lockseq>54</classic_lockseq>
+	    <peek_lockseq>54</peek_lockseq>
+	    <keying>seq</keying>
+	    <desc>
+		The protections table
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.property</name>
+	    <type>Property</type>
+	    <version>0</version>
+	    <classic_lockseq>55</classic_lockseq>
+	    <peek_lockseq>55</peek_lockseq>
+	    <keying>name, seq, type, scope</keying>
+	    <desc>
+		Properties
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.message</name>
+	    <type>Message</type>
+	    <version>0</version>
+	    <classic_lockseq>56</classic_lockseq>
+	    <peek_lockseq>56</peek_lockseq>
+	    <keying>language, id</keying>
+	    <desc>
+		System messages
+	    </desc>
+	</table>
+
+	<table>
+	    <name>db.sendq</name>
+	    <type>SendQ</type>
+	    <version>1</version>
+	    <classic_lockseq>57</classic_lockseq>
+	    <peek_lockseq>57</peek_lockseq>
+	    <keying>taskid, seq</keying>
+	    <desc>
+		Parallel file transmission work queue 
+	    </desc>
+	</table>
+
+	<table>
+		<name>db.jnlack</name>
+		<type>JnlAck</type>
+		<version>0</version>
+		<classic_lockseq>58</classic_lockseq>
+		<peek_lockseq>58</peek_lockseq>
+		<keying>id</keying>
+		<desc>
+		Tracks journal positions of all standby servers
+		</desc>
+	</table>
+
+	<table>
+	    <name>db.monitor</name>
+	    <type>Monitor</type>
+	    <version>2</version>
+	    <classic_lockseq>59</classic_lockseq>
+	    <peek_lockseq>59</peek_lockseq>
+	    <keying>id</keying>
+	    <desc>
+		Perforce process information 
+	    </desc>
+	</table>
+
+	<table>
+	    <name>rdb.lbr</name>
+	    <type>ReplicaArchiveTransfer</type>
+	    <desc>
+		Replica server pending archive transfer table 
+	    </desc>
+	</table>
+
+	<table>
+	    <name>tiny.db</name>
+	    <type>TinyDb</type>
+	    <keying>fileAndRev</keying>
+	    <desc>
+		Records revision and content data for files using the +T file type modifier
+	    </desc>
+	</table>
+    </tables>
+
+    <recordtypes>
+
+	<!-- Record type definitions go here -->
+
+	<record name="Archive">
+	    <column>
+		<name>lbrFile</name>
+		<type>File</type>
+		<desc>
+		    Specifies the location in the librarian's archives where
+		    the revision may be found
+		</desc>
+	    </column>
+
+	    <column>
+		<name>lbrRev</name>
+		<type>String</type>
+		<desc>Revision in the librarian's archives</desc>
+	    </column>
+
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>Name of the file in the depot</desc>
+	    </column>
+
+	    <column>
+		<name>depotRev</name>
+		<type>Rev</type>
+		<desc>Name of the file in the depot</desc>
+	    </column>
+
+	    <column>
+		<name>lbrType</name>
+		<type>FileType</type>
+		<desc>File type for librarian's purposes</desc>
+	    </column>
+	</record>
+
+	<record name="ArchMap">
+	    <column>
+		<name>lbrFile</name>
+		<type>File</type>
+		<desc>
+		    Paths in the librarian namespace that recieve lazy
+		    copies.
+		</desc>
+	    </column>
+
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+		    Paths in the depot namespace that provide lazy copies.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="BodyDate">
+	    <column>
+		<name>key</name>
+		<type>String</type>
+		<desc>
+		    The job to which this attribute belongs
+		</desc>
+	    </column>
+	    <column>
+		<name>attr</name>
+		<type>Int</type>
+		<desc>
+		    The attribute number (from the jobspec) of this attribute
+		</desc>
+	    </column>
+	    <column>
+		<name>date</name>
+		<type>Date</type>
+		<desc>
+		    The date value itself
+		</desc>
+	    </column>
+	</record>
+
+	<record name="BodyText">
+	    <column>
+		<name>key</name>
+		<type>String</type>
+		<desc>
+		    The job to which this attribute belongs
+		</desc>
+	    </column>
+	    <column>
+		<name>attr</name>
+		<type>Int</type>
+		<desc>
+		    The attribute number (from the jobspec) of this attribute
+		</desc>
+	    </column>
+	    <column>
+		<name>isBulk</name>
+		<type>Int</type>
+		<desc>
+		    Indicates whether (1), or not (0) the field is a bulk
+		    text field that should not be indexed.
+		</desc>
+	    </column>
+	    <column>
+		<name>text</name>
+		<type>Text</type>
+		<desc>
+		    The attribute value
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Change">
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    The change number
+		</desc>
+	    </column>
+	    <column>
+		<name>descKey</name>
+		<type>Change</type>
+		<desc>
+		    The description key. Normally the same as 'change', but
+		    may differ if a changelist was renumbered on submission.
+		</desc>
+	    </column>
+	    <column>
+		<name>client</name>
+		<type>Domain</type>
+		<desc>
+		    The client from which the change originates
+		</desc>
+	    </column>
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+		    The user who owns the change
+		</desc>
+	    </column>
+	    <column>
+		<name>date</name>
+		<type>Date</type>
+		<desc>
+		    Date and time the changelist was submitted
+		</desc>
+	    </column>
+	    <column>
+		<name>status</name>
+		<type>ChangeStatus</type>
+		<desc>
+		    Status of the change
+		</desc>
+	    </column>
+	    <column>
+		<name>description</name>
+		<type>DescShort</type>
+		<desc>
+		    Short description of the change.
+		</desc>
+	    </column>
+	    <column>
+		<name>root</name>
+		<type>Mapping</type>
+		<desc>
+		    Common path for all files in the changelist
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Config">
+	    <column>
+		<name>sname</name>
+		<type>String</type>
+		<desc>
+		    Server name
+		</desc>
+	    </column>
+	    <column>
+		<name>name</name>
+		<type>String</type>
+		<desc>
+		    Configuration variable name 
+		</desc>
+	    </column>
+	    <column>
+		<name>value</name>
+		<type>Value</type>
+		<desc>
+		    Configuration variable value
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Counters">
+	    <column>
+		<name>name</name>
+		<type>Counter</type>
+		<desc>
+		    Counter name
+		</desc>
+	    </column>
+	    <column>
+		<name>value</name>
+		<type>Value</type>
+		<desc>
+		    Counter value
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Depot">
+	    <column>
+		<name>name</name>
+		<type>Domain</type>
+		<desc>
+		    Depot name
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>DepotType</type>
+		<desc>
+		    Type of depot
+		</desc>
+	    </column>
+	    <column>
+		<name>extra</name>
+		<type>Text</type>
+		<desc>
+		    For remote depots, the P4PORT address of the remote server.
+		    For spec depots, the field contains a suffix to append to 
+		    the filename.
+		</desc>
+	    </column>
+	    <column>
+		<name>map</name>
+		<type>Text</type>
+		<desc>
+		    The depot's map (path translation information).  For local 
+		    depots, this will be a path relative to the root directory.
+		    For remote depots, this will be specified in terms of the 
+		    remote server's namespace.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Desc">
+	    <column>
+		<name>descKey</name>
+		<type>Change</type>
+		<desc>
+		    Original number of the change to which this description
+		    applies. This may differ from the final change number if
+		    the change is renumbered on submission.
+		</desc>
+	    </column>
+	    <column>
+		<name>description</name>
+		<type>Text</type>
+		<desc>
+		    The change description itself
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Domain">
+	    <column>
+		<name>name</name>
+		<type>Domain</type>
+		<desc>
+		    Domain name
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>DomainType</type>
+		<desc>
+		    Type of domain
+		</desc>
+	    </column>
+	    <column>
+		<name>extra</name>
+		<type>Text</type>
+		<desc>
+		    Formerly "host". Associated host or, for labels, revision 
+		    number.
+		</desc>
+	    </column>
+	    <column>
+		<name>mount</name>
+		<type>Text</type>
+		<desc>
+		    The client root
+		</desc>
+	    </column>
+	    <column>
+		<name>mount2</name>
+		<type>Text</type>
+		<desc>
+		    Alternate client root
+		</desc>
+	    </column>
+	    <column>
+		<name>mount3</name>
+		<type>Text</type>
+		<desc>
+		    Alternate client root
+		</desc>
+	    </column>
+	    <column>
+		<name>owner</name>
+		<type>User</type>
+		<desc>
+		    Name of user who owns the domain.
+		</desc>
+	    </column>
+	    <column>
+		<name>updateDate</name>
+		<type>Date</type>
+		<desc>
+		    Date of last update to domain specification.
+		</desc>
+	    </column>
+	    <column>
+		<name>accessDate</name>
+		<type>Date</type>
+		<desc>
+		    Date of last access to domain specification.
+		</desc>
+	    </column>
+	    <column>
+		<name>options</name>
+		<type>DomainOpts</type>
+		<desc>
+		    Options for client, label, and branch domains.
+		</desc>
+	    </column>
+	    <column>
+		<name>description</name>
+		<type>Text</type>
+		<desc>
+		    Description of domain.
+		</desc>
+	    </column>
+	    <column>
+		<name>stream</name>
+		<type>Text</type>
+		<desc>
+		    Associated stream for client records
+		</desc>
+	    </column>
+	    <column>
+		<name>serverid</name>
+		<type>Text</type>
+		<desc>
+		    Associated server ID for client records 
+		</desc>
+	    </column>
+	    <column>
+		<name>partition</name>
+		<type>Int</type>
+		<desc>
+		    Currently unused. Reserved for future use
+		</desc>
+	    </column>
+	</record>
+
+	<record name="ExclusiveLock">
+		<column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+			The file locked
+		</desc>
+		</column>
+		<column>
+		<name>client</name>
+		<type>Domain</type>
+		<desc>
+			The client for which the file is locked
+		</desc>
+		</column>
+		<column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+			The user for which the file is locked
+		</desc>
+		</column>
+	</record>
+		
+	<record name="Fix">
+	    <column>
+		<name>job</name>
+		<type>String</type>
+		<desc>
+		    Job name
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    Changelist number
+		</desc>
+	    </column>
+	    <column>
+		<name>date</name>
+		<type>Date</type>
+		<desc>
+		    Date fix was recorded (may differ from date change was
+		    submitted).
+		</desc>
+	    </column>
+	    <column>
+		<name>status</name>
+		<type>FixStatus</type>
+		<desc>
+		    Status of the job
+		</desc>
+	    </column>
+	    <column>
+		<name>client</name>
+		<type>Domain</type>
+		<desc>
+		    The client where the fix originated
+		</desc>
+	    </column>
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+		    The user who fixed the job
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Group">
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+		    User name
+		</desc>
+	    </column>
+	    <column>
+		<name>group</name>
+		<type>User</type>
+		<desc>
+		    Group name
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>UserType</type>
+		<desc>
+		    Type of user in this group.
+		</desc>
+	    </column>
+	    <column>
+		<name>maxResults</name>
+		<type>MaxResults</type>
+		<desc>
+		    MaxResults setting for the group.
+		</desc>
+	    </column>
+	    <column>
+		<name>maxScanRows</name>
+		<type>MaxScanRows</type>
+		<desc>
+		    MaxScanRows setting for the group.
+		</desc>
+	    </column>
+	    <column>
+		<name>maxLockTime</name>
+		<type>MaxLockTime</type>
+		<desc>
+		    MaxLockTime setting for the group.
+		</desc>
+	    </column>
+	    <column>
+		<name>timeout</name>
+		<type>Int</type>
+		<desc>
+		    Length of time (in seconds) a login ticket remains valid.
+		</desc>
+	    </column>
+	    <column>
+		<name>passwordTimeout</name>
+		<type>Int</type>
+		<desc>
+		    Length of time (in seconds) a password remains valid for users in the group.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="GroupX">
+	    <column>
+		<name>group</name>
+		<type>User</type>
+		<desc>
+		    Group name
+		</desc>
+	    </column>
+	    <column>
+		<name>ldapConf</name>
+		<type>String</type>
+		<desc>
+		    The LDAP configuration to use when populating the group's user list from an LDAP query
+		</desc>
+	    </column>
+	    <column>
+		<name>ldapSearchQuery</name>
+		<type>String</type>
+		<desc>
+		    The LDAP query used to identify the members of the group
+		</desc>
+	    </column>
+	    <column>
+		<name>ldapUserAttribute</name>
+		<type>String</type>
+		<desc>
+		    The LDAP attribute that represents the user's username
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Have">
+	    <column>
+		<name>clientFile</name>
+		<type>File</type>
+		<desc>
+		    The file in its location on the client
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+		    The file in the depot
+		</desc>
+	    </column>
+	    <column>
+		<name>haveRev</name>
+		<type>Rev</type>
+		<desc>
+		    The revision synced to the client
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>FileType</type>
+		<desc>
+		    The filetype of the synced revision
+		</desc>
+	    </column>
+	    <column>
+		<name>time</name>
+		<type>Date</type>
+		<desc>
+		    The sync time of the synced revision
+		</desc>
+	    </column>
+	</record>
+
+	<record name="IndexDate">
+	    <column>
+		<name>date</name>
+		<type>Date</type>
+		<desc>
+		    Date value
+		</desc>
+	    </column>
+	    <column>
+		<name>attr</name>
+		<type>Int</type>
+		<desc>
+		    The attribute number (from the jobspec) to which this
+		    date belongs
+		</desc>
+	    </column>
+	    <column>
+		<name>value</name>
+		<type>String</type>
+		<desc>
+		    A job name 
+		</desc>
+	    </column>
+	</record>
+
+	<record name="IndexText">
+	    <column>
+		<name>word</name>
+		<type>String</type>
+		<desc>
+		    The word being indexed
+		</desc>
+	    </column>
+	    <column>
+		<name>attr</name>
+		<type>Int</type>
+		<desc>
+		    The attribute number to which this word belongs. For
+		    job data, the attribute number from the jobspec. 
+		</desc>
+	    </column>
+	    <column>
+		<name>value</name>
+		<type>String</type>
+		<desc>
+		    For job data, a job name. For generic data, the value
+		    of the index keyed by the word.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Integ">
+	    <column>
+		<name>toFile</name>
+		<type>File</type>
+		<desc>
+		    File to which integration is being performed (target).
+		</desc>
+	    </column>
+	    <column>
+		<name>fromFile</name>
+		<type>File</type>
+		<desc>
+		    File from which integration is being performed (source).
+		</desc>
+	    </column>
+	    <column>
+		<name>startFromRev</name>
+		<type>Rev</type>
+		<desc>Starting revision of fromFile</desc>
+	    </column>
+	    <column>
+		<name>endFromRev</name>
+		<type>Rev</type>
+		<desc>
+		    Ending revision of fromFile
+		</desc>
+	    </column>
+	    <column>
+		<name>toRev</name>
+		<type>Rev</type>
+		<desc>
+		    Revision of toFile into which integration is being 
+		    performed.
+		</desc>
+	    </column>
+	    <column>
+		<name>how</name>
+		<type>IntegHow</type>
+		<desc>
+		    Integration method: variations on 
+		    merge/branch/copy/ignore/delete.
+		</desc>
+	    </column>
+	    <column>
+		<name>committed</name>
+		<type>Int</type>
+		<desc>Flag: 0 for pending, 1 for committed.</desc>
+	    </column>
+	    <column>
+		<name>resolved</name>
+		<type>ResolvedStatus</type>
+		<desc>
+		    Resolution method: unresolved, resolved manually, 
+		    or resolved as part of a branch or delete.
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>Changelist associated with the integration.</desc>
+	    </column>
+	</record>
+
+	<record name="Integed">
+	    <column>
+		<name>toFile</name>
+		<type>File</type>
+		<desc>
+		    File to which integration is being performed (target).
+		</desc>
+	    </column>
+	    <column>
+		<name>fromFile</name>
+		<type>File</type>
+		<desc>
+		    File from which integration is being performed (source).
+		</desc>
+	    </column>
+	    <column>
+		<name>startFromRev</name>
+		<type>Rev</type>
+		<desc>Starting revision of fromFile</desc>
+	    </column>
+	    <column>
+		<name>endFromRev</name>
+		<type>Rev</type>
+		<desc>
+		    Ending revision of fromFile 
+		</desc>
+	    </column>
+	    <column>
+		<name>startToRev</name>
+		<type>Rev</type>
+		<desc>
+		    Start revision of toFile into which integration was 
+		    performed.
+		</desc>
+	    </column>
+	    <column>
+		<name>endToRev</name>
+		<type>Rev</type>
+		<desc>
+		    End revision of toFile into which integration was 
+		    performed. Only varies from startToRev for reverse 
+		    integration records.
+		</desc>
+	    </column>
+	    <column>
+		<name>how</name>
+		<type>IntegHow</type>
+		<desc>
+		    Integration method: variations on 
+		    merge/branch/copy/ignore/delete.
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>Changelist associated with the integration.</desc>
+	    </column>
+	</record>
+
+	<record name="JnlAck">
+		<column>
+		<name>serverId</name>
+		<type>Domain</type>
+		<desc>
+			The serverId of the standby for whom this record applies
+		</desc>
+		</column>
+		<column>
+		<name>lastUpdate</name>
+ 		<type>Date</type>
+		<desc>
+			The date and time of last update
+		</desc>
+		</column>
+		<column>
+		<name>serverType</name>
+		<type>ServerServiceType</type>
+		<desc>
+			The server services offered by this standby
+		</desc>
+		</column>
+		<column>
+		<name>persistedJnl</name>
+		<type>Int</type>
+		<desc>
+			The last journal number persisted by this standby
+		</desc>
+		</column>
+		<column>
+		<name>persistedPos</name>
+		<type>Int64</type>
+		<desc>
+			The last journal position persisted by this standby
+		</desc>
+		</column>
+		<column>
+		<name>isAlive</name>
+		<type>Int</type>
+		<desc>
+			1 = alive
+		</desc>
+		</column>
+		<column>
+		<name>appliedJnl</name>
+		<type>Int</type>
+		<desc>
+			The last journal number applied to this standby
+		</desc>
+		</column>
+		<column>
+		<name>appliedPos</name>
+		<type>Int64</type>
+		<desc>
+			The last journal position applied to this standby
+		</desc>
+		</column>
+	</record>
+
+	<record name="Job">
+	    <column>
+		<name>job</name>
+		<type>String</type>
+		<desc>
+		    The job name
+		</desc>
+	    </column>
+	    <column>
+		<name>xuser</name>
+		<type>User</type>
+		<desc>
+		    User name: defunct
+		</desc>
+	    </column>
+	    <column>
+		<name>xdate</name>
+		<type>Date</type>
+		<desc>
+		    The date: defunct
+		</desc>
+	    </column>
+	    <column>
+		<name>xstatus</name>
+		<type>JobStat</type>
+		<desc>
+		    Job status: defunct
+		</desc>
+	    </column>
+	    <column>
+		<name>description</name>
+		<type>DescShort</type>
+		<desc>
+		    Short description
+		</desc>
+	    </column>
+	</record>
+
+	<record name="JobDesc">
+	    <column>
+		<name>xjob</name>
+		<type>String</type>
+		<desc>
+		    The job name
+		</desc>
+	    </column>
+	    <column>
+		<name>xdescription</name>
+		<type>Text</type>
+		<desc>
+		    Jobdescription
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Keys">
+	    <column>
+		<name>name</name>
+		<type>Key</type>
+		<desc>
+		    Key name
+		</desc>
+	    </column>
+	    <column>
+		<name>value</name>
+		<type>Value</type>
+		<desc>
+		    Key value
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Label">
+	    <column>
+		<name>name</name>
+		<type>Domain</type>
+		<desc>Name of the label</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>File name</desc>
+	    </column>
+	    <column>
+		<name>haveRev</name>
+		<type>Rev</type>
+		<desc>The revision of the file in the label</desc>
+	    </column>
+	</record>
+
+	<record name="Locks">
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>File in depot</desc>
+	    </column>
+	    <column>
+		<name>client</name>
+		<type>Domain</type>
+		<desc>Domain (client) in which file is open</desc>
+	    </column>
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>User who presently has the file open</desc>
+	    </column>
+	    <column>
+		<name>action</name>
+		<type>Action</type>
+		<desc>
+		    Action file is open for: add, edit, delete, branch,
+		    integrate, or import
+		</desc>
+	    </column>
+	    <column>
+		<name>isLocked</name>
+		<type>Int</type>
+		<desc>Flag: 0 for unlocked, 1 for locked</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Int</type>
+		<desc>
+		    Changelist in which the revision is open: 0 for the
+		    default changelist
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Logger">
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence number of event
+		</desc>
+	    </column>
+	    <column>
+		<name>key</name>
+		<type>String</type>
+		<desc>
+		    Either the word 'change' or the word 'job'
+		</desc>
+	    </column>
+
+	    <column>
+		<name>attr</name>
+		<type>String</type>
+		<desc>
+		    The number of the change, or name of the job that was 
+		    altered.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Message">
+	    <column>
+		<name>language</name>
+		<type>String</type>
+		<desc>
+		    The language for which this message applies
+		</desc>
+	    </column>
+	    <column>
+		<name>id</name>
+		<type>Int</type>
+		<desc>
+		    The message number
+		</desc>
+	    </column>
+	    <column>
+		<name>message</name>
+		<type>String</type>
+		<desc>
+		    The message text
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Monitor">
+	    <column>
+		<name>id</name>
+		<type>Int</type>
+		<desc>
+		    Thread/process id
+		</desc>
+	    </column>
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+		    Username of the user running the command
+		</desc>
+	    </column>
+	    <column>
+		<name>function</name>
+		<type>String</type>
+		<desc>
+		    The command being executed.
+		</desc>
+	    </column>
+	    <column>
+		<name>args</name>
+		<type>String</type>
+		<desc>
+		    Arguments passed to the command
+		</desc>
+	    </column>
+	    <column>
+		<name>startDate</name>
+		<type>Date</type>
+		<desc>
+		    The date and time the command started
+		</desc>
+	    </column>
+	    <column>
+		<name>runstate</name>
+		<type>Int</type>
+		<desc>
+		    Flag: 0 for running, 1 for terminated, 2 for paused
+		</desc>
+	    </column>
+	    <column>
+		<name>client</name>
+		<type>Domain</type>
+		<desc>
+		    The client workspace
+		</desc>
+	    </column>
+	    <column>
+		<name>host</name>
+		<type>Text</type>
+		<desc>
+		    The IP address of the client
+		</desc>
+	    </column>
+	    <column>
+		<name>prog</name>
+		<type>Text</type>
+		<desc>
+		    The name (and version) of the client program
+		</desc>
+	    </column>
+		<column>
+		<name>lockInfo</name>
+		<type>Text</type>
+		<desc>
+			Table locking information for command
+		</desc>
+		</column>
+	</record>
+
+	<record name="Property">
+	    <column>
+		<name>name</name>
+		<type>String</type>
+		<desc>
+		    The property name
+		</desc>
+	    </column>
+	    <column>
+		<name>sequence</name>
+		<type>String</type>
+		<desc>
+		    Sequence number of property  
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>Int</type>
+		<desc>
+		    1=user, 2=group; set if '-u | -g' option used with 'p4 property'
+		</desc>
+	    </column>
+	    <column>
+		<name>scope</name>
+		<type>String</type>
+		<desc>
+		    The user or group the property applies to
+		</desc>
+	    </column>
+	    <column>
+		<name>value</name>
+		<type>String</type>
+		<desc>
+		    The property value
+		</desc>
+	    </column>
+	    <column>
+		<name>date</name>
+		<type>String</type>
+		<desc>
+		    The date/time the property was last updated
+		</desc>
+	    </column>
+	    <column>
+		<name>user</name>
+		<type>String</type>
+		<desc>
+		    The user that last modified the property
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Protect">
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence number: for ordering the protections table
+		</desc>
+	    </column>
+	    <column>
+		<name>isGroup</name>
+		<type>Int</type>
+		<desc>
+		    Flag: 0 for a per-user setting, 1 for a per-group setting.
+		</desc>
+	    </column>
+	    <column>
+		<name>user</name>
+		<type>UserWild</type>
+		<desc>
+		    User(s), or Group(s) for whom this record applies.
+		</desc>
+	    </column>
+	    <column>
+		<name>host</name>
+		<type>DomainWild</type>
+		<desc>
+		    Domain(s) (IP addresses) for which this record applies.
+		</desc>
+	    </column>
+	    <column>
+		<name>perm</name>
+		<type>Perm</type>
+		<desc>
+		    Permissions to be granted/revoked
+		</desc>
+	    </column>
+	    <column>
+		<name>mapFlag</name>
+		<type>MapFlag</type>
+		<desc>
+		    Flag: Map the files in or out?
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>Mapping</type>
+		<desc>
+		    Files to be mapped in or out.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Remote">
+	    <column>
+		<name>id</name>
+		<type>RemoteID</type>
+		<desc>
+		    The remote identifier
+		</desc>
+	    </column>
+	    <column>
+		<name>owner</name>
+		<type>User</type>
+		<desc>
+		    The user who creatd this remote
+		</desc>
+	    </column>
+	    <column>
+		<name>options</name>
+		<type>Int</type>
+		<desc>
+		    Remote options: 0: unlocked/nocompress, 1: locked/nocompress, 2: unlocked/compress, 4: locked/compress
+		</desc>
+	    </column>
+	    <column>
+		<name>address</name>
+		<type>Text</type>
+		<desc>
+		    The P4PORT used by the remote server
+		</desc>
+	    </column>
+	    <column>
+		<name>desc</name>
+		<type>Text</type>
+		<desc>
+		    Description of the remote server
+		</desc>
+	    </column>
+		<column>
+		<name>update</name>
+		<type>Date</type>
+		<desc>
+			The date this specification was last modfied
+		</desc>
+		</column>
+		<column>
+		<name>access</name>
+		<type>Date</type>
+		<desc>
+			The date of the last push/fetch on this remote
+		</desc>
+		</column>
+		<column>
+		<name>fetch</name>
+		<type>Change</type>
+		<desc>
+			The last changelist that was fetched
+		</desc>
+		</column>
+		<column>
+		<name>push</name>
+		<type>Change</type>
+		<desc>
+			The last changelist that was pushed
+		</desc>
+		</column>
+	</record>
+
+	<record name="ReplicaArchiveTransfer">
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+		    The file name
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrRev</name>
+		<type>String</type>
+		<desc>
+		    The librarian revision
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>String</type>
+		<desc>
+		    The file type of the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>status</name>
+		<type>PullStatus</type>
+		<desc>
+		    The status of the archive transfer
+		</desc>
+	    </column>
+	    <column>
+		<name>action</name>
+		<type>Action</type>
+		<desc>
+		    The action that created the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>digest</name>
+		<type>Digest</type>
+		<desc>
+		    The MD5 digest of the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>size</name>
+		<type>FileSize</type>
+		<desc>
+		    The size of the file in bytes
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    The changelist that created the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrDate</name>
+		<type>Date</type>
+		<desc>
+		    Librarian date 
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrModTime</name>
+		<type>Date</type>
+		<desc>
+		    Librarian modtime
+		</desc>
+	    </column>
+	    <column>
+		<name>pid</name>
+		<type>Int</type>
+		<desc>
+		    The process id (PID) of the pull process
+		</desc>
+	    </column>
+	    <column>
+		<name>requestTime</name>
+		<type>Date</type>
+		<desc>
+		   Pull request time
+		</desc>
+	    </column>
+	    <column>
+		<name>retries</name>
+		<type>Int</type>
+		<desc>
+		    The number of retries that have occurred after transfer error
+		</desc>
+	    </column>
+	    <column>
+		<name>transferError</name>
+		<type>String</type>
+		<desc>
+		    The error message for a failed transfer
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Resolve">
+	    <column>
+		<name>toFile</name>
+		<type>File</type>
+		<desc>
+		    File to which integration is being performed (target).
+		</desc>
+	    </column>
+	    <column>
+		<name>fromFile</name>
+		<type>File</type>
+		<desc>
+		    File from which integration is being performed (source).
+		</desc>
+	    </column>
+	    <column>
+		<name>startFromRev</name>
+		<type>Rev</type>
+		<desc>Starting revision of fromFile</desc>
+	    </column>
+	    <column>
+		<name>endFromRev</name>
+		<type>Rev</type>
+		<desc>
+		    Ending revision of fromFile
+		</desc>
+	    </column>
+	    <column>
+		<name>startToRev</name>
+		<type>Rev</type>
+		<desc>
+		    Start revision of toFile into which integration was 
+		    performed.
+		</desc>
+	    </column>
+	    <column>
+		<name>endToRev</name>
+		<type>Rev</type>
+		<desc>
+		    End revision of toFile into which integration was 
+		    performed. Only varies from startToRev for reverse 
+		    integration records.
+		</desc>
+	    </column>
+	    <column>
+		<name>how</name>
+		<type>IntegHow</type>
+		<desc>
+		    Integration method: variations on 
+		    merge/branch/copy/ignore/delete.
+		</desc>
+	    </column>
+	    <column>
+		<name>state</name>
+		<type>ResolveState</type>
+		<desc>How the user performed the resolve.</desc>
+	    </column>
+	    <column>
+		<name>baseFile</name>
+		<type>File</type>
+		<desc>File used as the base for merging.</desc>
+	    </column>
+	    <column>
+		<name>baseRev</name>
+		<type>Rev</type>
+		<desc>Revision of baseFile used as the merge base.</desc>
+	    </column>
+	</record>
+
+	<record name="Rev">
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+		    The file name
+		</desc>
+	    </column>
+	    <column>
+		<name>depotRev</name>
+		<type>Rev</type>
+		<desc>
+		    The revision number
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>FileType</type>
+		<desc>
+		    The file type of the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>action</name>
+		<type>Action</type>
+		<desc>
+		    The action that created the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    The changelist that created the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>date</name>
+		<type>Date</type>
+		<desc>
+		    The date/time the changelist that created the revision
+		    was submitted
+		</desc>
+	    </column>
+	    <column>
+		<name>modTime</name>
+		<type>Date</type>
+		<desc>
+		    The timestamp on the file in the user's workspace when
+		    the revision was submitted.
+		</desc>
+	    </column>
+	    <column>
+		<name>digest</name>
+		<type>Digest</type>
+		<desc>
+		    The MD5 digest of the revision.
+		</desc>
+	    </column>
+	    <column>
+		<name>size</name>
+		<type>FileSize</type>
+		<desc>
+		    The size of the file in bytes
+		</desc>
+	    </column>
+	    <column>
+		<name>traitLot</name>
+		<type>TraitLot</type>
+		<desc>
+		    Group of traits (attributes) associated with the revision.
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrIsLazy</name>
+		<type>RevStatus</type>
+		<desc>
+		    Specifies whether or not the revision gets its content from 
+	  	    another file (lazy copy), data about promotion of revision
+	 	    content from task streams, and data about revision charset 
+            information.
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrFile</name>
+		<type>File</type>
+		<desc>
+		    Filename for librarian's purposes.  Specifies location in 
+		    the archives where the file containing the revision may
+		    be found. Usually the same as depotFile, but differs in
+		    the case of branched/copied revisions.
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrRev</name>
+		<type>String</type>
+		<desc>
+		    The revision of lbrFile that contains the revision content.
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrType</name>
+		<type>FileType</type>
+		<desc>
+		    The file type of the librarian revision. Usually the same
+		    as type, but differs in the case of branched/copied 
+		    revisions.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="RevCx">
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    The changelist that created the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+		    The file name
+		</desc>
+	    </column>
+	    <column>
+		<name>depotRev</name>
+		<type>Rev</type>
+		<desc>
+		    The revision number
+		</desc>
+	    </column>
+	    <column>
+		<name>action</name>
+		<type>Action</type>
+		<desc>
+		    The action that created the revision
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Review">
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+		    A user name
+		</desc>
+	    </column>
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence number: used for ordering multi-line views
+		</desc>
+	    </column>
+	    <column>
+		<name>mapFlag</name>
+		<type>MapFlag</type>
+		<desc>
+		    Type of mapping
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>Mapping</type>
+		<desc>
+		    The files to be reviewed
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>Reviewer</type>
+		<desc>
+		    Type of reviewer
+		</desc>
+	    </column>
+	</record>
+
+	<record name="RmtView">
+	    <column>
+		<name>id</name>
+		<type>RemoteID</type>
+		<desc>
+		    Remote name
+		</desc>
+	    </column>
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence number: for ordering multi-line views
+		</desc>
+	    </column>
+	    <column>
+		<name>mapFlag</name>
+		<type>MapFlag</type>
+		<desc>
+		    Type of mapping
+		</desc>
+	    </column>
+	    <column>
+		<name>localFile</name>
+		<type>Mapping</type>
+		<desc>
+		    Local file 
+		</desc>
+	    </column>
+	    <column>
+		<name>remoteFile</name>
+		<type>Mapping</type>
+		<desc>
+		    Remote file
+		</desc>
+	    </column>
+	</record>
+
+	<record name="SendQ">
+	    <column>
+		<name>taskID</name>
+		<type>Int</type>
+		<desc>
+		    The process id (PID) of the sync
+		</desc>
+	    </column>
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence number
+		</desc>
+	    </column>
+	    <column>
+		<name>handle</name>
+		<type>Text</type>
+		<desc>
+		    Handle
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+		    The file in the depot
+		</desc>
+	    </column>
+	    <column>
+		<name>clientFile</name>
+		<type>File</type>
+		<desc>
+		    The file in its location on the client
+		</desc>
+	    </column>
+	    <column>
+		<name>haveRev</name>
+		<type>Rev</type>
+		<desc>
+		    Have revision
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>FileType</type>
+		<desc>
+		    File type
+		</desc>
+	    </column>
+	    <column>
+		<name>modtime</name>
+		<type>Date</type>
+		<desc>
+		    Modification time
+		</desc>
+	    </column>
+	    <column>
+		<name>digest</name>
+		<type>Digest</type>
+		<desc>
+		    The MD5 digest of the revision
+		</desc>
+	    </column>
+	    <column>
+		<name>size</name>
+		<type>FileSize</type>
+		<desc>
+		    The size of the file in bytes
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrFile</name>
+		<type>File</type>
+		<desc>
+		    Librarian filename
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrRev</name>
+		<type>LbrRev</type>
+		<desc>
+		    The revision of lbrFile that contains the revision content
+		</desc>
+	    </column>
+	    <column>
+		<name>lbrType</name>
+		<type>FileType</type>
+		<desc>
+		    The file type of the librarian revision
+		</desc>
+	    </column>
+	    <column>
+		<name>flags</name>
+		<type>Int</type>
+		<desc>
+		    Flags
+		</desc>
+	    </column>
+		<column>
+		<name>clientType</name>
+		<type>FileType</type>
+		<desc>
+			The client file type of the revision
+		</desc>
+		</column>
+	</record>
+
+	<record name="Server">
+	    <column>
+		<name>id</name>
+		<type>Text</type>
+		<desc>
+		    The server identifier
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>ServerType</type>
+		<desc>
+		    The server type: server/broker/proxy
+		</desc>
+	    </column>
+	    <column>
+		<name>name</name>
+		<type>Text</type>
+		<desc>
+		    The P4NAME used by this server 
+		</desc>
+	    </column>
+	    <column>
+		<name>address</name>
+		<type>Text</type>
+		<desc>
+		    The P4PORT used by this server
+		</desc>
+	    </column>
+	    <column>
+		<name>externalAddress</name>
+		<type>Text</type>
+		<desc>
+		    For an edge server, this optional field contains its external address for connections from the commit server. This field is required for federated parallel submit.
+		</desc>
+	    </column>
+	    <column>
+		<name>services</name>
+		<type>ServerServiceType</type>
+		<desc>
+		    Service provided by this server
+		</desc>
+	    </column>
+	    <column>
+		<name>desc</name>
+		<type>Text</type>
+		<desc>
+		    Server description
+		</desc>
+	    </column>
+		<column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+			The service user used by this server
+		</desc>
+		</column>
+	</record>
+
+	<record name="Stash">
+		<column>
+		<name>client</name>
+		<type>Domain</type>
+		<desc>
+			Client the stash refers to 
+		</desc>
+		</column>
+		<column>
+		<name>stream</name>
+		<type>Domain</type>
+		<desc>
+			Stream the stash refers to
+		</desc>
+		</column>
+		<column>
+		<name>type</name>
+		<type>StashType</type>
+		<desc>
+			Stash type
+		</desc>
+		</column>
+		<column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+			Sequence number
+		</desc>
+		</column>
+		<column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+			Stash change number
+		</desc>
+		</column>
+	</record>
+
+	<record name="Stream">
+	    <column>
+		<name>stream</name>
+		<type>Domain</type>
+		<desc>
+		    Stream name
+		</desc>
+	    </column>
+	    <column>
+		<name>parent</name>
+		<type>Domain</type>
+		<desc>
+		    Parent stream name
+		</desc>
+	    </column>
+	    <column>
+		<name>title</name>
+		<type>Text</type>
+		<desc>
+		    Stream title (alias for the stream name)
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>StreamType</type>
+		<desc>
+		    The type of stream
+		</desc>
+	    </column>
+	    <column>
+		<name>preview</name>
+		<type>Date</type>
+		<desc>
+		    Stream template modification time
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    Last submit to stream 
+		</desc>
+	    </column>
+	    <column>
+		<name>copychg</name>
+		<type>Change</type>
+		<desc>
+		    Parent change at last copy
+		</desc>
+	    </column>
+	    <column>
+		<name>mergechg</name>
+		<type>Change</type>
+		<desc>
+		    Parent change at last merge
+		</desc>
+	    </column>
+	    <column>
+		<name>highchg</name>
+		<type>Change</type>
+		<desc>
+		    Highest change at last merge
+		</desc>
+	    </column>
+	    <column>
+		<name>hash</name>
+		<type>Int</type>
+		<desc>
+		    Hash value of dynamic branch
+		</desc>
+	    </column>
+	    <column>
+		<name>status</name>
+		<type>StreamStatus</type>
+		<desc>
+		    Flow status
+		</desc>
+	    </column>
+	</record>
+
+	<record name="SvrView">
+	    <column>
+		<name>id</name>
+		<type>Text</type>
+		<desc>
+		    Server name
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>SvrViewType</type>
+		<desc>
+		    View type
+		</desc>
+	    </column>
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence (line) number
+		</desc>
+	    </column>
+	    <column>
+		<name>mapFlag</name>
+		<type>MapFlag</type>
+		<desc>
+		    Type of mapping
+		</desc>
+	    </column>
+	    <column>
+		<name>viewFile</name>
+		<type>Mapping</type>
+		<desc>
+		    View file
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Template">
+	    <column>
+		<name>name</name>
+		<type>Domain</type>
+		<desc>
+		    Stream name
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    Versioned at change
+		</desc>
+	    </column>
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence (line) number 
+		</desc>
+	    </column>
+	    <column>
+		<name>parent</name>
+		<type>Domain</type>
+		<desc>
+		    Parent stream name
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>StreamType</type>
+		<desc>
+		    Type of stream
+		</desc>
+	    </column>
+	    <column>
+		<name>path</name>
+		<type>StreamPathType</type>
+		<desc>
+		    Stream path type
+		</desc>
+	    </column>
+	    <column>
+		<name>viewFile</name>
+		<type>Mapping</type>
+		<desc>
+		    View file (left hand side of path)
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>Mapping</type>
+		<desc>
+		    Depot file (right hand side of path)
+		</desc>
+	    </column>
+	    <column>
+		<name>changeMap</name>
+		<type>Change</type>
+		<desc>
+		    Stream 'import' path changelist specifier. The changelist
+			limits in effect for a given client are displayed in a
+	    	read-only client spec field called 'ChangeView'
+		</desc>
+	    </column>
+	</record>
+
+	<record name="TinyDb">
+	    <column>
+		<name>fileAndRev</name>
+		<type>String</type>
+		<desc>
+		    The file name and revision
+		</desc>
+	    </column>
+	    <column>
+		<name>fileContent</name>
+		<type>Octet String</type>
+		<desc>
+		    The (encoded) file content
+		</desc>
+	    </column>
+	</record>
+	
+	<record name="Trait">
+	    <column>
+		<name>traitLot</name>
+		<type>Int</type>
+		<desc>
+		    Indicates a specific collection of traits (referred to 
+		    externally as "attributes".)
+		</desc>
+	    </column>
+	    <column>
+		<name>name</name>
+		<type>String</type>
+		<desc>
+		    Trait (attribute) name
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>TraitType</type>
+		<desc>
+		    Type of trait
+		</desc>
+	    </column>
+	    <column>
+		<name>value</name>
+		<type>Octet String</type>
+		<desc>
+		    The value
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Trigger">
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence number: for ordering the trigger list
+		</desc>
+	    </column>
+	    <column>
+		<name>name</name>
+		<type>String</type>
+		<desc>
+		    Name of the trigger
+		</desc>
+	    </column>
+	    <column>
+		<name>mapFlag</name>
+		<type>MapFlag</type>
+		<desc>
+		    Type of mapping: specifies whether the trigger applies 
+		    to the files or not.
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>Mapping</type>
+		<desc>
+		    The files to apply the trigger to
+		</desc>
+	    </column>
+	    <column>
+		<name>triggerDepotFile</name>
+		<type>File</type>
+		<desc>
+		    Depot path to the trigger
+		</desc>
+	    </column>
+	    <column>
+		<name>trigger</name>
+		<type>Trigger</type>
+		<desc>
+		    Type of trigger
+		</desc>
+	    </column>
+	    <column>
+		<name>action</name>
+		<type>Text</type>
+		<desc>
+		    Command to execute when trigger runs
+		</desc>
+	    </column>
+	</record>
+
+	<record name="User">
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+		    The username
+		</desc>
+	    </column>
+	    <column>
+		<name>email</name>
+		<type>Text</type>
+		<desc>
+		    The user's email address
+		</desc>
+	    </column>
+	    <column>
+		<name>jobView</name>
+		<type>Text</type>
+		<desc>
+		    The user's job view
+		</desc>
+	    </column>
+	    <column>
+		<name>updateDate</name>
+		<type>Date</type>
+		<desc>
+		    The date/time the user record was last updated
+		</desc>
+	    </column>
+	    <column>
+		<name>accessDate</name>
+		<type>Date</type>
+		<desc>
+		    The date/time the user record was last used
+		</desc>
+	    </column>
+	    <column>
+		<name>fullName</name>
+		<type>Text</type>
+		<desc>
+		    The user's full name
+		</desc>
+	    </column>
+	    <column>
+		<name>password</name>
+		<type>Password</type>
+		<desc>
+		    The MD5 hash of the users (encrypted) password
+		</desc>
+	    </column>
+	    <column>
+		<name>strength</name>
+		<type>Strength</type>
+		<desc>
+		    Measure of the strength of the user's password
+		</desc>
+	    </column>
+	    <column>
+		<name>ticket</name>
+		<type>Password</type>
+		<desc>
+		    'p4 login' ticket for this user
+		</desc>
+	    </column>
+	    <column>
+		<name>endDate</name>
+		<type>Date</type>
+		<desc>
+		    Date/time the user's ticket expires
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>UserLevel</type>
+		<desc>
+		    Type of user
+		</desc>
+	    </column>
+	    <column>
+		<name>passDate</name>
+		<type>Date</type>
+		<desc>
+		    Date password was last changed
+		</desc>
+	    </column>
+	    <column>
+		<name>passExpire</name>
+		<type>Date</type>
+		<desc>
+		    Date of password expiration
+		</desc>
+	    </column>
+		<column>
+		<name>attempts</name>
+		<type>Date</type>
+		<desc>
+			Failed login attempts
+		</desc>
+		</column>
+		<column>
+		<name>auth</name>
+		<type>Int</type>
+		<desc>
+			Authentication method for user; 0=perforce, 1=ldap 
+		</desc>
+		</column>
+	</record>
+
+	<record name="View">
+	    <column>
+		<name>name</name>
+		<type>Domain</type>
+		<desc>
+		    Domain name to which this view applies
+		</desc>
+	    </column>
+	    <column>
+		<name>seq</name>
+		<type>Int</type>
+		<desc>
+		    Sequence number: for ordering multi-line views
+		</desc>
+	    </column>
+	    <column>
+		<name>mapFlag</name>
+		<type>MapFlag</type>
+		<desc>
+		    Type of mapping
+		</desc>
+	    </column>
+	    <column>
+		<name>viewFile</name>
+		<type>Mapping</type>
+		<desc>
+		    The right-hand-side of the view. For clients, this is
+		    the client-side, for labels it's the generated label 
+		    view. For branches, it's the target side of the branch
+		    view.
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>Mapping</type>
+		<desc>
+		    The left-hand-side of the view - a mapping to file(s)
+		    in the depot.
+		</desc>
+	    </column>
+	</record>
+
+	<record name="Working">
+	    <column>
+		<name>clientFile</name>
+		<type>File</type>
+		<desc>
+		    File on the client
+		</desc>
+	    </column>
+	    <column>
+		<name>depotFile</name>
+		<type>File</type>
+		<desc>
+		    File in the depot
+		</desc>
+	    </column>
+	    <column>
+		<name>client</name>
+		<type>Domain</type>
+		<desc>
+		    The client the file is opened on
+		</desc>
+	    </column>
+	    <column>
+		<name>user</name>
+		<type>User</type>
+		<desc>
+		    The user who has the file opened
+		</desc>
+	    </column>
+	    <column>
+		<name>haveRev</name>
+		<type>Rev</type>
+		<desc>
+		    Revision presently in user's client workspace
+		</desc>
+	    </column>
+	    <column>
+		<name>workRev</name>
+		<type>Rev</type>
+		<desc>
+		    Working revision; normally identical to the haveRev 
+		</desc>
+	    </column>
+	    <column>
+		<name>isVirtual</name>
+		<type>Int</type>
+		<desc>
+		    Flag: if 1, file was opened with "p4 integ -v".
+		</desc>
+	    </column>
+	    <column>
+		<name>type</name>
+		<type>FileType</type>
+		<desc>
+		    File type
+		</desc>
+	    </column>
+	    <column>
+		<name>action</name>
+		<type>Action</type>
+		<desc>
+		    What the user's doing with the file
+		</desc>
+	    </column>
+	    <column>
+		<name>change</name>
+		<type>Change</type>
+		<desc>
+		    Associated changelist, or zero for the default changelist.
+		</desc>
+	    </column>
+	    <column>
+		<name>modTime</name>
+		<type>Date</type>
+		<desc>
+		    Modification timestamp on the file in the user's workspace.
+		</desc>
+	    </column>
+	    <column>
+		<name>isLocked</name>
+		<type>Int</type>
+		<desc>
+		    Flag: 0 for unlocked, 1 for locked.
+		</desc>
+	    </column>
+	    <column>
+		<name>digest</name>
+		<type>Digest</type>
+		<desc>
+		    MD5 digest of working file.
+		</desc>
+	    </column>
+	    <column>
+		<name>size</name>
+		<type>Int64</type>
+		<desc>
+		    File size
+		</desc>
+	    </column>
+	    <column>
+		<name>traitLot</name>
+		<type>Int</type>
+		<desc>
+		    Group of traits associated with file revision.
+		</desc>
+	    </column>
+	    <column>
+		<name>tampered</name>
+		<type>TamperCheck</type>
+		<desc>
+		    Flag indicating the tamper-state of the file in the
+		    workspace.
+		</desc>
+	    </column>
+	    <column>
+		<name>clntType</name>
+		<type>FileType</type>
+		<desc>
+		    Type of the file in the client workspace. 
+		</desc>
+	    </column>
+	    <column>
+		<name>mFile</name>
+		<type>File</type>
+		<desc>
+		    Moved filename
+		</desc>
+	    </column>
+	    <column>
+		<name>status</name>
+		<type>Int</type>
+		<desc>
+		    Working status
+		</desc>
+	    </column>
+	</record>
+    </recordtypes>
+
+    <datatypes>
+	<!-- datatype definitions go in here. Alpha sort them -->
+
+	<datatype name="Action" type="flag">
+	    <summary>Type of action</summary>
+	    <desc>
+		Revisions are produced by user actions. The Action
+		type defines the available actions and their internal values.
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>add; user adds a file</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>edit; user edits a file</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>delete; user deletes a file</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>branch; add via integration</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>integ; edit via integration</desc>
+	    </values>
+	    <values>
+		<value>5</value>
+		<desc>import; add via remote depot</desc>
+	    </values>
+	    <values>
+		<value>6</value>
+		<desc>purge; purged revision, no longer available</desc>
+	    </values>
+	    <values>
+		<value>7</value>
+		<desc>movefrom; move from another filename</desc>
+	    </values>
+	    <values>
+		<value>8</value>
+		<desc>moveto; move to another filename</desc>
+	    </values>
+	    <values>
+		<value>9</value>
+		<desc>archive; stored in archive depot</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Change" type="integer">
+	    <summary>A changelist number</summary>
+	    <desc>
+		The number of a changelist. The number 0 represents the
+		default pending changelist.
+	    </desc>
+	</datatype>
+
+	<datatype name="ChangeStatus" type="flag">
+	    <summary>The status of a change</summary>
+	    <desc>
+		A integer value representing the status of a change
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>pending</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>submitted</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>shelved</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>restricted, pending</desc>
+	    </values>
+	    <values>
+		<value>5</value>
+		<desc>restricted, submitted</desc>
+	    </values>
+	    <values>
+		<value>6</value>
+		<desc>restricted, shelved</desc>
+	    </values>
+	    <values>
+		<value>18</value>
+		<desc>promoted shelf, public</desc>
+	    </values>
+		<values>
+		<value>22</value>
+		<desc>promoted shelf, restricted</desc>
+	    </values>
+		<values>
+		<value>34</value>
+		<desc>unsubmitted shelf, public</desc>
+	    </values>
+		<values>
+		<value>38</value>
+		<desc>unsubmitted shelf, restricted</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Counter" type="string">
+	    <summary>A counter name</summary>
+	    <desc>
+		A string representing the counter name. Counter names must 
+		contain no spaces, contain no slashes, and be identifiers 
+		(cannot begin with a dash and cannot be all-numeric)
+	    </desc>
+	</datatype>
+
+	<datatype name="Date" type="integer">
+	    <summary>A unix-style date and time</summary>
+	    <desc>
+		A date and time represented as the number of seconds since 
+		the Epoch: 01 January 1970 00:00:00 UTC. This is the same 
+		convention as that used on Unix platforms.
+	    </desc>
+	</datatype>
+
+	<datatype name="DepotType" type="flag">
+	    <summary>Type of Depot</summary>
+	    <desc>
+		The type of a given depot
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>local depot</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>remote depot</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>spec depot</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>stream depot</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>archive depot</desc>
+	    </values>
+	    <values>
+		<value>5</value>
+		<desc>unload depot</desc>
+	    </values>
+	    <values>
+		<value>6</value>
+		<desc>tangent depot</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="DescShort" type="string">
+	    <summary>A short string value</summary>
+	    <desc>
+		The first 31 characters of a Text string
+	    </desc>
+	    <seeAlso>Text</seeAlso>
+	</datatype>
+
+	<datatype name="Digest" type="string">
+	    <summary>An MD5 digest</summary>
+	    <desc>
+		A string containing an MD5 digest.
+	    </desc>
+	</datatype>
+
+	<datatype name="Domain" type="string">
+	    <summary>A domain name</summary>
+	    <desc>
+		A string representing the name of a depot, label, client,
+		branch, typemap, or stream.
+	    </desc>
+	</datatype>
+
+	<datatype name="DomainWild" type="string">
+	    <summary>A string with optional wildcards</summary>
+	    <desc>
+		A string that may contain wildcards - usually an IP address
+		in the protections table.
+	    </desc>
+	</datatype>
+
+	<datatype name="DomainOpts" type="bitmask">
+	    <summary>Options for domains</summary>
+	    <desc>
+		A integer value representing the options for a domain
+	    </desc>
+	    <mask>
+		<name>Domain Flags</name>
+		<desc>Bits used to store client, label, and branch options</desc>
+		<value>0x10EF</value>
+	    </mask>
+	    <values mask="Domain Flags">
+		<value>0x0001</value>
+		<desc>modtime</desc>
+	    </values>
+	    <values mask="Domain Flags">
+		<value>0x0002</value>
+		<desc>clobber</desc>
+	    </values>
+	    <values mask="Domain Flags">
+		<value>0x0004</value>
+		<desc>allwrite</desc>
+	    </values>
+	    <values mask="Domain Flags">
+		<value>0x0008</value>
+		<desc>locked</desc>
+	    </values>
+	    <values mask="Domain Flags">
+		<value>0x0020</value>
+		<desc>compress</desc>
+	    </values>
+	    <values mask="Domain Flags">
+		<value>0x0040</value>
+		<desc>rmdir</desc>
+	    </values>
+	    <values mask="Domain Flags">
+		<value>0x1000</value>
+		<desc>indirect (obsolete since 2004.2)</desc>
+	    </values>
+	    <values mask="Domain Flags">
+		<value>0x8000</value>
+		<desc>autoreload</desc>
+	    </values>
+
+	    <mask>
+		<name>Domain LineEnd</name>
+		<desc>
+		    Bits used to store client line termination settings. 
+		</desc>
+		<value>0x0710</value>
+	    </mask>
+	    <values mask="Domain LineEnd">
+		<value>0x0000</value>
+		<desc>local</desc>
+	    </values>
+	    <values mask="Domain LineEnd">
+		<value>0x0010</value>
+		<desc>unix (LF)</desc>
+	    </values>
+	    <values mask="Domain LineEnd">
+		<value>0x0200</value>
+		<desc>mac (CR)</desc>
+	    </values>
+	    <values mask="Domain LineEnd">
+		<value>0x0300</value>
+		<desc>win (CRLF)</desc>
+	    </values>
+	    <values mask="Domain LineEnd">
+		<value>0x0400</value>
+		<desc>share (LF/CRLF)</desc>
+	    </values>
+
+	    <mask>
+		<name>Domain SubmitMask</name>
+		<desc>
+		    Bits used to store client submit options
+		</desc>
+		<value>0x7000</value>
+	    </mask>
+	    <values mask="Domain SubmitMask">
+		<value>0x1000</value>
+		<desc>Revert unchanged files</desc>
+	    </values>
+	    <values mask="Domain SubmitMask">
+		<value>0x2000</value>
+		<desc>Leave unchanged files</desc>
+	    </values>
+	    <values mask="Domain SubmitMask">
+		<value>0x4000</value>
+		<desc>Submit, and re-open unchanged files</desc>
+	    </values>
+
+	    <mask>
+		<name>Domain StreamMask</name>
+		<desc>
+		    Bits used to store stream options
+		</desc>
+		<value>0x000C</value>
+	    </mask>
+	    <values mask="Domain StreamMask">
+		<value>0x0001</value>
+		<desc>allsubmit or ownersubmit</desc>
+	    </values>
+	    <values mask="Domain StreamMask">
+		<value>0x0002</value>
+		<desc>locked or unlocked</desc>
+	    </values>
+	    <values mask="Domain StreamMask">
+		<value>0x0004</value>
+		<desc>change flows to parent</desc>
+	    </values>
+	    <values mask="Domain StreamMask">
+		<value>0x0008</value>
+		<desc>change flows from parent</desc>
+	    </values>
+	    <values mask="Domain StreamMask">
+		<value>0x0010</value>
+		<desc>mergeany or mergedown</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="DomainType" type="flag">
+	    <summary>A domain type</summary>
+	    <desc>
+		A integer value representing the type of a domain
+	    </desc>
+	    <values>
+		<value>67 (ASCII 'C')</value>
+		<desc>unloaded client</desc>
+	    </values>
+	    <values>
+		<value>76 (ASCII 'L')</value>
+		<desc>unloaded label</desc>
+	    </values>
+	    <values>
+	    <value>83 (ASCII 'S')</value>
+		<desc>unloaded task stream</desc>
+	    </values>
+	    <values>
+		<value>98 (ASCII 'b')</value>
+		<desc>branch</desc>
+	    </values>
+	    <values>
+		<value>99 (ASCII 'c')</value>
+		<desc>client</desc>
+	    </values>
+	    <values>
+		<value>100 (ASCII 'd')</value>
+		<desc>depot</desc>
+	    </values>
+	    <values>
+		<value>108 (ASCII 'l')</value>
+		<desc>label</desc>
+	    </values>
+	    <values>
+		<value>115 (ASCII 's')</value>
+		<desc>stream</desc>
+	    </values>
+	    <values>
+		<value>116 (ASCII 't')</value>
+		<desc>typemap</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="File" type="string">
+	    <summary>A file name</summary>
+	    <desc>A string representing the filename</desc>
+	    <seeAlso>FileType</seeAlso>
+	</datatype>
+
+	<datatype name="FileSize" type="integer">
+	    <summary>A file size</summary>
+	    <desc>
+		A 64-bit integer used to store file sizes. The value -1 is
+		used to represent unknown filesizes.
+	    </desc>
+	</datatype>
+
+	<datatype name="FileType" type="bitmask">
+	    <summary>Type of file</summary>
+	    <desc>
+		The FileType is a bitmask specifying the type and modifiers
+		of a revision from both the client and server points of view.
+		The first 16 bits are used to store the storage type and 
+		modifiers, the next 16 bits are used to store the client 
+		access method and modifiers.
+	    </desc>
+	    <mask>
+		<name>Storage Type</name>
+		<desc>Bits used to store the server's storage type</desc>
+		<value>0x000F</value>
+	    </mask>
+	    <values mask="Storage Type">
+		<value>0x0000</value>
+		<desc>RCS</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0001</value>
+		<desc>Binary</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0002</value>
+		<desc>Tiny</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0003</value>
+		<desc>Compressed</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0004</value>
+		<desc>tempobj (deprecated since 2002.1)</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0005</value>
+		<desc>
+		    Detect type. Used internally when no type is
+		    given by the user.
+		</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0006</value>
+		<desc>
+		    Comressed tempobj (deprecated since 2002.1)
+		</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0007</value>
+		<desc>
+		    Binary access to compressed data. Used internally.
+		</desc>
+	    </values>
+	    <values mask="Storage Type">
+		<value>0x0008</value>
+		<desc>
+		    Stored externally via librarian trigger
+		</desc>
+	    </values>
+
+	    <mask>
+		<name>Storage Mods</name>
+		<desc>
+		    Bits used to store the modifiers to the server's storage 
+		    type
+		</desc>
+		<value>0x00F0</value>
+	    </mask>
+	    <values mask="Storage Mods">
+		<value>0x0010</value>
+		<desc>99.2-style keyword expansion/contraction</desc>
+	    </values>
+	    <values mask="Storage Mods">
+		<value>0x0020</value>
+		<desc>2000.1-style keyword expansion/contraction</desc>
+	    </values>
+	    <values mask="Storage Mods">
+		<value>0x0030</value>
+		<desc>Any type of keyword expansion</desc>
+	    </values>
+	    <values mask="Storage Mods">
+		<value>0x0040</value>
+		<desc>Exclusive open</desc>
+	    </values>
+	    <values mask="Storage Mods">
+		<value>0x0080</value>
+		<desc>New tempobj (+S modifier)</desc>
+	    </values>
+
+	    <mask>
+		<name>Tempobj revisions</name>
+		<desc>
+		    Bits used to store the number of revisions to be stored
+		    for +Sn files.
+		</desc>
+		<value>0x0F00</value>
+	    </mask>
+	    <values mask="Tempobj revisions">
+		<value>0x0000</value>
+		<desc>+S1</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0100</value>
+		<desc>+S2</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0200</value>
+		<desc>+S3</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0300</value>
+		<desc>+S4</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0400</value>
+		<desc>+S5</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0500</value>
+		<desc>+S6</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0600</value>
+		<desc>+S7</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0700</value>
+		<desc>+S8</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0800</value>
+		<desc>+S9</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0900</value>
+		<desc>+S10</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0A00</value>
+		<desc>+S16</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0B00</value>
+		<desc>+S32</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0C00</value>
+		<desc>+S64</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0D00</value>
+		<desc>+S128</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0E00</value>
+		<desc>+S256</desc>
+	    </values>
+	    <values mask="Tempobj revisions">
+		<value>0x0F00</value>
+		<desc>+S512</desc>
+	    </values>
+
+	    <mask>
+		<name>Client Type</name>
+		<desc>
+		    Bits used to store the file type from the client's point
+		    of view. 
+		</desc>
+		<value>0x10D0000</value>
+	    </mask>
+	    <values mask="Client Type">
+		<value>0x0000000</value>
+		<desc>text</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x0010000</value>
+		<desc>binary</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x0020000</value>
+		<desc>executable bit set</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x0040000</value>
+		<desc>symlink</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x0050000</value>
+		<desc>resource fork</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x0080000</value>
+		<desc>unicode</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x0090000</value>
+		<desc>raw text (nocrlf - 99.1)</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x00C0000</value>
+		<desc>apple data + resource file (since 2000.2)</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x00D0000</value>
+		<desc>apple data + resource file (99.2)</desc>
+	    </values>
+	    <values mask="Client Type">
+		<value>0x1000000</value>
+		<desc>Used to support filetype detection</desc>
+	    </values>
+
+	    <mask>
+		<name>Client Mods</name>
+		<desc>
+		    Bits used to store the modifiers applied to the file
+		    on the client. 
+		</desc>
+		<value>0x720000</value>
+	    </mask>
+	    <values mask="Client Mods">
+		<value>0x0100000</value>
+		<desc>writable</desc>
+	    </values>
+	    <values mask="Client Mods">
+		<value>0x0200000</value>
+		<desc>modtime</desc>
+	    </values>
+	    <values mask="Client Mods">
+		<value>0x0400000</value>
+		<desc>uncompress on client</desc>
+	    </values>
+
+	</datatype>
+
+	<datatype name="FixStatus" type="string">
+	    <summary>Status of a fixed job</summary>
+	    <desc>
+		This type is a wrapper around the 'Text' type that handles
+		the pre-2000.1 "closed" default value.
+	    </desc>
+	</datatype>
+
+	<datatype name="Int" type="integer">
+	    <summary>A 32-bit integer</summary>
+	    <desc>A 32-bit integer</desc>
+	</datatype>
+
+	<datatype name="Int8" type="integer">
+	    <summary>An 8-bit integer</summary>
+	    <desc>An 8-bit integer: an unsigned char</desc>
+	</datatype>
+
+	<datatype name="Int64" type="integer">
+	    <summary>A 64-bit integer</summary>
+	    <desc>A 64-bit integer.</desc>
+	</datatype>
+
+	<datatype name="IntegHow" type="flag">
+	    <summary>Integration methods</summary>
+	    <desc>
+		Specifies how an integration was performed. Integrations
+		always come in pairs: the 'forward' and 'reverse' records.
+		As a general rule, the forward records contain the word 
+		'from'; and the reverse records contain the word 'into'.
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>merge from: integration with other changes</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>merge into: reverse merge</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>branch from: integration was branch of file</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>branch into: reverse branch</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>copy from: integration took source file whole</desc>
+	    </values>
+	    <values>
+		<value>5</value>
+		<desc>copy into: reverse take</desc>
+	    </values>
+	    <values>
+		<value>6</value>
+		<desc>ignored: integration ignored source changes</desc>
+	    </values>
+	    <values>
+		<value>7</value>
+		<desc>ignored by: reverse copy</desc>
+	    </values>
+	    <values>
+		<value>8</value>
+		<desc>delete from: integration of delete</desc>
+	    </values>
+	    <values>
+		<value>9</value>
+		<desc>delete into: reverse delete</desc>
+	    </values>
+	    <values>
+		<value>10</value>
+		<desc>
+		    edit into: reverse of integration downgraded to 
+		    edit
+		</desc>
+	    </values>
+	    <values>
+		<value>11</value>
+		<desc>
+		    add into: reverse of branch downgraded to add
+		</desc>
+	    </values>
+	    <values>
+		<value>12</value>
+		<desc>edit from: merge that the user edited</desc>
+	    </values>
+	    <values>
+		<value>13</value>
+		<desc>add from: branch downgraded to add</desc>
+	    </values>
+	    <values>
+		<value>14</value>
+		<desc>moved from: reverse of renamed file</desc>
+	    </values>
+	    <values>
+		<value>15</value>
+		<desc>moved into: file was renamed</desc>
+	    </values>
+	    <values>
+		<value>16</value>
+		<desc>'delete' target rev ignoring non-deleted source</desc>
+	    </values>
+	    <values>
+		<value>17</value>
+		<desc>non-deleted source ignored by 'delete' target rev</desc>
+	    </values>
+	    <values>
+		<value>18</value>
+		<desc>'integrate' target rev ignoring deleted source</desc>
+	    </values>
+	    <values>
+		<value>19</value>
+		<desc>deleted source ignored by 'integrate' target rev</desc>
+	    </values>
+	    <values>
+		<value>20</value>
+		<desc>deleted branch ("branch from")</desc>
+	    </values>
+	    <values>
+		<value>21</value>
+		<desc>deleted branch ("delete into")</desc>
+	    </values>
+
+	    <note>
+		All integration records should have a corresponding 
+		reverse record. The 'branch from' (2) and 'merge from' (0) 
+		records have corresponding "dirty" reverse records for cases 
+		where the target file took more than one change or was 
+		(re)opened for 'edit' or 'add'.
+	    </note>
+	</datatype>
+
+	<datatype name="JobStat" type="flag">
+	    <summary>Job status - defunct</summary>
+	    <desc>
+		Old (pre-98.2) job status values.
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>open</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>closed</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>suspended</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Key" type="string">
+	    <summary>A key name</summary>
+	    <desc>
+		A string representing the key name. Key names must 
+		contain no spaces, contain no slashes, and be identifiers 
+		(cannot begin with a dash and cannot be all-numeric)
+	    </desc>
+	</datatype>
+
+	<datatype name="MapFlag" type="flag">
+	    <summary>Types of mapping</summary>
+	    <desc>
+		Specifies how the files specified by a mapping should be
+		treated
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>mapped-in (the default)</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>mapped-out (mappings that start with '-')</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>overlay (mappings that start with '+')</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>
+		    haveMap (mappings that start with '$'). Used internally
+		    only
+		</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>
+		    changeMap (mappings that start with '@')
+		</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Mapping" type="string">
+	    <summary>A string representing a mapping</summary>
+	    <desc>
+		A Mapping is essentially a file name that may contain
+		wildcards
+	    </desc>
+	</datatype>
+
+	<datatype name="MaxLockTime" type="integer">
+	    <summary>Maximum number of milliseconds to hold locks</summary>
+	    <desc>
+		The number of milliseconds for which a command may hold locks.
+		Commands that take longer than this time period will abort. 
+		The value 0 means 'unlimited'.
+	    </desc>
+	</datatype>
+
+	<datatype name="MaxResults" type="integer">
+	    <summary>Maximum number of results permitted</summary>
+	    <desc>
+		The number of results that commands run by the restricted
+		user are permitted to return. The value 0 means 'unlimited'.
+	    </desc>
+	</datatype>
+
+	<datatype name="MaxScanRows" type="integer">
+	    <summary>Maximum number of records scanned</summary>
+	    <desc>
+		The maximum number of records that the server may read
+		on behalf of the restricted user. The value 0 means 
+		'unlimited'.
+	    </desc>
+	</datatype>
+
+	<datatype name="Octet String" type="string">
+	    <summary>Encoded hex string</summary>
+	    <desc>
+		A variable length encoded hex string. The first octet 
+		stores the length of the string.
+	    </desc>
+	</datatype>
+
+	<datatype name="Password" type="string">
+	    <summary>The MD5 hash of a password</summary>
+	    <desc>
+		The MD5 hash of an encrypted password.
+	    </desc>
+	</datatype>
+
+	<datatype name="Perm" type="bitmask">
+	    <summary>Bitmask of permissions</summary>
+	    <desc>
+		A bitmask of granted permissions
+	    </desc>
+	    <mask>
+		<name>PermTypeBits</name>
+		<desc>Bits used to store granted permissions</desc>
+		<value>0x00FF</value>
+	    </mask>
+	    <values mask="PermTypeBits">
+		<name>None</name>
+		<value>0x0000</value>
+		<desc>none</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>List</name>
+		<value>0x0001</value>
+		<desc>Grants list access</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>Read</name>
+		<value>0x0002</value>
+		<desc>Grants read access</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>Branch</name>
+		<value>0x0004</value>
+		<desc>Grants ability to branch/integ from</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>Open</name>
+		<value>0x0008</value>
+		<desc>Grants open access</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>Write</name>
+		<value>0x0010</value>
+		<desc>Grants write access</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>Review</name>
+		<value>0x0020</value>
+		<desc>Grants review access</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>Admin</name>
+		<value>0x0080</value>
+		<desc>Grants admin access</desc>
+	    </values>
+	    <values mask="PermTypeBits">
+		<name>Super</name>
+		<value>0x0040</value>
+		<desc>Grants super-user access</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="PullStatus" type="flag">
+	    <summary>Archive pull transfer status</summary>
+	    <desc>
+		The status of an archive pull transfer
+	    </desc>
+	    <values>
+		<name>new</name>
+		<value>new</value>
+		<desc>new transfer</desc>
+	    </values>
+	    <values>
+		<name>active</name>
+		<value>active</value>
+		<desc>active transfer</desc>
+	    </values>
+	    <values>
+		<name>done</name>
+		<value>done</value>
+		<desc>completed transfer</desc>
+	    </values>
+	    <values>
+		<name>error</name>
+		<value>error</value>
+		<desc>errored transfer</desc>
+	    </values>
+	    <values>
+		<name>restart</name>
+		<value>restart</value>
+		<desc>restarted transfer</desc>
+	    </values>
+	    <values>
+		<name>cancelled</name>
+		<value>cancelled</value>
+		<desc>cancelled transfer</desc>
+		</values>
+	</datatype>
+
+ 	<datatype name="RemoteID" type="string">
+        <summary>A remote name</summary>
+        <desc>
+        A string representing the name of a remote spec
+        </desc>
+    </datatype>
+
+	<datatype name="ResolveState" type="flag">
+	    <summary>Resolve actions</summary>
+	    <desc>
+		Pending or completed resolve actions.
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>Content resolve</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>Filetype resolve</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>Branch resolve</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>Delete resolve</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>Move resolve</desc>
+	    </values>
+	    <values>
+		<value>5</value>
+		<desc>Attribute resolve</desc>
+	    </values>
+	    <values>
+		<value>6</value>
+		<desc>Charset resolve</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="ResolvedStatus" type="flag">
+	    <summary>Resolve methods (obsolete in 2011.1, replaced by ResolveState)</summary>
+	    <desc>
+		Specifies how the user resolved merge operations.
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>Not yet resolved</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>Resolved manually</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>Resolved automatically as part of a branch</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>Resolved automatically as part of a delete</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>Resolved automatically as part of a move</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Rev" type="integer">
+	    <summary>A revision number</summary>
+	    <desc>
+		The positive integer number of a specific revision of a file. 
+		The number 0 represents '#none'.
+	    </desc>
+	</datatype>
+
+	<datatype name="RevStatus" type="bitmask">
+	    <summary>A revision status</summary>
+	    <desc>
+		 Lazy copy, task stream promotion, and charset status
+	    </desc>
+	    <mask>
+		<name>RevStatusBits</name>
+		<desc>Bits used to store revision status</desc>
+		<value>0x000F</value>
+	    </mask>
+	    <values mask="RevStatusBits">
+                <value>0x0000</value>
+                <desc>single revision with content</desc>
+	    </values>
+	    <values mask="RevStatusBits">
+                <value>0x0001</value>
+                <desc>single revision lazy copied</desc>
+	    </values>
+	    <values mask="RevStatusBits">
+                <value>0x0002</value>
+                <desc>revision task sparse</desc>
+            </values>
+	    <values mask="RevStatusBits">
+                <value>0x0004</value>
+                <desc>revision task branch</desc>
+        </values>
+        <mask>
+        <name>RevCharsetBits</name>
+        <desc>Bits used to store revision charset (high 8 bits). Value shifted right 24 bits before applying mask</desc>
+        <value>0x007F</value>
+        </mask>
+	    <values mask="RevCharsetBits">
+                <value>0</value>
+                <desc>NONE</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>1</value>
+                <desc>UTF_8</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>2</value>
+                <desc>ISO8859_1</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>3</value>
+                <desc>UTF_16</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>4</value>
+                <desc>SHIFTJIS</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>5</value>
+                <desc>EUCJP</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>6</value>
+                <desc>WIN_US_ANSI</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>7</value>
+                <desc>WIN_US_OEM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>8</value>
+                <desc>MACOS_ROMAN</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>9</value>
+                <desc>ISO8859_15</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>10</value>
+                <desc>ISO8859_5</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>11</value>
+                <desc>KOI8_R</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>12</value>
+                <desc>WIN_CP_1251</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>13</value>
+                <desc>UTF_16_LE</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>14</value>
+                <desc>UTF_16_BE</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>15</value>
+                <desc>UTF_16_LE_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>16</value>
+                <desc>UTF_16_BE_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>17</value>
+                <desc>UTF_16_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>18</value>
+                <desc>UTF_8_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>19</value>
+                <desc>UTF_32</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>20</value>
+                <desc>UTF_32_LE</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>21</value>
+                <desc>UTF_32_BE</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>22</value>
+                <desc>UTF_32_LE_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>23</value>
+                <desc>UTF_32_BE_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>24</value>
+                <desc>UTF_32_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>25</value>
+                <desc>UTF_8_UNCHECKED</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>26</value>
+                <desc>UTF_8_UNCHECKED_BOM</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>27</value>
+                <desc>CP949</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>28</value>
+                <desc>CP936</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>29</value>
+                <desc>CP950</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>30</value>
+                <desc>CP850</desc>
+	    </values>
+	    <values mask="RevCharsetBits">
+                <value>31</value>
+                <desc>CP858</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Reviewer" type="integer">
+	    <summary>Type of reviewer</summary>
+	    <desc>
+		The type of reviewer. Currently there is only one type of
+		reviewer and 0 is the only valid value.
+	    </desc>
+	</datatype>
+
+	<datatype name="ServerType" type="flag">
+	    <summary>The type of server</summary>
+	    <desc>
+	    	The type of server
+	    </desc>
+	    <values>
+                <value>0</value>
+                <desc>server</desc>
+	    </values>
+	    <values>
+                <value>1</value>
+                <desc>proxy</desc>
+	    </values>
+	    <values>
+                <value>2</value>
+                <desc>broker</desc>
+            </values>
+	</datatype>
+
+	<datatype name="ServerServiceType" type="bitmask">
+	    <summary>
+		The type of server service
+	    </summary>
+	    <desc>
+			The services offered by a type of service.
+		</desc>         
+	    <mask>
+                <name>Service Set Value</name>
+	        <desc>The server service type setting is generated by OR'ing the generic ServerServiceProperties defined below</desc>
+		<value>None</value>
+            </mask>
+            <values mask="Service Set Value">
+                <value>0x0903</value>
+                <desc>standard 		( db-read | db-write | rmt-depot | rmt-journal )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x0045</value>
+                <desc>replica 		( db-read | db-replication | file-replication | rmt-depot | rmt-journal )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x0030</value>
+                <desc>broker ( brokering | forwarding )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x00A0</value>
+                <desc>proxy ( forwarding | file-cacheing )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x00E5</value>
+                <desc>forwarding-replica ( db-read | db-replication | forwarding | file-replication | file-cacheing | rmt-depot | rmt-journal ) </desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x004D</value>
+                <desc>build-server ( db-read | db-replicaton | bound-clients | file-replication | rmt-depot | rmt-journal )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x0203</value>
+                <desc>P4AUTH ( db-read | db-write | rmt-auth )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x0403</value>
+                <desc>P4CHANGE ( db-read | db-write | rmt-change )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x19ED</value>
+                <desc>edge-server ( db-read | db-replication | bound-clients | forwarding | file-replication | file-cacheing | rmt-depot | rmt-journal | local-opens )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x2F03</value>
+                <desc>commit-server ( db-read | db-write | rmt-depot | rmt-journal | rmt-change | rmt-auth | commit-server )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x6F03</value>
+                <desc>depot-master ( db-read | db-write | rmt-depot | rmt-journal | rmt-change | rmt-auth | commit-server | p4zk-managed )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0xC945</value>
+                <desc>depot-standby ( db-read | db-replication | file-replication | rmt-depot | rmt-journal | journal-copy | p4zk-managed )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x59ED</value>
+                <desc>workspace-server ( db-read | db-replication | bound-clients | forwarding | file-replication | file-cacheing | rmt-depot | rmt-journal | local-opens | p4zk-managed )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x8945</value>
+                <desc>standby ( db-read | db-replication | file-replication | rmt-depot | rmt-journal | journal-copy )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x89E5</value>
+                <desc>forwarding-standby ( db-read | db-replication | forwarding | file-replication | file-cacheing | rmt-depot | rmt-journal | journal-copy )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x4030</value>
+                <desc>workspace-router ( brokering | forwarding | p4zk-managed )</desc>
+            </values>
+            <values mask="Service Set Value">
+                <value>0x10003</value>
+                <desc>local ( db-read | db-write | dvcs-local )</desc>
+            </values>
+
+	    <mask>
+		<name>Service Property</name>
+	        <desc>ServerServiceProperties: Bits used to identify generic server properties</desc>
+		<value>None</value>
+	    </mask>
+	    <values mask="Service Property">
+		<value>0x0001</value>
+	    	<desc>db-read</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0002</value>
+	    	<desc>db-write</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0004</value>
+	    	<desc>db-replication</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0008</value>
+		<desc>bound-clients</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0010</value>
+		<desc>brokering</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0020</value>
+		<desc>forwarding</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0040</value>
+		<desc>file-replication</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0080</value>
+		<desc>file-cacheing</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0100</value>
+		<desc>rmt-depot</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0200</value>
+		<desc>rmt-auth</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0400</value>
+		<desc>rmt-change</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x0800</value>
+		<desc>rmt-journal</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x1000</value>
+		<desc>local-opens</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x2000</value>
+		<desc>commit-server</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x4000</value>
+		<desc>p4zk-managed</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x8000</value>
+		<desc>journal-copy</desc>
+	    </values>
+	    <values mask="Service Property">
+	    	<value>0x10000</value>
+		<desc>dvcs-local</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="StashType" type="flag">
+	    <summary>Stash type</summary>
+	    <desc>
+	    	Stash type
+	    </desc>
+	    <values>
+                <value>0</value>
+                <desc>switch: A shelf with work-in-progress for a particular stream/branch</desc>
+	    </values>
+	    <values>
+                <value>1</value>
+                <desc>tangent: Work-in-progress relocated by 'p4 fetch -t'. Consumed and removed by 'p4 resubmit'</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="SvrViewType" type="flag">
+	    <summary>Server specification view type</summary>
+	    <desc>
+	    	Server specification view type
+	    </desc>
+	    <values>
+                <value>0</value>
+                <desc>ClientDataFilter</desc>
+	    </values>
+	    <values>
+                <value>1</value>
+                <desc>RevisionDataFilter</desc>
+	    </values>
+	    <values>
+                <value>2</value>
+                <desc>ArchiveDataFilter</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="StreamStatus" type="bitmask">
+	    <summary>Stream integration status</summary>
+	    <desc>
+		The stream integration status.
+	    </desc>
+	    <mask>
+                <name>Stream Status</name>
+                <desc>Bits used to store the stream integration status</desc>
+		<value>Copy: 0x0003, Merge: 0x000C</value>
+            </mask>
+            <values mask="Stream Status">
+                <value>0x0000</value>
+                <desc>Clear cache</desc>
+            </values>
+            <values mask="Stream Status">
+		<value>0x0001</value>
+		<desc>Needs copy</desc>
+	    </values>
+            <values mask="Stream Status">
+		<value>0x0002</value>
+		<desc>Copy up-to-date</desc>
+	    </values>
+            <values mask="Stream Status">
+		<value>0x0004</value>
+		<desc>Needs merge</desc>
+	    </values>
+            <values mask="Stream Status">
+		<value>0x0008</value>
+		<desc>Merge up-to-date</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="StreamPathType" type="flag">
+	    <summary>Type of stream path</summary>
+	    <desc>
+	    	The path type for file paths in a stream view.
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>share</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>isolate</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>import</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>exclude</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>remapped</desc>
+	    </values>
+	    <values>
+		<value>5</value>
+		<desc>ignored</desc>
+	    </values>
+		<values>
+		<value>6</value>
+		<desc>inclusive</desc>
+	    </values>
+		<values>
+		<value>7</value>
+		<desc>import+</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="StreamType" type="flag">
+	    <summary>Type of stream</summary>
+	    <desc>
+		The type of stream. 
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>mainline</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>release</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>development</desc>
+	    </values>
+	    <values>
+	    	<value>3</value>
+		<desc>virtual</desc>
+	    </values>
+	    <values>
+	    	<value>4</value>
+		<desc>task</desc>
+	    </values>
+	    <values>
+	    	<value>5</value>
+		<desc>task - unloaded</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Strength" type="flag">
+	    <summary>Strength check of a password</summary>
+	    <desc>
+		Whether or not a user's password has been tested for strength. 
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>Strength unknown</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>Password is strong</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>Unset</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="String" type="string">
+	    <summary>A string up to 1024 characters long</summary>
+	    <desc>
+		A string up to 1024 characters in length.  Depending on the 
+		context in which the string is used, restrictions 
+		may apply. Strings are often used as key fields in the 
+		schema.
+	    </desc>
+
+	    <restriction>
+		Cannot be empty
+	    </restriction>
+
+	    <restriction>
+		Cannot consist solely of a dash (-)
+	    </restriction>
+
+	    <restriction>
+		Cannot be all-numeric
+	    </restriction>
+
+	    <restriction>
+		Cannot contain non-printable characters
+	    </restriction>
+
+	    <restriction>
+		Spaces are replaced with underscores ( _ )
+	    </restriction>
+
+	    <restriction>
+		Revision characters (# and @) are prohibited
+	    </restriction>
+
+	    <restriction>
+		Slashes (/) are prohibited
+	    </restriction>
+
+	    <restriction>
+		Wildcards (... and *) are prohibited
+	    </restriction>
+
+	</datatype>
+
+	<datatype name="TamperCheck" type="flag">
+	    <summary>Tamper-state of workspace file</summary>
+	    <desc>
+		Indicates the tamper-state of a file in a workspace. This
+		is used to decide whether or not to check the file, and
+		if checked, to hold the result.
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>Do not check for tampering</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>Check for tampering</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>Tamper-check failed</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Text" type="string">
+	    <summary>A string value</summary>
+	    <desc>
+		A text string value - used to hold longer blocks of text.
+	    </desc>
+	</datatype>
+
+	<datatype name="TraitLot" type="integer">
+	    <summary>The id of a group of traits</summary>
+	    <desc>
+		An integer identifying a group of traits which may be
+		shared by several revisions.
+	    </desc>
+	</datatype>
+
+	<datatype name="TraitType" type="flag">
+	    <summary>A type of trait</summary>
+	    <desc>
+		The type of trait. 
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>Special trait for reference counting</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>Binary trait</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>Binary trait that gets propagated</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="Trigger" type="flag">
+	    <summary>A type of trigger</summary>
+	    <desc>
+		The type of a trigger. 
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>change-submit (formerly pre-submit triggers)</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>change-content</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>change-commit</desc>
+	    </values>
+	    <values>
+		<value>3</value>
+		<desc>form-in</desc>
+	    </values>
+	    <values>
+		<value>4</value>
+		<desc>form-out</desc>
+	    </values>
+	    <values>
+		<value>5</value>
+		<desc>form-save</desc>
+	    </values>
+	    <values>
+		<value>6</value>
+		<desc>form-delete</desc>
+	    </values>
+	    <values>
+		<value>7</value>
+		<desc>form-commit</desc>
+	    </values>
+	    <values>
+		<value>8</value>
+		<desc>auth-check</desc>
+	    </values>
+	    <values>
+		<value>9</value>
+		<desc>auth-check-sso</desc>
+	    </values>
+	    <values>
+		<value>10</value>
+		<desc>auth-set</desc>
+	    </values>
+	    <values>
+		<value>11</value>
+		<desc>fix-add</desc>
+	    </values>
+	    <values>
+		<value>12</value>
+		<desc>fix-delete</desc>
+	    </values>
+	    <values>
+		<value>13</value>
+		<desc>archive</desc>
+	    </values>
+	    <values>
+		<value>14</value>
+		<desc>shelve-submit</desc>
+	    </values>
+	    <values>
+		<value>15</value>
+		<desc>shelve-commit</desc>
+	    </values>
+	    <values>
+		<value>16</value>
+		<desc>shelve-delete</desc>
+	    </values>
+	    <values>
+		<value>17</value>
+		<desc>service-check</desc>
+	    </values>
+	    <values>
+		<value>18</value>
+		<desc>edge-submit</desc>
+	    </values>
+	    <values>
+		<value>19</value>
+		<desc>edge-content</desc>
+	    </values>
+            <values>
+		<value>20</value>
+		<desc>change-failed</desc>
+	    </values>
+	    <values>
+		<value>21</value>
+		<desc>command</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="User" type="string">
+	    <summary>A user or group name</summary>
+	    <desc>
+		The name of a Perforce user or group.
+	    </desc>
+	    <seeAlso>String</seeAlso>
+	</datatype>
+
+	<datatype name="UserLevel" type="flag">
+	    <summary>User functionality level</summary>
+	    <desc>
+		User functionality level 
+	    </desc>
+	    <values>
+		<value>0</value>
+		<desc>standard</desc>
+	    </values>
+	    <values>
+		<value>1</value>
+		<desc>service</desc>
+	    </values>
+	    <values>
+		<value>2</value>
+		<desc>operator</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="UserType" type="bitmask">
+	    <summary>The role of a user within a group</summary>
+	    <desc>
+		The role of a user (or group) within a group.
+	    </desc>
+	    <mask>
+		<name>UserTypeBits</name>
+		<desc>Bits used to store the role of a user in a group</desc>
+		<value>0x0007</value>
+	    </mask>
+	    <values mask="UserTypeBits">
+		<name>User</name>
+		<value>0x0001</value>
+		<desc>User is an ordinary user</desc>
+	    </values>
+	    <values mask="UserTypeBits">
+		<name>SubGroup</name>
+		<value>0x0002</value>
+		<desc>Group is a sub-group</desc>
+	    </values>
+	    <values mask="UserTypeBits">
+		<name>Owner</name>
+		<value>0x0004</value>
+		<desc>User is the owner of a group</desc>
+	    </values>
+	</datatype>
+
+	<datatype name="UserWild" type="string">
+	    <summary>A user or group name with wildcards</summary>
+	    <desc>
+		A user/group name that may contain wildcards (*)
+	    </desc>
+	    <seeAlso>User</seeAlso>
+	</datatype>
+
+	<datatype name="Value" type="string">
+	    <summary>A number or a string</summary>
+	    <desc>
+		A number, stored in a string, or a string
+	    </desc>
+	</datatype>
+
+    </datatypes>
+
+    <upgrades>
+	<upgrade>
+	    <index>1</index>
+	    <release>2001.1</release>
+	    <desc>Split db.integ into db.integed and db.resolve</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>2</index>
+	    <release>2001.1</release>
+	    <desc>Splt db.have into db.have and db.label</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>3</index>
+	    <release>2002.1</release>
+	    <desc>Split db.change into db.change and db.changex</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>4</index>
+	    <release>2002.2</release>
+	    <desc>Upgrade tempobj filetype in db.rev</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>5</index>
+	    <release>2002.2</release>
+	    <desc>Upgrade tempobj filetype in db.working</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>6</index>
+	    <release>2003.1</release>
+	    <desc>JnlInitialize default depot</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>7</index>
+	    <release>2003.2</release>
+	    <desc>Upgrade db.user</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>8</index>
+	    <release>2005.1</release>
+	    <desc>Build db.revhx (headrev) table</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>9</index>
+	    <release>2005.1</release>
+	    <desc>Rebuild db.locks from db.working</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>10</index>
+	    <release>2005.1</release>
+	    <desc>Build lazy-copy index (db.archive)</desc>
+	    <note>Removed in 2006.2</note>
+	</upgrade>
+
+	<upgrade>
+	    <index>11</index>
+	    <release>2005.2</release>
+	    <desc>Build db.revdx (delrev) table</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>12</index>
+	    <release>2005.2</release>
+	    <desc>Build haveMap from db.have/db.working</desc>
+	    <note>Moved to 16 in 2007.3</note>
+	</upgrade>
+
+	<upgrade>
+	    <index>13</index>
+	    <release>2005.2</release>
+	    <desc>Move spec depot entries into db.revsx</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>14</index>
+	    <release>2006.2</release>
+	    <desc>Build db.archmap (lazy-copy map) table</desc>
+	    <note>Moved to 17 in 2007.3</note>
+	</upgrade>
+
+	<upgrade>
+	    <index>15</index>
+	    <release>2006.2</release>
+	    <desc>Remove (obsolete) db.archive table</desc>
+	    <note>Moved to 18 in 2007.3</note>
+	</upgrade>
+
+	<upgrade>
+	    <index>16</index>
+	    <release>2007.3</release>
+	    <desc>Build/Rebuild haveMap from db.have/db.working</desc>
+	    <note>Rewritten in 2007.3</note>
+	</upgrade>
+
+	<upgrade>
+	    <index>17</index>
+	    <release>2007.3</release>
+	    <desc>Build/Rebuild db.archmap (lazy-copy map) table</desc>
+	    <note>Rewritten in 2007.3</note>
+	</upgrade>
+
+	<upgrade>
+	    <index>18</index>
+	    <release>2007.3</release>
+	    <desc>Remove (obsolete) db.archive table</desc>
+	    <note>Moved from 15 in 2007.3</note>
+	</upgrade>
+
+	<upgrade>
+	    <index>19</index>
+	    <release>2008.1</release>
+	    <desc>Build db.change common path</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>20</index>
+	    <release>2009.2</release>
+	    <desc>Move db.boddate/db.ixdate into db.bodtext/db.ixtext</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>21</index>
+	    <release>2009.2</release>
+	    <desc>Remove db.boddate/db.ixdate</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>22</index>
+	    <release>2010.2</release>
+	    <desc>Add db.config</desc>
+	</upgrade>
+
+	<upgrade>
+	    <index>23</index>
+	    <release>2011.1</release>
+	    <desc>Upgrade tiny.db</desc>
+	</upgrade>
+    </upgrades>
+    <commit_upgrades>
+	<commit_upgrade>
+	    <index>commit-server</index>
+	    <release>2013.2</release>
+	    <desc>Generate exclusive locks</desc>
+	    <note>Generate exclusive lock records in db.excl based on db.working data.</note>
+	</commit_upgrade>
+
+	<commit_upgrade>
+	    <index>commit-server</index>
+	    <release>2014.1</release>
+	    <desc>Promote Shelves</desc>
+	    <note>Promote existing shelves by updating changeStatus in db.change and db.changex.</note>
+	</commit_upgrade>
+    </commit_upgrades>
+</p4schema>
