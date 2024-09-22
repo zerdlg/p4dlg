@@ -35,6 +35,9 @@ A checkpoint is a snapshot, a textual representation of your Perforce DB. As rec
 It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is needed. Luckely, the knowledge is built-in to p4dlg, for any server/schema release.
 
 ## Create or load an existing connection.
+
+![shell_create_connection](https://github.com/user-attachments/assets/f6989cfb-20f4-4659-a4d2-66f29845b803)
+
 ```Python
 # Use `jnlconnect` to manage connections.
 # methods:    create - load - update - unload - destroy - purge
