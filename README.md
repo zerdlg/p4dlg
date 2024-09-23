@@ -36,8 +36,6 @@ It kind of looks like a .CSV file, but without column headers. P4D does not disc
 
 ## Create or load an existing connection.
 
-![shell_create_connection](https://github.com/user-attachments/assets/3e09eb1c-a933-496a-ba70-312535a693c0)
-
 ```Python
 # Use `jnlconnect` to manage connections.
 # methods:    create - load - update - unload - destroy - purge
@@ -50,16 +48,9 @@ It kind of looks like a .CSV file, but without column headers. P4D does not disc
 #                          
 # Create a connection to a journal with jnlconnect.create
 # 3 parameters: args[0]  -> name, journal_path, release
-
-In [1]: jnlconnect.create('oJnl', './resc/journals/checkpoint.rasp', version='r16.2')
-Reference (jnl3) created
-
-# once created, a connector can be reloaded at anytime with `jnlconnect.load`
-# 1 paramter: name of the connection
-
-In [1]: jnlconnect.load('oJnl')
-Out[1]: <P4Jnl /Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.rasp>
 ```
+![shell_create_connection](https://github.com/user-attachments/assets/3e09eb1c-a933-496a-ba70-312535a693c0)
+
 ## Query syntax
 ```Python
 #             table     op    value
@@ -75,89 +66,16 @@ qry = (oJnl.domain.type == 'client')
 
 ![shell_qry_clients](https://github.com/user-attachments/assets/20862973-bf37-46cd-92ca-b0805904c6bb)
 
-```Python
-In [2]: qry = (oJnl.domain.type == 'client')           # select all columns from table `db.domain` where column
-                                                       # `type` is 'client' (or 99)
-
-In [3]: qry                                            # a query is an object
-Out[3]:
-<DLGuery {'inversion': False,
- 'left': <JNLField type>,
- 'objp4': <P4Jnl /Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.rasp>,
- 'op': <function EQ at 0x107fa1da0>,
- 'right': 'client'}>
-
-In [3]: clients = oJnl(qry).select()                   # the journal connector is callable, and takes a query
-In [4]: clients                                        # select() returns a DLGRecords object
-Out[4]: <DLGRecords (6)>                               
-
-In [5]: clients.first()                                # `first` record
-Out[5]: 
-<DLGRecord {'accessDate': '2021/03/12',                # each record in a DLGRecords object is a DLGRecord
- 'db_action': 'pv',
- 'description': 'Created by mart.\n',
- 'extra': '',
- 'idx': 59,
- 'mount': '/Users/mart/anyschema_2db',
- 'mount2': '',
- 'mount3': '',
- 'name': 'anyschema',
- 'options': '4096',
- 'owner': 'mart',
- 'partition': '0',
- 'serverid': '',
- 'stream': '',
- 'table_name': 'db.domain',
- 'table_revision': '6',
- 'type': '99',
- 'updateDate': '2021/03/12'}>
-```
-
 
 ## A connnector has useful attributes
-```Python
-# get a list of tablenames available in this version of the schema
-In  [5]: oJnl.tablenames
-Out [5]:
-['archmap',
- 'change',
- 'config',
- 'counters',
- 'depot',
-..., ]
 
-# Each table is an object
-In  [6]: oJnl.rev
-Out [6]: <libjnl.jnlSqltypes.JNLTable at 0x1659d8fd0>
+![shell_jnl_tablenames](https://github.com/user-attachments/assets/bd8ceb9f-858b-4ab3-be9b-c416884bb880)
 
-# each table has interesting attributes and knows everything about the fields it supports.
-In  [7]: oJnl.rev.fields
-Out [7]:
-{'idx': <JNLField idx>,
- 'db_action': <JNLField db_action>,
- 'table_revision': <JNLField table_revision>,
- 'table_name': <JNLField table_name>,
- 'depotFile': <JNLField depotFile>,
- 'depotRev': <JNLField depotRev>,
- 'type': <JNLField type>,
- 'action': <JNLField action>,
- 'change': <JNLField change>,
- 'date': <JNLField date>,
- 'modTime': <JNLField modTime>,
- 'digest': <JNLField digest>,
- 'size': <JNLField size>,
- 'traitLot': <JNLField traitLot>,
- 'lbrIsLazy': <JNLField lbrIsLazy>,
- 'lbrFile': <JNLField lbrFile>,
- 'lbrRev': <JNLField lbrRev>,
- 'lbrType': <JNLField lbrType>}
 
-# get the p4 type of a field
-In  [8]: oJnl.rev.depotFile.type
-Out [8]: 'File'
-```
+![shell_table_objects_and_fields](https://github.com/user-attachments/assets/519f8ea8-5b84-416c-97cf-5d95b94f3a9f)
 
 ## Agregators like *groupby*, *orderby*, *sortby*, *exclude*, *limitby*, *find*, etc.
+
 ```Python
 In [9]: clients = oJnl(qry).select()
 
