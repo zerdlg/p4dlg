@@ -35,7 +35,6 @@ A checkpoint is a snapshot, a textual representation of your Perforce DB. As rec
 It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is needed. Luckely, the knowledge is built-in to p4dlg, for any server/schema release.
 
 ## Create or load an existing connection.
-
 ```Python
 # Use `jnlconnect` to manage connections.
 # methods:    create - load - update - unload - destroy - purge
@@ -63,66 +62,19 @@ qry = (oJnl.domain.type == 'client')
 ```
 
 ## Building a query.
-
 ![shell_qry_clients](https://github.com/user-attachments/assets/20862973-bf37-46cd-92ca-b0805904c6bb)
-
 
 ## A connnector has useful attributes
 
 ![shell_jnl_tablenames](https://github.com/user-attachments/assets/bd8ceb9f-858b-4ab3-be9b-c416884bb880)
-
-
 ![shell_table_objects_and_fields](https://github.com/user-attachments/assets/519f8ea8-5b84-416c-97cf-5d95b94f3a9f)
 
 ## Agregators like *groupby*, *orderby*, *sortby*, *exclude*, *limitby*, *find*, etc.
-
 ![shell_records_groupby](https://github.com/user-attachments/assets/b6164493-1728-425a-ab7d-c0eb1e8c6c8c)
-
 
 ## 2. Py4
 ## 3. P4db
 ## 4. Rcs
-
-
 #### A fun use case... create a list of records equivalent to the result of running  ```>>> p4 clients```
-```Python
-def clients():
-    qry = (jnl.domain.type == 'client')         # a qry to select all client domain records
-    
-    clients = jnl(qry).select()                 # select the target records
-    
-    clientgroups = clients.groupby(             # group records by client name
-        'name',                                 # domain field to groupby is 'name'
-        orderby='accessDate',                   # order each group of records by 'accessDate'
-        groupdict=True                          # instructs the groupby() method to return a dict, instead of a set of records,
-                                                # where each key/value pair consists of clientname/relevent_domain_records
-                                                
-                                                #     i.e.: 
-                                                #           {'my_client': [DLGRecords],
-                                                #            'other_client': [DLGRecords],
-                                                #            ... } 
-    )
-    
-    return [                                    # Everytime a user accesses a client spec (i.e. 
-                                                # >>> p4 client -o my_client) p4d creates a 
-                                                # record, so the very last record of each group will do.
-                                                
-            records.last() for (name, records) in clientgroups.items()
-        ]
-```
-
-```
->>> clients()
-
-```
-
-## Py4
-
-```Python
-In [5]: p4connect.load('p4')
-Reference (p4) loaded & connected to anastasia.local:1777
-Out[6]: <Py4 anastasia.local:1777 >
-```
-... (TODO)
 
 
