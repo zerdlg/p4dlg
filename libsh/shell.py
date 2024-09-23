@@ -430,6 +430,7 @@ class DLGShell(object):
                                   'hlp',
                                   'jnl',
                                   'p4dlg',
+                                  'dlg',
                                   'py4',
                                   'db',
                                   'qry',
