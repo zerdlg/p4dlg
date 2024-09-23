@@ -14,7 +14,7 @@ Though *p4dlg* can be imported and used in script or broader programs, it can al
 %> python dlg.py shell
 ```
 
-![image](https://github.com/user-attachments/assets/940c69f3-77cd-4282-99d0-3d95c9fbcea7)
+![run_shell](https://github.com/user-attachments/assets/14825c81-ada0-48d4-a0e6-834f9b8090c1)
 
 * Please look into the /p4dlg/libsample directory for a more detailed examples.
 
@@ -36,7 +36,7 @@ It kind of looks like a .CSV file, but without column headers. P4D does not disc
 
 ## Create or load an existing connection.
 
-![shell_create_connection](https://github.com/user-attachments/assets/f6989cfb-20f4-4659-a4d2-66f29845b803)
+![shell_create_connection](https://github.com/user-attachments/assets/3e09eb1c-a933-496a-ba70-312535a693c0)
 
 ```Python
 # Use `jnlconnect` to manage connections.
@@ -72,6 +72,9 @@ qry = (oJnl.domain.type == 'client')
 ```
 
 ## Building a query.
+
+![shell_qry_clients](https://github.com/user-attachments/assets/20862973-bf37-46cd-92ca-b0805904c6bb)
+
 ```Python
 In [2]: qry = (oJnl.domain.type == 'client')           # select all columns from table `db.domain` where column
                                                        # `type` is 'client' (or 99)
