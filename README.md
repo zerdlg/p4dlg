@@ -76,47 +76,8 @@ qry = (oJnl.domain.type == 'client')
 
 ## Agregators like *groupby*, *orderby*, *sortby*, *exclude*, *limitby*, *find*, etc.
 
-```Python
-In [9]: clients = oJnl(qry).select()
+![shell_records_groupby](https://github.com/user-attachments/assets/b6164493-1728-425a-ab7d-c0eb1e8c6c8c)
 
-# group clients by client name and orderby db_action (pv, dv, ...)
-In  [10]: clients_by_name = clients.groupby('name', orderby='db_action', as_recordlist=False)
-In  [11]: clients_by_name
-{'mart_macos': <DLGRecords (2)>,
- 'p4vtest': <DLGRecords (23)>,
- 'pycharmclient': <DLGRecords (1)>,
- 'lpycharmclient': <DLGRecords (32)>,
- 'linuxclient': <DLGRecords (4)>,
- 'lxcharlotte_pycharm': <DLGRecords (10)>,
- 'source': <DLGRecords (1)>,
- 'mscharlotte': <DLGRecords (3)>,
- 'upycharmclient': <DLGRecords (13)>,
- 'test': <DLGRecords (3)>,
- 'bsclient': <DLGRecords (2)>,
- 'martclient': <DLGRecords (1)>,
- 'anastasia': <DLGRecords (9)>,
- 'gc_pycharm': <DLGRecords (36)>,
- 'computer_depot': <DLGRecords (29)>,
- 'miscclient': <DLGRecords (1)>,
- 'projclient': <DLGRecords (8)>,
- 'gc_local': <DLGRecords (4)>,
- 'gc_charlotte': <DLGRecords (1)>,
- 'gc_fred': <DLGRecords (3)>,
- 'uxcharlotte_pycharm': <DLGRecords (1)>}
-
-In  [12]: clients_by_name.gc_fred
-<DLGRecords (3)>
-
-In  [13]: for record in clients_by_name.gc_fred:
-          ... print(record.db_action, record.accessDate)
-pv 2021/11/17
-rv 2021/11/17
-rv 2021/11/17
-
-# NOTE: setting the `as_recordlist' argument to True (the default) will return a DLGRecords object containg the grouped records, otherwise as above (a dict).
-
-
-```
 
 ## 2. Py4
 ## 3. P4db
