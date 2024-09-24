@@ -225,6 +225,11 @@ class DLGDateTime(object):
                 except Exception as err:
                     print(err)
 
+    def guesstype(self, *args):
+        result = self.guess(*args)
+        if (result is not None):
+            return type(result)
+
     def guess(self, *args, typed=True):
         ''' given a str, guess its type
         '''
@@ -237,32 +242,38 @@ class DLGDateTime(object):
             ):
                 return self.guess_dt_from_ints(*gvalue)
             if (isinstance(gvalue, str)):
+                gtime = self.guesstime(gvalue, typed=typed)
+                etime = self.guessepoch(gvalue, typed=typed)
+                if (etime is not None):
+                    if (int(etime) < 1000):
+                        etime = None
                 for item in [
-                    self.guesstime(gvalue, typed=typed),
-                    self.guessepoch(gvalue, typed=typed)
+                    gtime,
+                    etime
                 ]:
                     if (item is not None):
                         return item
                 for sep in self.separators:
-                    for month in self.months:
-                        for year in self.years:
-                            datestructures = (
-                                Lst(
-                                    ['%d', month, year]
-                                ),
-                                Lst(
-                                    [year, month, '%d']
+                    if (sep in gvalue):
+                        for month in self.months:
+                            for year in self.years:
+                                datestructures = (
+                                    Lst(
+                                        ['%d', month, year]
+                                    ),
+                                    Lst(
+                                        [year, month, '%d']
+                                    )
                                 )
-                            )
-                            for datestamp in datestructures:
-                                for item in [
-                                    self.guessdate(gvalue, sep, sep.join(datestamp), typed=typed),
-                                    self.guessdatetime(gvalue, sep, datestamp, typed=typed),
-                                    self.guessdate(gvalue, sep, f'{month}{sep}%d{sep}{year}', typed=typed),
-                                    self.guessdatetime(gvalue, sep, datestamp, typed=typed)
-                                ]:
-                                    if (item is not None):
-                                        return item
+                                for datestamp in datestructures:
+                                    for item in [
+                                        self.guessdate(gvalue, sep, sep.join(datestamp), typed=typed),
+                                        self.guessdatetime(gvalue, sep, datestamp, typed=typed),
+                                        self.guessdate(gvalue, sep, f'{month}{sep}%d{sep}{year}', typed=typed),
+                                        self.guessdatetime(gvalue, sep, datestamp, typed=typed)
+                                    ]:
+                                        if (item is not None):
+                                            return item
             elif ((isinstance(gvalue, (int, float)) is True) \
                     and (self.is_epoch(gvalue) is True)):
                     return self.guessepoch(gvalue, typed=typed)
@@ -294,8 +305,7 @@ class DLGDateTime(object):
                         if (typed is True) \
                         else self.to_string(dt)
             except ValueError:
-                    pass
-
+                pass
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     '''     convert datetime stuff to other datetime stuff                                       '''
     '''                                                                                          '''

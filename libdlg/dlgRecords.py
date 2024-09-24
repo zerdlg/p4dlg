@@ -139,8 +139,11 @@ class DLGRecords(object):
             print(err)
         return False
 
-    def datagrid(self):
-        return DataGrid(self)()
+    def datagrid(self, *args, **kwargs):
+        dgrid = DataGrid(self)(*args, **kwargs)
+        print(dgrid)
+        #resgrid = DataGrid(self)()
+        #return resgrid
 
     def printer(self, *args, **kwargs):
         print(DataGrid(self)(*args, **kwargs))

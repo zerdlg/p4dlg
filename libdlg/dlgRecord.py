@@ -97,8 +97,13 @@ class DLGRecord(Storage):
                 bail(err, self.criticallogger)
         return record
 
-    def datatable(self):
-        return DataTable(self)()
+    def datatable(self, *args, **kwargs):
+        dtable = DataTable(self)(*args, **kwargs)
+        print(dtable)
+        #return DataTable(self)()
+
+    def printer(self,*args, **kwargs):
+        print(DataTable(self)(*args, **kwargs))
 
     def get(self, key, default=None):
         dmap = {

@@ -2,6 +2,8 @@ import os, re
 from pprint import pformat
 from typing import *
 from ast import literal_eval
+import datetime
+
 from libdlg.dlgUtilities import *
 from libdlg.dlgFileIO import isanyfile
 from libdlg.dlgStore import Storage, objectify, Lst, StorageIndex
@@ -171,7 +173,11 @@ class Ascii(object):
             except Exception as err:
                 realtype = str(value)
         if (isnum(value) is True):
-            value = int(value)
+            try:
+                value = (int(value))
+            except:
+                value = float(value)
+            return value
         elif (realtype is bytes):
             value = value.decode('utf8')
         elif (realtype in (
@@ -181,7 +187,13 @@ class Ascii(object):
             )
         ):
             value = pformat(value)
-
+        ''' check if type is datetime..... make this work!
+        '''
+        #datetime_value = self.oDateTime.guesstype(value)
+        #if (datetime_value is not None):
+        #    return datetime_value
+        ''' not datetime... move on!
+        '''
         if AND(
                 (self.dataoption.truncate_width is True),
                 (isinstance(value, str)),
@@ -647,16 +659,21 @@ class DataTable(Ascii):
                     tableoption.junction_char
                 )
             reg_datatable = re.compile(f'^\{junction}\{horizontal}.\+$')
+            typeindex = 1 \
+                if (self.dataoption.includeid is True) \
+                else 0
             if (reg_datatable.search(value) is not None):
-                typeindex = 1 \
-                    if (self.dataoption.includeid is True) \
-                    else 0
                 fieldtype = '<DLGTable.DLGDataTable>'
-            else:
+            elif (fieldtype is None):
+                ''' check if type is datetime..... make this work!
+                '''
+                datetime_type = self.oDateTime.guesstype(value)
+                if (datetime_type is not None):
+                    fieldtype = datetime_type.__name__
+            if (fieldtype is None):
                 (fieldtype, typeindex) = self.getfieldtype(value, fieldtype)
             keyidx += 1
             row.insert(typeindex, fieldtype)
-
         value = self.formatfieldvalue(value)
         row.insert(keyidx, key)
         row.insert((keyidx + 1), value)
