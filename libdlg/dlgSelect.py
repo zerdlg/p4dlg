@@ -759,6 +759,48 @@ class Select(DLGControl):
                 if (type(records) is not enumerate) \
                 else records
 
+    def get_records_datetime_fields(self, tablename):
+        ''' promote fields that looks like date/time fields &
+            them to p4 formatted date/time stamps (yyyy/mm/dd)
+        '''
+        datetime_fields = []
+        table = getattr(self.objp4, tablename)
+        for fld in table.fields:
+            (
+                fieldname,
+                fieldtype
+            ) \
+                = (
+                table.fields[fld].fieldname,
+                table.fields[fld].type
+            ) \
+                if (isinstance(fld, str)) \
+                else (
+                fld.name,
+                fld.type
+            ) \
+                if (is_fieldType(fld) is True) \
+                else (
+                fld.fieldname,
+                fld.type
+            ) \
+                if (type(fld).__name__ == 'Storage') \
+                else (
+                None,
+                None
+            )
+            if (fieldname in (
+                    'date',
+                    'Date',
+                    'Access',
+                    'Update',
+                    'accessDate',
+                    'updateDate',
+            )
+            ):
+                datetime_fields.append(fieldname)
+        return datetime_fields
+
     def select(
             self,
             *fieldnames,
@@ -795,35 +837,11 @@ class Select(DLGControl):
                 (not 'idx' in cols)
         ):
             cols.insert(0, 'idx')
-
         if (records is None):
             records = self.records
-
-        ''' remove field `code`
-        '''
-        if (noneempty(cols) is False):
-            if ('code' in cols):
-                try:
-                    cols.pop(cols.index('code'))
-                except Exception as err:
-                    self.objp4.logwarning(err)
-
-        fieldnames = Lst(fieldnames).storageindex(reversed=True)
-        (
-            eor,
-            recordcounter
-        ) = \
-            (
-                False,
-                0
-            )
-        outrecords = Lst()
-        insertrecord = outrecords.append
-        if (raw_records is False):
-            outrecords = DLGRecords(Lst(), cols, self.objp4)
-            insertrecord = outrecords.insert
-        ''' We have an aggregator! -> (sum, min, max, avg).            
-            Handle it now & forget the rest.
+        ''' records is not enumerator & whatever 
+            it is, it is empty! Just do the few 
+            lines below and get out!
         '''
         if (type(records) != enumerate):
             if (len(records) == 0):
@@ -838,7 +856,7 @@ class Select(DLGControl):
                         None
                 )
                 out = None
-                if AND((query is not None), (isinstance(query, DLGExpression))):
+                if (isinstance(query, DLGExpression) is True):
                     if (reg_dbtablename.match(tablename) is not None):
                         tablename = self.oTableFix.normalizeTableName(tablename)
                     (
@@ -860,154 +878,148 @@ class Select(DLGControl):
                 ):
                     out = DLGRecords(out, Lst(), self.objp4)
                 return out
-        else:
-            try:
-                recordsiter = self.get_recordsIterator(records)
-                while (eor is False):
-                    table_mismatch = False
-                    datetime_fields = []
-                    try:
-                        if (tablename is None):
-                            bail(
-                                "tablename may not be None!"
-                            )
-                        if (reg_dbtablename.match(tablename) is not None):
-                            tablename = self.oTableFix.normalizeTableName(tablename)
-                        ''' next id & record
-                        '''
-                        (
-                        idx,
-                        record
-                        ) = (
-                            next(recordsiter)
-                        )
-                        ''' TODO: other abstractions may frown on this validation...
-                            not everyone comes across as being a list of things!
-                            
-                            maybe we should do `if (self.is_jnlobject is True)` instead?
-                        '''
-                        if (isinstance(record, list) is True):
-                            ''' Querying journal records 
-                            '''
-                            record = Lst(record)
-                            rec_tablename = re.sub('db\.', '', record(2))
-                            ''' action field: pv, dv, mx, etc. 
-                                value of actionfield = 0 if not idx else 1 
-                            '''
-                            actionfield = 0
-                            if ('idx' in cols):
-                                record.appendleft(idx)
-                                actionfield = 1
-                            #if AND(
-                            #            (rec_tablename == tablename),
-                            #            (record[actionfield] not in ignore_actions)
-                            #):
-                            if (record[actionfield] not in ignore_actions):
-                                record = Storage(
-                                    zip(
-                                        cols,
-                                        record
-                                    )
-                                )
-                                # what if depotFile does not exist? maybe action is 'deleted' ?
-                                # {'code': 'error',
-                                #  'data': 'Colors - no such file(s).\n',
-                                #  'severity': 2,
-                                #  'generic': 17}
-                                # TODO: we best find a clever solution for this!
-                            else:
-                                table_mismatch = True
-                        if (table_mismatch is False):
-                            if ('idx' in cols):
-                                if (not 'idx' in record):
-                                    record.merge({'idx': idx})
-                            QResults = Lst()
-                            if (len(query) == 0):
-                                QResults.append(0)
-                            for qry in query:
-                                recresult = self.build_results(qry, record)
-                                QResults.append(recresult)
-                            if (sum(QResults) == len(query)):
-                                ''' time to compute new columns (if any)
-                                '''
-                                if (len(self.compute) > 0):
-                                    record = Storage(self.computecolumns(record))
-                                ''' match column to their records 
-                                '''
-                                if (len(fieldnames) > 0):
-                                    rec = Storage()
-                                    for fn in fieldnames.keys():
-                                        key = fieldnames[fn]
-                                        value = record[fieldnames[fn]]
-                                        rec.merge({key: value})
-                                    record = rec
 
-                                skip = self.skiprecord(record, tablename)
-                                if (skip is False):
-                                    if AND(
-                                            (not 'code' in cols),
-                                            (record.code is not None)
-                                    ):
-                                        record.delete('code')
-                                    ''' if the record contains a field of p4 type 
-                                        'Date' (stored  as Unix time) then promote 
-                                        it to a p4 formatted date stamp (yyyy/mm/dd)
-                                    '''
-                                    table = getattr(self.objp4, tablename)
-                                    for fld in table.fields:
-                                        (
-                                            fieldname,
-                                            fieldtype
-                                        ) \
-                                            = (
-                                            table.fields[fld].fieldname,
-                                            table.fields[fld].type
-                                        ) \
-                                            if (isinstance(fld, str)) \
-                                            else (
-                                            fld.fieldname,
-                                            fld.type
-                                        ) \
-                                            if (type(fld).__name__ == 'Storage') \
-                                            else (
-                                            None,
-                                            None
-                                        )
-                                        if (fieldname in (
-                                                    'date',
-                                                    'Date',
-                                                    'Access',
-                                                    'Update',
-                                                    'accessDate',
-                                                    'updateDate',
-                                                )
-                                        ):
-                                            datetime_fields.append(fieldname)
-                                    if (len(datetime_fields) > 0):
-                                        record = self.update_datefields(record, datetime_fields)
-                                    if (noneempty(self.maxrows) is False):
-                                        recordcounter += 1
-                                        if (recordcounter <= self.maxrows):
-                                            insertrecord(record)
-                                        else:
-                                            eor = True
-                                    else:
+        ''' remove field `code`
+        '''
+        if (noneempty(cols) is False):
+            if ('code' in cols):
+                try:
+                    cols.pop(cols.index('code'))
+                except Exception as err:
+                    self.objp4.logwarning(err)
+
+        fieldnames = Lst(fieldnames).storageindex(reversed=True)
+
+        (
+            eor,
+            recordcounter
+        ) = \
+            (
+                False,
+                0
+            )
+        outrecords = Lst()
+        ''' insertrecords 
+            decide now if outrecords should be 
+            returned as a list or as DLGRecords
+            (insert or append?)
+        '''
+        insertrecord = outrecords.append
+        if (raw_records is False):
+            outrecords = DLGRecords(Lst(), cols, self.objp4)
+            insertrecord = outrecords.insert
+        datetime_fields = self.get_records_datetime_fields(tablename)
+        try:
+            recordsiter = self.get_recordsIterator(records)
+            while (eor is False):
+                table_mismatch = False
+                try:
+                    if (tablename is None):
+                        bail(
+                            "tablename may not be None!"
+                        )
+                    if (reg_dbtablename.match(tablename) is not None):
+                        tablename = self.oTableFix.normalizeTableName(tablename)
+                    ''' next id & record
+                    '''
+                    (
+                    idx,
+                    record
+                    ) = (
+                        next(recordsiter)
+                    )
+                    ''' TODO: other abstractions may frown on this validation...
+                        not everyone comes across as being a list of things!
+                        
+                        maybe we should do `if (self.is_jnlobject is True)` instead?
+                    '''
+                    if (isinstance(record, list) is True):
+                        ''' Querying journal records 
+                        '''
+                        record = Lst(record)
+                        ''' action field: pv, dv, mx, etc. 
+                            value of actionfield = 0 if not idx else 1 
+                        '''
+                        actionfield = 0
+                        if ('idx' in cols):
+                            record.appendleft(idx)
+                            actionfield = 1
+                        if (record[actionfield] not in ignore_actions):
+                            record = Storage(
+                                zip(
+                                    cols,
+                                    record
+                                )
+                            )
+                            # what if depotFile does not exist? maybe action is 'deleted' ?
+                            # {'code': 'error',
+                            #  'data': 'Colors - no such file(s).\n',
+                            #  'severity': 2,
+                            #  'generic': 17}
+                            # TODO: we best find a clever solution for this!
+                        else:
+                            table_mismatch = True
+                    if (table_mismatch is False):
+                        if ('idx' in cols):
+                            if (not 'idx' in record):
+                                record.merge({'idx': idx})
+
+                        QResults = Lst()
+                        if (len(query) == 0):
+                            QResults.append(0)
+                        for qry in query:
+                            recresult = self.build_results(qry, record)
+                            QResults.append(recresult)
+
+                        if (sum(QResults) == len(query)):
+                            ''' time to compute new columns (if any)
+                            '''
+                            if (len(self.compute) > 0):
+                                record = Storage(self.computecolumns(record))
+                            ''' match column to their records 
+                            '''
+                            if (len(fieldnames) > 0):
+                                rec = Storage()
+                                for fn in fieldnames.keys():
+                                    key = fieldnames[fn]
+                                    value = record[fieldnames[fn]]
+                                    rec.merge({key: value})
+                                record = rec
+
+                            skip = self.skiprecord(record, tablename)
+                            if (skip is False):
+                                if AND(
+                                        (not 'code' in cols),
+                                        (record.code is not None)
+                                ):
+                                    record.delete('code')
+
+                                if (len(datetime_fields) > 0):
+                                    record = self.update_datefields(record, datetime_fields)
+                                if (noneempty(self.maxrows) is False):
+                                    recordcounter += 1
+                                    if (recordcounter <= self.maxrows):
                                         insertrecord(record)
-                    # BUG: sometimes StopIteration is skipped (oJnl.rev.depotFile.contains(...))
-                    # so wrapping while loop in its own try: except: finally block for now... argh!!!!!
-                    except (StopIteration, EOFError):
-                        eor = True
-                        if (hasattr(records, 'read')):
-                            records.close()
-                    except Exception as err:
-                        eor = True
-                        bail(err)
-            finally:
-                if (len(kwargs) > 0):
-                    outrecords = self.filter_records(outrecords, **kwargs)
-                    self.loginfo(f'records filtered: {len(outrecords)}')
-                self.loginfo(f'record counter: {recordcounter}')
-                self.loginfo(f'records retrieved {len(outrecords)}')
-                if (close_session is True):
-                    self.close()
-                return outrecords
+                                    else:
+                                        eor = True
+                                else:
+                                    insertrecord(record)
+                # BUG: sometimes StopIteration is skipped (oJnl.rev.depotFile.contains(...))
+                # so wrapping while loop in its own try: except: finally block for now...
+                # until time for this is to be had... argh!!!!!
+                except (StopIteration, EOFError):
+                    eor = True
+                    if (hasattr(records, 'read')):
+                        records.close()
+                except Exception as err:
+                    eor = True
+                    bail(err)
+        finally:
+            if (len(kwargs) > 0):
+                outrecords = self.filter_records(outrecords, **kwargs)
+                self.loginfo(f'records filtered: {len(outrecords)}')
+            self.loginfo(f'record counter: {recordcounter}')
+            self.loginfo(f'records retrieved {len(outrecords)}')
+            if (close_session is True):
+                self.close()
+            return outrecords

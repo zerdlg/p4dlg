@@ -49,7 +49,7 @@ class  Merge(object):
                 records = gfiles[cl].limitby((0,10))
                 for rec in records:
                     for (key, value) in change.items():
-                        rec.merge({f'change.{key}': value})
+                        rec.merge({'change': {key: value}})
                 print(rec.change.change)
                 DLGRecord(rec).datatable()
 

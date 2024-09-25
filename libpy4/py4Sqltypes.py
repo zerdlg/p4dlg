@@ -432,6 +432,7 @@ class Py4Field(DLGExpression):
                 ):
         kwargs = Storage(kwargs)
         self.fieldname = fieldname
+        self.name = fieldname
 
         super(Py4Field, self).__init__(
             objp4,

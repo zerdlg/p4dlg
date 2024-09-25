@@ -98,7 +98,7 @@ class DLGRecord(Storage):
         return record
 
     def datatable(self, *args, **kwargs):
-        dtable = DataTable(self)(*args, **kwargs)
+        dtable = DataTable(self, *args, **kwargs)()
         print(dtable)
         #return DataTable(self)()
 

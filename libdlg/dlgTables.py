@@ -90,9 +90,9 @@ tableoption = objectify(
         'top_left_junction_char': '+',
         'bottom_right_junction_char': '+',
         'bottom_left_junction_char': '+',
-        'includeid': True,
-        'includetype': True,
-        'includetypeid': True,
+        'includeid': False,
+        'includetype': False,
+        'includetypeid': False,
         'header': True,
         'border': True,
         'print_empty': True,
@@ -178,6 +178,8 @@ class Ascii(object):
             except:
                 value = float(value)
             return value
+        elif (isinstance(value, str) is True):
+            value = value.rstrip('\n')
         elif (realtype is bytes):
             value = value.decode('utf8')
         elif (realtype in (
@@ -187,13 +189,6 @@ class Ascii(object):
             )
         ):
             value = pformat(value)
-        ''' check if type is datetime..... make this work!
-        '''
-        #datetime_value = self.oDateTime.guesstype(value)
-        #if (datetime_value is not None):
-        #    return datetime_value
-        ''' not datetime... move on!
-        '''
         if AND(
                 (self.dataoption.truncate_width is True),
                 (isinstance(value, str)),
@@ -524,7 +519,8 @@ class DataTable(Ascii):
                 except ValueError:
                     fieldtype = type(value).__name__
                 except Exception as err:
-                    bail(err)
+                    fieldtype = 'str'
+                    #bail(err)
         elif (isinstance(fieldtype, str) is False):
             if (type(value).__name__ != fieldtype.__name__):
                 ''' should we log an error... or just correct it?

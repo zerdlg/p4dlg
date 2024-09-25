@@ -317,7 +317,7 @@ class JNLTable(object):
 
         ''' maps and field names & references
         '''
-        fields = Storage()
+        fields = Lst()#Storage()
         for field in self.modelfields:
             try:
                 field.merge(
@@ -337,8 +337,9 @@ class JNLTable(object):
                                 oSchema=self.oSchema,
                                 oSchemaType=self.oSchemaType
             )
-            fields.merge({field.name: oField})
+            #fields.merge({field.name: oField})
             setattr(self, field.name, oField)
+            fields.append(getattr(self, field.name))
         self.fields = objectify(fields)
 
     __setitem__ = lambda self, key, value: setattr(self, str(key), value)
