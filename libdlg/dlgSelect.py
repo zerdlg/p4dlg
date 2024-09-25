@@ -932,6 +932,8 @@ class Select(DLGControl):
                         not everyone comes across as being a list of things!
                         
                         maybe we should do `if (self.is_jnlobject is True)` instead?
+                        
+                        DOH! merging tables might require a list of 2 records!!! let's keep that in  mind.
                     '''
                     if (isinstance(record, list) is True):
                         ''' Querying journal records 

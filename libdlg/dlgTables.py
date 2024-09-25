@@ -105,8 +105,9 @@ tableoption = objectify(
 class Ascii(object):
     def __init__(self,**options):
         options = Storage(options)
-        self.datatable = None
-        self.dataoption = Storage()
+        self.datatable = PT()
+        self.datagrid = PT()
+        self.dataoptions = Storage()
         self.oDateTime = DLGDateTime()
 
         for opt in (
@@ -115,7 +116,7 @@ class Ascii(object):
                 'align',
                 'valign'
         ):
-            self.dataoption[opt] = options[opt] \
+            self.dataoptions[opt] = options[opt] \
                 if (options[opt] is not None) \
                 else tableoption[opt].default
 
@@ -136,8 +137,7 @@ class Ascii(object):
                     (options[opt] is not None),
                     (options[opt] in tableoption.chars)
             ):
-                self.dataoption[opt] = options[opt] or tableoption[opt]
-
+                self.dataoptions[opt] = options[opt] or tableoption[opt]
 
         for opt in (
                 'min_with',
@@ -147,7 +147,7 @@ class Ascii(object):
                 'right_padding_width'
         ):
             if (options[opt] is not None):
-                self.dataoption[opt] = options[opt]
+                self.dataoptions[opt] = options[opt]
 
         for opt in (
                     'header',
@@ -160,7 +160,7 @@ class Ascii(object):
                     'truncate_width',
                     'max_width'
         ):
-            self.dataoption[opt] = options[opt] \
+            self.dataoptions[opt] = options[opt] \
                 if (options[opt] is not None) \
                 else tableoption[opt]
 
@@ -190,11 +190,11 @@ class Ascii(object):
         ):
             value = pformat(value)
         if AND(
-                (self.dataoption.truncate_width is True),
+                (self.dataoptions.truncate_width is True),
                 (isinstance(value, str)),
             ):
-            if (len(value) > self.dataoption.max_width):
-                return f'{value[0:self.dataoption.max_width]}...'
+            if (len(value) > self.dataoptions.max_width):
+                return f'{value[0:self.dataoptions.max_width]}...'
         return value
 
 class msgbox(object):
@@ -303,29 +303,7 @@ class DataGrid(Ascii):
             )
         )
         self.fields = fields.storageindex(reversed=True)
-
-    def getfieldvalue(self, row, fieldname):
-        fields = self.fields.getvalues()
-        if AND(
-                OR(
-                    (isinstance(row, list)),
-                    (isinstance(row, StorageIndex))
-                ),
-                (isinstance(fieldname, str))
-        ):
-            fieldname = self.fields.getkey(fieldname)
-
-        value = row[fieldname]
-        if (value is not None):
-            if (isinstance(value, dict)):
-                valgrid = DataGrid(value)().get_string()
-                return self.formatfieldvalue(valgrid) \
-                    if (fieldname in fields) \
-                    else 'unset'
-            #if (not isinstance(value, bool)):
-            #    return str(value)
-            if (fieldname in fields):
-                return self.formatfieldvalue(value) \
+        self.cols = [self.fields[fld]for fld in self.fields]
 
     def defineDataGrid(self):
         fieldnames = self.fields.getvalues() \
@@ -333,21 +311,21 @@ class DataGrid(Ascii):
             else self.fields
 
         requires_rowidx = False
-        if (self.dataoption.includeid is True):
+        if (self.dataoptions.includeid is True):
             if (not 'idx' in fieldnames):
                 requires_rowidx = True
                 fieldnames.insert(0, 'idx')
         ''' the datagrid
         '''
-        self.datagrid = PT(fieldnames, **self.dataoption)
+        self.datagrid = PT(fieldnames, **self.dataoptions)
         rowcounter = 0
         for (nidx, row) in enumerate(self.rows, start=1):
             if (isinstance(row, dict) is True):
                 row = Storage(row).getvalues()
             if (requires_rowidx is True):
                 row.insert(0, nidx)
-            if (self.dataoption.maxrows is not None):
-                if (nidx < self.dataoption.maxrows):
+            if (self.dataoptions.maxrows is not None):
+                if (nidx < self.dataoptions.maxrows):
                     self.addrow(row)
                     rowcounter += 1
             else:
@@ -363,10 +341,19 @@ class DataGrid(Ascii):
         self.defineDataGrid()
 
     def addrow(self, row):
+        for (idx, fieldname) in self.fields.items():
+            value1 = row(idx)
+            if (value1 is not None):
+                value2 = self.formatfieldvalue(value1)
+            if (str(value1) != str(value2)):
+                row.pop(idx)
+                row.insert(idx, value2)
         self.datagrid.add_row(row)
 
     def addrows(self, rows):
-        [self.datagrid.add_row(row) for row in rows]
+        for row in rows:
+            #self.datagrid.add_row(row)
+            self.addrow(row)
 
     def addcolum(
             self,
@@ -378,9 +365,10 @@ class DataGrid(Ascii):
         self.datagrid.add_column(
             fieldname,
             column,
-            align or self.dataoption.align,
-            valign or self.dataoption.valign
+            align or self.dataoptions.align,
+            valign or self.dataoptions.valign
         )
+        column = self.datagrid.column
 
     def addcolums(
             self,
@@ -396,21 +384,33 @@ class DataGrid(Ascii):
                         ...
                     }
         '''
-        align = align or self.dataoption.align
-        valign = valign or self.dataoption.valign
-        [self.datatable.add_column(
-            fldname,
-            fields,
-            align,
-            valign
-        )
-         for (fldname, fields) in cols.items()]
+        align = align or self.dataoptions.align
+        valign = valign or self.dataoptions.valign
+        for (fldname, fields) in cols.items():
+            #self.datagrid.add_column(
+            #    fldname,
+            #    fields,
+            #    align,
+            #    valign
+            #)
+            self.addcolum(
+                fldname,
+                fields,
+                align,
+                valign
+            )
 
-    def deleterow(self, idx):
-        self.datatable.del_row(idx)
+    def deleterow(self, func):
+        for row in self.rows:
+            if func(row):
+                idx = self.rows.index(row)
+                self.datagrid.del_row(idx)
+                self.rows.pop(idx)
+                break
 
     def clearrows(self):
-        self.datatable.clear_rows()
+        self.datagrid.clear_rows()
+        self.rows = Lst()
 
     def get_string(self):
         if (len(self.rows) > 0):
@@ -418,7 +418,7 @@ class DataGrid(Ascii):
 
     def printer(self):
         if (len(self.rows) > 0):
-            print(f"\n[___{self.dataoption.title.upper()}___]")
+            print(f"\n[___{self.dataoptions.title.upper()}___]")
             print(self.get_string())
 
 class DataTable(Ascii):
@@ -463,6 +463,8 @@ class DataTable(Ascii):
                 Lst(fields) or Lst(['key', 'value']),
                 Storage(kwargs)
             )
+        self.dataoptions_copy = self.dataoptions.copy()
+        self.dataoptions.merge(kwargs)
         ''' forcing respect of field order
         '''
         if (type(self.record) is not StorageIndex):
@@ -474,13 +476,13 @@ class DataTable(Ascii):
         ''' do we need to add columns 'idx' and 'type'?
         '''
         if AND(
-                (self.dataoption.includeid is True),
+                (self.dataoptions.includeid is True),
                 (not 'idx' in fields)
         ):
             fields.insert(0, 'idx')
 
         if AND(
-                (self.dataoption.includetype is True),
+                (self.dataoptions.includetype is True),
                 (not 'type' in fields)
         ):
             typeidx = 1 \
@@ -489,12 +491,13 @@ class DataTable(Ascii):
             fields.insert(typeidx, 'type')
         ''' datatable --> the table object
         '''
-        self.datatable = PT(field_names=fields, **self.dataoption)
-        self.datatable.title = self.dataoption.title or 'TABLE'
+        self.datatable = PT(field_names=fields, **self.dataoptions)
+        self.datatable.title = self.dataoptions.title or 'TABLE'
         ''' insert a record to datatable
         '''
         if (noneempty(self.record) is False):
             self.orderedtable(self.record)
+        self.dataoptions = self.dataoptions_copy
 
     def getfieldtype(self, value, fieldtype=None):
         ''' returns the value's type name
@@ -576,6 +579,7 @@ class DataTable(Ascii):
             except Exception as err:
                 bail(err)
 
+
     def rowinsert(
             self,
             idx,
@@ -627,7 +631,7 @@ class DataTable(Ascii):
         ''' Include idx?
         '''
         if AND(
-                (self.dataoption.includeid is True),
+                (self.dataoptions.includeid is True),
                 (idx is not None)
         ):
             keyidx += 1
@@ -643,7 +647,7 @@ class DataTable(Ascii):
         ''' Include type?
         '''
         if AND(
-                (self.dataoption.includetype is True),
+                (self.dataoptions.includetype is True),
                 (noneempty(value) is False)
         ):
             (
@@ -656,7 +660,7 @@ class DataTable(Ascii):
                 )
             reg_datatable = re.compile(f'^\{junction}\{horizontal}.\+$')
             typeindex = 1 \
-                if (self.dataoption.includeid is True) \
+                if (self.dataoptions.includeid is True) \
                 else 0
             if (reg_datatable.search(value) is not None):
                 fieldtype = '<DLGTable.DLGDataTable>'
@@ -683,6 +687,7 @@ class DataTable(Ascii):
                     ('unset' in self.record.keys())
             ):
                 return
+
         self.datatable.add_row(row)
 
     def notable(self, msg="no table for you!"):
@@ -693,7 +698,7 @@ class DataTable(Ascii):
 
     def printer(self):
         asstr = self.get_string()
-        title = self.dataoption.title
+        title = self.dataoptions.title
         if (title is not None):
             print(f"\n[___ {str(title).upper()} ___]")
         print(asstr)

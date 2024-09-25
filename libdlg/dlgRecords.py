@@ -70,6 +70,7 @@ class DLGRecords(object):
         self.records = Lst(DLGRecord(record) for record in records)
         self.cols = cols
         self.oSearch = Search()
+        self.grid = None
 
     def __call__(
             self,
@@ -139,14 +140,12 @@ class DLGRecords(object):
             print(err)
         return False
 
-    def datagrid(self, *args, **kwargs):
-        dgrid = DataGrid(self)(*args, **kwargs)
+    grid = None
+    def as_grid(self, *args, **kwargs):
+        if (self.grid is None):
+            self.grid = DataGrid(self)
+        dgrid = self.grid(*args, **kwargs)
         print(dgrid)
-        #resgrid = DataGrid(self)()
-        #return resgrid
-
-    def printer(self, *args, **kwargs):
-        print(DataGrid(self)(*args, **kwargs))
 
     def __add__(self, other):
         if (isinstance(other, list) is True):

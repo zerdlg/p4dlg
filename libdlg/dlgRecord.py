@@ -64,7 +64,7 @@ class DLGRecord(Storage):
     fieldnames = lambda self: Storage(self.__dict__).getkeys()
 
     def as_dict(self, datetime_tostr=False):
-        self.oDate = DLGDateTime()
+        oDate = DLGDateTime()
         serializabletypes = [
             str,
             int,
@@ -90,25 +90,22 @@ class DLGRecord(Storage):
                     record[field] = float(fieldvalue)
                 elif (isinstance(fieldvalue, dttypes) is True):
                     if datetime_tostr:
-                        record[field] = self.oDate.to_string(fieldvalue)
+                        record[field] = oDate.to_string(fieldvalue)
                 elif not isinstance(fieldvalue, tuple(serializabletypes)):
                     del record[field]
             except TypeError as err:
                 bail(err, self.criticallogger)
         return record
 
-    def datatable(self, *args, **kwargs):
-        dtable = DataTable(self, *args, **kwargs)()
+    def as_table(self, *args, **kwargs):
+        table = DataTable(self)
+        dtable = table(*args, **kwargs)
         print(dtable)
-        #return DataTable(self)()
-
-    def printer(self,*args, **kwargs):
-        print(DataTable(self)(*args, **kwargs))
 
     def get(self, key, default=None):
-        dmap = {
+        dmap = Storage({
             str(key).lower(): str(key) for key in self.getkeys()
-        }
+        })
         key = dmap[str(key).lower()] \
             if (str(key).lower() in dmap.getkeys()) \
             else None
