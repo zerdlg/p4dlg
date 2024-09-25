@@ -337,6 +337,7 @@ class DataGrid(Ascii):
             self.rows = Lst([row for row in self.rows])
         if (len(self.rows) == 0):
             return self
+        self.dataoptions.merge(kwargs)
         self.define_fields(*fields, **kwargs)
         self.defineDataGrid()
 
@@ -352,7 +353,6 @@ class DataGrid(Ascii):
 
     def addrows(self, rows):
         for row in rows:
-            #self.datagrid.add_row(row)
             self.addrow(row)
 
     def addcolum(
@@ -387,12 +387,6 @@ class DataGrid(Ascii):
         align = align or self.dataoptions.align
         valign = valign or self.dataoptions.valign
         for (fldname, fields) in cols.items():
-            #self.datagrid.add_column(
-            #    fldname,
-            #    fields,
-            #    align,
-            #    valign
-            #)
             self.addcolum(
                 fldname,
                 fields,

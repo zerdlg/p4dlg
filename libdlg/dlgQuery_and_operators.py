@@ -2888,6 +2888,9 @@ class DLGQuery(object):
             return resd
 
 class DLGExpression(object):
+
+    __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
+
     def __init__(
             self,
             objp4,

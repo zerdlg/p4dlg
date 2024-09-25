@@ -581,6 +581,8 @@ class JNLField(DLGExpression):
          if (len(kwargs) > 0)]
 
     #__hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4.itervalues())))
+    __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
+    #__hash__ = lambda self: hash(frozenset(self))
 
     def containschars(self):
         return self.__contains__(self)

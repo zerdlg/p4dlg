@@ -355,38 +355,47 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
     def sortby(
             self,
-            key,
+            field,
+            limitby=None,
             reverse=False,
             records=None
     ):
-        ''' returns a new set of DLGRecords / does not modify the original.
-        '''
+        ''' returns a new set of DLGRecords sorted by a condition / does not modify the original.
 
+            >>> out = records.sortby(oJnl.domain.accessDate)
+            >>> out.as_grid()
+            +-----+-----------+----------------+------------+-----------------+------+--------------+-----------------------------+--------+--------+-------+------------+------------+---------+------------------+--------+----------+-----------+
+            | idx | db_action | table_revision | table_name | name            | type | extra        | mount                       | mount2 | mount3 | owner | updateDate | accessDate | options | description      | stream | serverid | partition |
+            +-----+-----------+----------------+------------+-----------------+------+--------------+-----------------------------+--------+--------+-------+------------+------------+---------+------------------+--------+----------+-----------+
+            | 1   | pv        | 6              | db.domain  | anyschema       | 99   |              | /Users/mart/anyschema_2db   |        |        | mart  | 2021/03/12 | 2021/03/12 | 4096    | Created by mart. |        |          | 0         |
+            | 6   | pv        | 6              | db.domain  | p4client        | 99   | gareth.local | /Users/mart/p4src           |        |        | mart  | 2021/03/12 | 2021/03/13 | 4096    | Created by mart. |        |          | 0         |
+            | 2   | pv        | 6              | db.domain  | client.protodev | 99   |              | /Users/mart/protodev        |        |        | mart  | 2021/04/14 | 2021/04/14 | 0       | Created by mart. |        |          | 0         |
+            | 4   | pv        | 6              | db.domain  | localclient     | 99   | raspberrypi  | /home/pi                    |        |        | mart  | 2021/03/14 | 2021/04/14 | 0       | Created by mart. |        |          | 0         |
+            | 5   | pv        | 6              | db.domain  | martclient      | 99   | gareth.local | /Users/mart                 |        |        | mart  | 2021/03/12 | 2021/07/20 | 4096    | Created by mart. |        |          | 0         |
+            | 7   | pv        | 6              | db.domain  | pycharmclient   | 99   | gareth.local | /Users/mart/PycharmProjects |        |        | mart  | 2021/06/17 | 2021/08/05 | 2       | Created by mart. |        |          | 0         |
+            +-----+-----------+----------------+------------+-----------------+------+--------------+-----------------------------+--------+--------+-------+------------+------------+---------+------------------+--------+----------+-----------+
+        '''
         if (records is None):
             records = self
-
         if (len(records) == 0):
             return records
-        outrecords = Lst()
+        
+        if (limitby is not None):
+            if (isinstance(limitby, tuple) is True):
+                records = records.limitby(limitby)
+            else:
+                bail('limitby must be of type `tuple`')
 
-        if (type(key) is LambdaType):
-            outrecords = Lst(
-                [
-                    rec for (rec, s) in sorted(
-                        zip(records, self),
-                        key=lambda rec: key(rec[1]),
-                        reverse=reverse
-                    )
-                ]
+        keyname = field.fieldname \
+            if (type(field).__name__ in ('JNLField', 'Py4Field')) \
+            else field
+        outrecords = Lst(
+            sorted(
+                records,
+                key=lambda k: k[keyname],
+                reverse=reverse
             )
-        if (isinstance(key, str)):
-            outrecords = Lst(
-                sorted(
-                    records,
-                    key=lambda k: k[key],
-                    reverse=reverse
-                )
-            )
+        )
         return DLGRecords(outrecords, self.cols, self.objp4)
 
     def orderby(
@@ -397,9 +406,17 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             records=None
     ):
         ''' returns a new set of P4Records / does not modify the original.
+            >>> out = records.orderby(*[oJnl.domain.name, oJnl.domain.accessDate],)
+            >>> out.as_grid()
+
+
         '''
-        if (records is None):
-            records = self
+
+        records = self \
+            if (records is None) \
+            else DLGRecords(records, self.cols, self.objp4) \
+            if (type(records).__name__ != 'DLGRecords') \
+            else records
 
         if (len(records) == 0):
             return records
@@ -409,17 +426,23 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 bail(
                     f"Invalid column {field}. Try again."
                 )
-        fields = Lst(fields)
         if (limitby is not None):
-            records = records.limitby(limitby)
-        if (len(fields) > 0):
-            for field in fields:
-                records = sorted(
-                    records,
-                    key=lambda k: k[field],
-                    reverse=reverse
-                )
-        return records
+            if (isinstance(limitby, tuple) is True):
+                records = records.limitby(limitby)
+            else:
+                bail('limitby must be of type `tuple`')
+
+        fields = Lst(fields)
+        for field in fields:
+            keyname = field.fieldname \
+                if (type(field).__name__ in ('JNLField', 'Py4Field')) \
+                else field
+            records = sorted(
+                records,
+                key=lambda k: k[keyname],
+                reverse=reverse
+            )
+        return DLGRecords(records, self.cols, self.objp4)
 
     def groupby(
             self,
@@ -474,8 +497,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         def makegroup(record, num, groups):
             if (num > (len(fields) - 1)):
                 return Lst([record])
-            fieldname = fields[num]
-            name = str(record[fieldname])
+            name = str(record[fields[num].fieldname]) \
+                if (type(fields[num]).__name__ in ('JNLField', 'Py4Field')) \
+                else str(record[fields[num]])
             if (len(name) == 0):
                 return groups
             if (isinstance(groups, Storage) is True):
@@ -509,7 +533,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
         outrecords = Lst()
         records_by_group = Storage()
-        recordslen = (len(records) - 1)
+        recordslen = len(records)
 
         if (len(records) == 0):
             '''  we have no records! return an empty set
@@ -533,9 +557,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
         recfields = records_by_group.getkeys()
         for recfield in recfields:
-            recordgroup = records_by_group[recfield]
+            records_by_group[recfield] = DLGRecords(records_by_group[recfield])
             if (orderby is not None):
-                recordgroup = self.orderby(orderby, records=recordgroup)
+                recordgroup = self.orderby(orderby, records=records_by_group[recfield])
                 records_by_group.update(
                     **{
                         recfield: DLGRecords(
@@ -547,7 +571,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 )
         if (groupdict is False):
             for rgroup in records_by_group.getkeys():
-                outrecords += records_by_group[rgroup].records
+                outrecords += records_by_group[rgroup]#.records
             return DLGRecords(outrecords, self.cols, self.objp4)
         '''     return grouped records
 
@@ -559,89 +583,3 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                                         <{record}>]})
         '''
         return records_by_group
-
-    def join(self, field, name=None, constraint=None, fields=[], orderby=None):
-        if (len(self) == 0):
-            return self
-
-        mode = 'referencing' \
-            if (field.type == 'id') \
-            else 'referenced'
-
-        func = lambda ids: field.belongs(ids)
-
-        (objp4, ids, maps) = (self.objp4, [], {})
-
-        if (noneempty(fields) is True):
-            fields = Lst(f for f in field._table if f.readable)
-
-        if (mode == 'referencing'):
-            # try all referenced field names
-            names = [name] \
-                if (name is not None) \
-                else list(
-                            set(
-                f.name for f in field._table._referenced_by if (f.name in self[0])
-                            )
-            )
-
-            # get all the ids
-            ids = [row.get(name) for row in self for name in names]
-
-            # filter out the invalid ids
-            ids = filter(lambda id: str(id).isdigit(), ids)
-
-            # build the query
-            query = func(ids)
-
-            if constraint:
-                query = query & constraint
-
-            tmp = not field.name in [f.name for f in fields]
-            if tmp:
-                fields.append(field)
-
-            other = objp4(query).select(*fields, orderby=orderby)#, cacheable=True)
-
-            for row in other:
-                id = row[field.name]
-                maps[id] = row
-
-            for row in self:
-                for name in names:
-                    row[name] = maps.get(row[name])
-
-        if mode == 'referenced':
-            if (name is None):
-                name = field._tablename
-
-            # build the query
-            query = func([row.id for row in self])
-
-            if constraint: query = query & constraint
-
-            name = name or field._tablename
-
-            tmp = not field.name in [f.name for f in fields]
-            if tmp:
-                fields.append(field)
-
-            other = objp4(query).select(*fields, orderby=orderby)#, cacheable=True)
-
-            for row in other:
-                id = row[field]
-                if not id in maps: maps[id] = []
-                if tmp:
-                    try:
-                        del row[field.name]
-                    except:
-                        del row[field.tablename][field.name]
-
-                        if not row[field.tablename] and len(row.keys())==2:
-                            del row[field.tablename]
-                            row = row[row.keys()[0]]
-
-                maps[id].append(row)
-            for row in self:
-                row[name] = maps.get(row.id, [])
-        return self
