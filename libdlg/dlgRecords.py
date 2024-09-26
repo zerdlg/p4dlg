@@ -379,20 +379,20 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             records = self
         if (len(records) == 0):
             return records
-        
+
         if (limitby is not None):
             if (isinstance(limitby, tuple) is True):
                 records = records.limitby(limitby)
             else:
                 bail('limitby must be of type `tuple`')
 
-        keyname = field.fieldname \
+        fieldname = field.fieldname \
             if (type(field).__name__ in ('JNLField', 'Py4Field')) \
             else field
         outrecords = Lst(
             sorted(
                 records,
-                key=lambda k: k[keyname],
+                key=lambda k: k[fieldname],
                 reverse=reverse
             )
         )
@@ -432,14 +432,13 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             else:
                 bail('limitby must be of type `tuple`')
 
-        fields = Lst(fields)
         for field in fields:
-            keyname = field.fieldname \
+            fieldname = field.fieldname \
                 if (type(field).__name__ in ('JNLField', 'Py4Field')) \
                 else field
             records = sorted(
                 records,
-                key=lambda k: k[keyname],
+                key=lambda k: k[fieldname],
                 reverse=reverse
             )
         return DLGRecords(records, self.cols, self.objp4)
@@ -449,9 +448,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             *fields,
             limitby=None,
             orderby=None,
-            groupdict=False,    # affects return value
-            records=None,
-            **kwargs
+            reverse=False,
+            groupdict=False,
+            records=None
     ):
         '''     groupby
 
@@ -481,7 +480,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                                          'options': '0'},
                          ...}
         '''
-        (fields, kwargs) = (Lst(fields), Storage(kwargs))
         for field in fields:
             if (not field in self.cols):
                 bail(
@@ -490,96 +488,87 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
         if (records is None):
             records = self
-
-        if (len(records) == 0):
-            return records
-
-        def makegroup(record, num, groups):
-            if (num > (len(fields) - 1)):
-                return Lst([record])
-            name = str(record[fields[num].fieldname]) \
-                if (type(fields[num]).__name__ in ('JNLField', 'Py4Field')) \
-                else str(record[fields[num]])
-            if (len(name) == 0):
-                return groups
-            if (isinstance(groups, Storage) is True):
-                if (name not in groups.getkeys()):
-                    groups[name] = makegroup(
-                        record,
-                        (num + 1),
-                        Storage()
-                    )
-                else:
-                    rec = makegroup(
-                        record,
-                        (num + 1),
-                        groups[name]
-                    )
-
-                    if (isinstance(rec, dict) is True):
-                        groups[name].append(rec)
-                    elif (isinstance(rec, list) is True):
-                        groups[name] += rec
-                    else:
-                        groups[name] = rec
-            elif (isinstance(groups, Lst) is True):
-                num += 1
-                makegroup(
-                    record,
-                    num,
-                    Storage()
-                )
-            return groups
-
-        outrecords = Lst()
-        records_by_group = Storage()
-        recordslen = len(records)
-
         if (len(records) == 0):
             '''  we have no records! return an empty set
             '''
             return records
 
+        records_by_group = Storage()
+        recordslen = len(records)
+
+        def group(record, num):
+            if (num  <= (len(fields) - 1)):
+                try:
+                    rec = group(record, (num + 1)) or Lst([record])
+                    name = str(record[fields[num].fieldname]) \
+                        if (type(fields[num]).__name__ in ('JNLField', 'Py4Field')) \
+                        else str(record[fields[num]])
+                    if (isinstance(rec, dict) is True):
+                        records_by_group[name].append(rec)
+                    elif (isinstance(rec, (list, Lst)) is True):
+                        records_by_group[name] += rec
+                    else:
+                        records_by_group[name] = rec
+                except Exception as err:
+                    records_by_group[name] = rec
+
         '''  start with limitby 
         '''
         if (limitby is not None):
-            records = self.limitby(*limitby)
+            records = self.limitby(limitby)
             recordslen = (len(records) - 1)
 
+        ''' group records by processing one at a time
+        '''
         for i in range(0, recordslen):
             rec = records(i)
-            makegroup(
-                            rec,
-                            0,
-                            records_by_group
-            )
+            group(rec, 0)
             recordslen -= 1
 
-        recfields = records_by_group.getkeys()
-        for recfield in recfields:
-            records_by_group[recfield] = DLGRecords(records_by_group[recfield])
+        ''' orderby & reverse, as instructed
+        '''
+        groupnames = records_by_group.getkeys()
+        for groupname in groupnames:
+            records_by_group[groupname] = DLGRecords(records_by_group[groupname])
             if (orderby is not None):
-                recordgroup = self.orderby(orderby, records=records_by_group[recfield])
+                recordgroup = self.orderby(orderby, reverse=reverse, records=records_by_group[groupname])
                 records_by_group.update(
                     **{
-                        recfield: DLGRecords(
+                        groupname: DLGRecords(
                             recordgroup,
                             self.cols,
                             self.objp4
                         )
                     }
                 )
-        if (groupdict is False):
-            for rgroup in records_by_group.getkeys():
-                outrecords += records_by_group[rgroup]#.records
-            return DLGRecords(outrecords, self.cols, self.objp4)
-        '''     return grouped records
 
-                {group_name: < Records([<{record}>
-                                        <{record}>,
-                                        <{record}>,
-                                        <{record}>]>),
-                ,group_name2: <Records([<{record}>,
-                                        <{record}>]})
+        ''' return grouped records as a dict , eg.
+                {
+                    group_name: <DLGRecords(
+                                        <{DLGRecord}>
+                                        <{DLGRecord}>,
+                                        <{DLGRecord}>,
+                                        <{DLGRecord}>
+                                        )>,
+                   ,group_name2: <DLGRecords(
+                                        <{DLGRecord}>,
+                                        <{DLGRecord}>
+                                        )>
+                }
+            
+            or return as a single list of grouped records
+                <DLGRecords(
+                        <{DLGRecord}>
+                        <{DLGRecord}>,
+                        <{DLGRecord}>,
+                        <{DLGRecord}>,
+                        <{DLGRecord}>,
+                        <{DLGRecord}>
+                        )>
         '''
-        return records_by_group
+        if (groupdict is True):
+            return records_by_group
+        outrecords = Lst()
+        for rgroup in records_by_group.getkeys():
+            outrecords += records_by_group[rgroup]
+        return DLGRecords(outrecords, self.cols, self.objp4)
