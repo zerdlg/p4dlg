@@ -2832,6 +2832,8 @@ class DLGQuery(object):
         )
         return f'<DLGQuery {qdict}>'
 
+    __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
+
     __str__ = __repr__
 
     def __and__(self, value):

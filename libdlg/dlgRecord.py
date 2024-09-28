@@ -2,7 +2,7 @@ import decimal
 from datetime import date, datetime, time
 
 from libdlg.dlgStore import Storage, Lst
-from libdlg.dlgUtilities import reg_objdict, bail, Flatten
+from libdlg.dlgUtilities import reg_objdict, bail, Flatten, ALLLOWER
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgTables import DataTable
 
@@ -19,7 +19,15 @@ class DLGRecord(Storage):
 
     __str__ = __repr__ = lambda self: f'<DLGRecord {pformat(self.as_dict())}>'
 
+    def _fieldnames(self):
+        return self.getkeys()
+
+    def _fieldsmap(self):
+        return Storage(zip(ALLLOWER(self._fieldnames()), self._fieldnames()))
+
     def __getitem__(self, item, other=None):
+        if (str(item).lower() in self._fieldsmap()):
+            item = self._fieldsmap()[str(item).lower()]
         record = self.as_dict()
         if (
                 (isinstance(item, dict))
@@ -37,17 +45,16 @@ class DLGRecord(Storage):
                     TypeError
             ) as err:
                 pass
-        key = str(item)
-        if (key in record.getkeys()):
+        if (item in record.getkeys()):
             try:
-                return record[key]
+                return record[item]
             except (
                     KeyError,
                     AttributeError,
                     TypeError
             ) as err:
                 pass
-            oMatch = reg_objdict.match(key)
+            oMatch = reg_objdict.match(item)
             if (oMatch is not None):
                 try:
                     return getattr(self, oMatch.group(1))[oMatch.group(2)]
@@ -58,10 +65,12 @@ class DLGRecord(Storage):
                 ):
                     raise KeyError
 
+    __getattr__ = __getitem__
+
     has_key = has_field = lambda self, key: key in self.__dict__
     __nonzero__ = lambda self: len(self.__dict__) > 0
     __copy__ = lambda self: DLGRecord(self)
-    fieldnames = lambda self: Storage(self.__dict__).getkeys()
+    fieldnames = lambda self: self._fieldnames()
 
     def as_dict(self, datetime_tostr=False):
         oDate = DLGDateTime()

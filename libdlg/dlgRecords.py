@@ -56,7 +56,7 @@ class DLGRecords(object):
     def empty_records(self):
         return DLGRecords(Lst(), Lst(), self.objp4)
 
-    def count(self):
+    def count(self, distinct=None):
         return len(self)
 
     def __init__(
@@ -211,7 +211,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
     def insert(self, record):
         try:
-            self.records.append(DLGRecord(record))
+            if (len(record) == len(self.cols)):
+                self.records.append(DLGRecord(record))
         except Exception as err:
             bail(
                 f'Failed to insert new record: {record}\nError: {err}'
@@ -223,6 +224,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 self.records.append(DLGRecord(record) \
                     if (type(record) is not DLGRecord) \
                     else record) for record in records
+
             ]
         except Exception as err:
             bail(
@@ -248,7 +250,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
     def remove(self, func):
         self.delete(func)
 
-    def update(self, func, **update_fields):
+    def update_old(self, func, **update_fields):
         records = self
         if (len(records) == 0):
             return DLGRecords(Lst(), self.cols, self.objp4)
@@ -259,6 +261,17 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 self.records[i].update(**update_fields)
             else:
                 i += 1
+
+    def update(self, **update_fields):
+        records = self
+        if (len(records) == 0):
+            return DLGRecords(Lst(), self.cols, self.objp4)
+        i = 0
+        while (i < len(records)):
+            #if (func(self[i]) is True):
+            self.records[i].update(**update_fields)
+            #else:
+            i += 1
 
     def limitby(self, args, records=None):
         if (len(args) != 2):

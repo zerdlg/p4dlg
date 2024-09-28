@@ -87,7 +87,8 @@ __all__ = ['DLGRecordSet']
 class DLGRecordSet(object):
     __hash__ = lambda self: hash(
         (frozenset(self),
-         frozenset(Storage(self.__dict__).getvalues()))
+         frozenset(self.recordset))
+         #frozenset(Storage(self.__dict__).getvalues()))
     )
     __bool__ = lambda self: True
     __copy__ = lambda self: self
@@ -814,21 +815,19 @@ class DLGRecordSet(object):
             )
         ''' TODO: Implement '''
 
-    #def update(self, *args, **kwargs):
-    #    kwargs = Storage(kwargs)
-    #    records = self.oQuery.iterQuery(*args, **kwargs)
-    #    records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
-    #    records = self.filter_records(records, **kwargs)
-    #    self.oQuery.query = Lst()
-    #    return records
+    def update(self, **update_fields):
+        records = self.select(update_fields=update_fields)
+        #indices = self.select('idx')
+        #records.update(**update_fields)
+        records.update(**update_fields)
+        self.records = records
+        return records
 
-    #def delete(self, *args, **kwargs):
-    #    (args, kwargs) = (Lst(args), Storage(kwargs))
-    #    records = self.oQuery.iterQuery(*args, **kwargs)
-    #    records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
-    #    records = self.filter_records(records, **kwargs)
-    #    self.oQuery.query = Lst()
-    #    return records
+    def delete(self, *args, **kwargs):
+        indices = self.select()
+        for idx in indices:
+            self.records.delete()
+        return self.records
 
     # def insert(self, *args, **kwargs):
     #    kwargs = Storage(kwargs)
@@ -915,31 +914,76 @@ class DLGRecordSet(object):
             cols,
             query
         )
-        outrecords = DLGRecords([], cols=self.cols, objp4=objp4)
+        #outrecords = DLGRecords([], cols=self.cols, objp4=objp4)
         tablename = self.tablename
         if (len(fieldnames) == 0):
             fieldnames = self.fieldnames or cols
         fieldsmap = self.fieldsmap
+        '''
+        update_fields
+        delete_records
+        '''
         kwargs.merge(
             {
                 'fieldsmap': fieldsmap,
                 'tablename': tablename
             }
         )
-        try:
-            outrecords = oSelect.select(
-                *fieldnames,
-                raw_records=raw_records,
-                close_session=close_session,
-                **kwargs
-            )
-        except Exception as err:
-            print(err)
-        finally:
-            return outrecords
+        outrecords = oSelect.select(
+            *fieldnames,
+            raw_records=raw_records,
+            close_session=close_session,
+            **kwargs
+        )
+        return outrecords
 
-    def count(self):
-        return len(self.records)
+
+    def count(
+            self,
+            query=None,
+            records=None,
+            cols=None,
+            distinct=None,
+            ** kwargs
+    ):
+        recslength = len(self.records)
+        kwargs = Storage(kwargs)
+        cols = cols or self.cols
+        records = records or self.records
+        query = query or self.query
+        objp4 = self.objp4 if (hasattr(self, 'objp4')) else self
+        oSelect = Select(
+            objp4,
+            records=records,
+            cols=cols,
+            query=query,
+            distinct=distinct
+        )
+
+
+        '''
+        # outrecords = DLGRecords([], cols=self.cols, objp4=objp4)
+        tablename = self.tablename
+        if (len(fieldnames) == 0):
+            fieldnames = self.fieldnames or cols
+        fieldsmap = self.fieldsmap
+        
+        #update_fields
+        #delete_records
+        
+        kwargs.merge(
+
+        if (distinct is not None):
+            distinctvalues = set()
+            fieldname = distinct.fieldname  \
+                if (type(distinct).__name__ in ('JNLField', 'Py4Field')) \
+                else distinct
+            idx = self.cols.index(fieldname)
+            [distinctvalues.add(self.records[i][idx]) for i in range(0, recslength)]
+            l = len(list(distinctvalues))
+            return distinctvalues
+        return recslength
+        '''
 
     def computecolumns(self, record):
         try:

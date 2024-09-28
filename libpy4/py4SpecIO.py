@@ -130,21 +130,29 @@ class SpecIO(object):
                 (True in (is_input, is_output)),
                 (not True in has_outputkey)
         ):
-            if (specname == outputargs(-1)):
-                outputargs.insert(-1, '--output')
-            else:
+            ''' make sure the outputargs endswith [..., tablename, '--output', specname] 
+            '''
+            if (specname == tablename):
+                if (outputargs.count(tablename) > 1):
+                    outputargs.insert(-1, '--output')
+                else:
+                    outputargs.append('--output')
+                    outputargs.append(specname)
+            elif (tablename == outputargs(-1)):
                 outputargs.append('--output')
-
-        if AND(
-                (specname != outputargs(-1)),
-                (specname is not None)
-        ):
-            outputargs.append(specname)
-
+                if AND(
+                        (specname not in outputargs),
+                        (specname is not None)
+                ):
+                    outputargs.append(specname)
+            elif AND(
+                    (tablename == outputargs(-2)),
+                    (specname == outputargs(-1))
+            ):
+                outputargs.insert(-1, '--output')
         try:
             out = self.objp4.p4OutPut(tablename, *outputargs)
             outrecord = Lst(out)(0)
-
             if (type(outrecord) is Lst):
                 outrecord = outrecord(0) or Storage()
             if (outrecord not in (Lst(), None)):
@@ -178,7 +186,7 @@ class SpecIO(object):
             ''' no user input, get out now
             '''
             if (is_input is False):
-                return outrecord
+                return DLGRecord(outrecord)
         finally:
             self.objp4.close()
         ''' To save a new or updated spec, the output becomes the input's base record (except for change). 

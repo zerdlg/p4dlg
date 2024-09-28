@@ -221,7 +221,7 @@ class ArgsParser(object):
                     optparser.update(**optdata)
             ''' add subparser
             '''
-            sparser = self.subParsers.add_parser( \
+            sparser = self.subParsers.add_parser(
                 whichname,
                 help=optparser.help,
                 parents=[self.bParser])

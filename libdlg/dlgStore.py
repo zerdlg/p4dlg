@@ -183,9 +183,6 @@ class Storage(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
     __getitem__ = dict.get
-    __getattr__ = dict.get
-    #__int__ = lambda self: int(self.get('id'))
-    #__long__ = __int__
     __call__ = __getitem__
     __getstate__ = lambda self: None
     __copy__ = lambda self: Storage(self)
@@ -196,7 +193,21 @@ class Storage(dict):
         )
     )
 
+    def _keynames(self):
+        return self.getkeys()
+
+    def _keysmap(self):
+        return Storage(zip([f.lower() for f in self._keynames()], self._keynames()))
+
+    def __getattr__(self, key):
+        if (str(key).lower() in self._keysmap()):
+            key = self._keysmap()[str(key).lower()]
+            return self[key]
+
+
     def get(self, key, default=None):
+        if (str(key).lower() in self._keynames()):
+            key = self._keysmap()[str(key).lower()]
         try:
             return self.__getitem__(key)
         except(
