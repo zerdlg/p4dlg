@@ -25,6 +25,11 @@ class DLGRecord(Storage):
     def _fieldsmap(self):
         return Storage(zip(ALLLOWER(self._fieldnames()), self._fieldnames()))
 
+    def __setattr__(self, item, value):
+        if (str(item).lower() in self._fieldsmap()):
+            item = self._fieldsmap()[str(item).lower()]
+        self[item] = value
+
     def __getitem__(self, item, other=None):
         if (str(item).lower() in self._fieldsmap()):
             item = self._fieldsmap()[str(item).lower()]
@@ -64,7 +69,6 @@ class DLGRecord(Storage):
                         TypeError
                 ):
                     raise KeyError
-
     __getattr__ = __getitem__
 
     has_key = has_field = lambda self, key: key in self.__dict__
@@ -111,22 +115,6 @@ class DLGRecord(Storage):
         dtable = table(*args, **kwargs)
         print(dtable)
 
-    def get(self, key, default=None):
-        dmap = Storage({
-            str(key).lower(): str(key) for key in self.getkeys()
-        })
-        key = dmap[str(key).lower()] \
-            if (str(key).lower() in dmap.getkeys()) \
-            else None
-        try:
-            return self.__getitem__(key)
-        except(
-                KeyError,
-                AttributeError,
-                TypeError
-        ):
-            return default
-
     def reduce(self):
         return Flatten(**self.as_dict()).reduce()
 
@@ -135,20 +123,37 @@ class DLGRecord(Storage):
 
     ''' rename fieldname to new fieldname
     '''
-    def rename(self, oldfield, newfield):
-        if (self[oldfield] is not None):
-            self[newfield] = self.pop(oldfield)
-        return self
+    def rename(self, oldfield, newfield, record=None):
+        if (record is None):
+            record = self
+        if (record[oldfield] is not None):
+            record[newfield] = record.pop(oldfield)
+        return record
 
     ''' delete fields
     '''
     def delete(self, *fields):
         for field in fields:
-            if (field in self.getfields()):
+            field = field.fieldname \
+                if (type(field) in ('JNLField', 'Py4Field')) \
+                else str(field)
+            if (str(field).lower() in self._fieldsmap()):
+                field = self._fieldsmap()[str(field).lower()]
+            if (field in self.getkeys()):
                 try:
                     self.__delitem__(field)
                 except KeyError as err:
                     print(f'no such field... {field}')
+
+    def update(self, *args, **kwargs):
+        kwargkeys = kwargs.copy().keys()
+        for key in kwargkeys:
+            nkey = key
+            if (str(key).lower() in self._fieldsmap()):
+                nkey = self._fieldsmap()[str(key).lower()]
+            if (key != nkey):
+                kwargs = self.rename(key, nkey, kwargs)
+        super(DLGRecord, self).update(*args, **kwargs)
 
     ''' keys, values, items
     '''
