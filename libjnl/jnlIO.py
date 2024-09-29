@@ -20,7 +20,7 @@ from libdlg.dlgFileIO import loadpickle
 from libdlg.dlgSchema import SchemaXML
 from libdlg.dlgInvert import invert
 from libjnl.jnlFile import JNLFile
-from libjnl.jnlGuess import GuessRelease
+#from libjnl.jnlGuess import GuessRelease
 from libjnl.jnlSqltypes import JNLTable, JNLField
 
 import schemaxml

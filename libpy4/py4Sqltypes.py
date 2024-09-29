@@ -177,6 +177,7 @@ class Py4Table(object):
         if (isinstance(p4ret, Lst)):
             p4ret = DLGRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self)
         return p4ret
+
     ''' p4 keyed tables... get a table's `keying` attributes
     '''
     def keying_fields(self, tablename):

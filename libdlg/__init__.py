@@ -27,8 +27,8 @@ from libdlg.dlgUtilities import *
 ''' contrib
 '''
 from libdlg.contrib import diff_match_patch, six
-from libdlg.contrib.pydal import DAL
 from libdlg.contrib.prettytable.prettytable import PrettyTable
+from libdlg.contrib.pydal import DAL
 from libdlg.contrib.pydal.objects import (
     Table,
     Query,

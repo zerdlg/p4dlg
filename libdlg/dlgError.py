@@ -5,6 +5,7 @@
 
 __all__ = [
     'DLGError',
+    'raiseException',
     'MutuallyExclusiveError',
     'InternalRCSError',
     'CreateRevisionError',
@@ -13,6 +14,8 @@ __all__ = [
     'LockingError',
     'InvertError',
 ]
+def raiseException(exception, msg):
+    return exception(msg)
 
 class DLGError(Exception): pass
 

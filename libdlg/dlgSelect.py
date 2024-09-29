@@ -886,10 +886,7 @@ class Select(DLGControl):
             it is, it is empty! Just do the few 
             lines below and get out!
         '''
-        if AND(
-                (type(records) != enumerate),
-                (len(records) == 0)
-        ):
+        if (type(records) != enumerate):
             records = self.guess_records(query, tablename)
         fieldnames = Lst(fieldnames or self.objp4.fieldnames).storageindex(reversed=True)
         return (tablename, fieldnames, query, cols, records)
@@ -914,10 +911,10 @@ class Select(DLGControl):
             cols,
             records
         ) = self.tablename_fieldnames_query_cols_records(
-            fieldnames,
-            query,
-            cols,
-            records,
+            *fieldnames,
+            query=query,
+            cols=cols,
+            records=records,
             **kwargs
         )
         if (tablename is None):

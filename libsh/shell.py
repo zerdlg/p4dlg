@@ -42,7 +42,7 @@ from libconnect import (
     ObjNO
 )
 
-from libsh.shModules.shQuery import RunQuery
+#from libsh.shModules.shQuery import RunQuery
 
 ''' absolute path to schemaxml directory
 '''
@@ -719,7 +719,8 @@ def _query(**opts):
             'groupby': ''}
     '''
     Storage(opts).delete('which')
-    RunQuery(**opts).__call__()
+    # RunQuery is in the shop!
+    #RunQuery(**opts).__call__()
 
 def initprog(**opts):
     opts = objectify(opts)

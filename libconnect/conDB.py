@@ -15,7 +15,6 @@ __all__ = ['ObjDB']
 ''' create a PyDal instance (Massimo's DB stuff)
 
     THIS IS STILL JUST A TEMPLATE - Still needs to get done.
-
 '''
 
 class ObjDB(object):
@@ -81,7 +80,7 @@ class ObjDB(object):
             print('TypeError:\n{}'.format(err))
 
     def create(self, name, *args, **kwargs):
-        if (self.shellObj.cmd_p4vars(name) is not None):
+        if (self.shellObj.cmd_dbvars(name) is not None):
             print(f'CreateError:\n Name already exists "{name}" - use op4.update({name}) instead')
         try:
             (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))

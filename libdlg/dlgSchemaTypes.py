@@ -1,7 +1,7 @@
 import re
 from libdlg.dlgUtilities import (bail, isnum, ALLLOWER)
-#from  libdlg.p4qStore import Lst, Storage
-from libdlg import Lst, Storage, BELONGS
+from libdlg.dlgStore import Lst, Storage
+from libdlg.dlgQuery_and_operators import BELONGS
 
 __all__ = ['SchemaType']
 

@@ -1198,7 +1198,7 @@ def is_expression(exp):
 def ALLLOWER(litems, includekeys=False):
     if (isinstance(litems, str)):
         return litems.lower()
-    elif (isinstance(litems, dict)):
+    elif (isinstance(litems, dict) is True):
         litems = Storage(litems)
         for (key, value) in litems.items():
             if (isinstance(value, str)):
@@ -1207,7 +1207,7 @@ def ALLLOWER(litems, includekeys=False):
                 else:
                     litems.merge({key: value.lower()})
         return litems
-    elif (isinstance(litems, (list, tuple, set))):
+    elif (isinstance(litems, (list, tuple, set)) is True):
         origintype = type(litems)
         litems = Lst(litems)
         for item in litems:
@@ -1222,7 +1222,7 @@ def ALLLOWER(litems, includekeys=False):
 def ALLUPPER(litems, includekeys=False):
     if (isinstance(litems, str)):
         return litems.upper()
-    elif (isinstance(litems, dict)):
+    elif (isinstance(litems, dict) is True):
         litems = Storage(litems)
         for (key, value) in litems.items():
             if (isinstance(value, str)):
@@ -1231,7 +1231,7 @@ def ALLUPPER(litems, includekeys=False):
                 else:
                     litems.merge({key: value.upper()})
         return litems
-    elif (isinstance(litems, (list, tuple))):
+    elif (isinstance(litems, (list, tuple)) is True):
         return Lst(item.upper() for item \
                    in litems if (isinstance(litems, str)))
     else:
@@ -1300,7 +1300,7 @@ class IsMatch(object):
         return (value, False)
 
 
-def storageIndexToList(_storeidx):
+def storageIndexToList(_storeidx, default='idx'):
     '''  reduces the StorageIndex to a list of record-like items - creates
             an id field with the keys....
 
@@ -1312,9 +1312,10 @@ def storageIndexToList(_storeidx):
             [{'id': 1}, {'b': 'charlotte'}],
             [{'id': 2}, {'c': 'normand'}]]
     '''
-    defaultkey = 'idx'
-    #return Lst(Storage({'id': idx}).merge(_storeidx[idx]) for (idx, value) in _storeidx.items())
-    return Lst(Storage({'idx': idx}).merge(_storeidx[idx]) if () else '' for (idx, value) in _storeidx.items())
+
+    return Lst(Storage({'idx': default}).merge(_storeidx[idx])
+               if ()
+               else '' for (idx, value) in _storeidx.items())
 
 def Casttype(_type, value):
     try:

@@ -6,7 +6,13 @@ from pprint import pformat
      [$Author: mart $]
 '''
 
-__all__ = ['Lst', 'Storage', 'StorageIndex', 'objectify', 'unobjectify']
+__all__ = [
+    'Lst',
+    'Storage',
+    'StorageIndex',
+    'objectify',
+    'unobjectify'
+]
 
 def xrange(x):
     return iter(range(x))
@@ -33,12 +39,20 @@ class Lst(list):
         '''  Don't raise an  exception on IndexError, return default
         '''
         invalid_types = ['NoneType', 'BooleanType']
-        (value, cast) = self.getvalue(len(self), idx, default, cast)
+        (
+            value,
+            cast
+        ) = self.getvalue(
+            len(self),
+            idx,
+            default,
+            cast
+        )
         if (value is not None):
             try:
                 return cast(value) \
                     if (
-                            (not type(cast).__name__ in invalid_types) \
+                            (not type(cast).__name__ in invalid_types)
                             & (callable(cast) is True)
                 ) \
                     else value
@@ -83,8 +97,6 @@ class Lst(list):
     first = lambda self: self(0)
     last = lambda self: self(-1)
 
-    ''' borrowing a few thing from set()'s magic for quick diffs of 2 Lsts
-    '''
     def _getsets(self, *args):
         args = Lst(args)
         return self(
@@ -97,16 +109,48 @@ class Lst(list):
                     set(args(0))
                 ]
         )
-
+    ''' borrowing a from set() for quick operations on 2 lists
+        union - intersect - symetric/no_intersect - issubset = issuperset - diff - nodups
+        
+        s1 = Lst('a', 'b', 'c')
+        s2 = Lst('d', 'e', 'f', 'b')
+        
+        >>> l1.union(12)
+        ['c', 'a', 'e', 'b', 'f', 'd']
+        
+        >>> l1.intersect(l2)
+        ['b']
+        
+        >>> l1.no_intersect(l2)     # same as symetric
+        ['a', 'c', 'e', 'f', 'd']
+        
+        >>> Lst('a', 'b').issubset(l1)
+        True
+        
+        >>> l1.issuperset(Lst('a', 'b'))
+        True
+        
+        >>> l1.diff(l2)
+        ['c', 'a']
+        
+        >>> l1.nodups(l2)
+        >>> l1
+        ['c', 'a', 'e', 'b', 'f', 'd']
+        
+        >>> Lst('a', 'b', 'b', 'c', 'c', 'd', 'd', 'd', 'e').nodups()
+        ['a', 'b', 'c', 'e', 'd']
+        
+    '''
     def union(self, *args):
         (first, second) = self._getsets(*args)
-        self = Lst(first | second)
-        return self
+        return Lst(first | second)
 
     def intersect(self, *args):
         (first, second) = self._getsets(*args)
-        self = Lst(first & second)
-        return self
+        return Lst(first & second)
+
+    def no_intersect(self, *args):
+        return self.symetric(*args)
 
     def issubset(self, *args):
         (first, second) = self._getsets(*args)
@@ -118,20 +162,17 @@ class Lst(list):
 
     def diff(self, *args):
         (first, second) = self._getsets(*args)
-        self = Lst(first - second)
-        return self
+        return Lst(first - second)
 
     def symetric(self, *args):
         (first, second) = self._getsets(*args)
-        self = Lst(first ^ second)
-        return self
+        return Lst(first ^ second)
 
     def nodups(self, *args):
         if (len(args) == 0):
             return Lst(set(self))
         (first, second) = self._getsets(*args)
         self = Lst(first | second)
-        return self
 
     def clean(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
@@ -173,8 +214,56 @@ class Lst(list):
 
     def appendleft(self,value):
         self.insert(0,value)
-        return self
 
+    def indices(self, arg):
+        return Lst(idx for (idx, item) in enumerate(self) if (item == arg))
+
+    def replace(self, arg1, arg2, all=False):
+        argdices = self.indices(arg1)
+        if (all is False):
+            argdices = Lst([argdices(0)]).clean()
+        for argidx in argdices:
+            self.pop(argidx)
+            self.insert(argidx, arg2)
+
+    def merge(self, *arglists, all=False, **sub):
+        ''' merge Lst, [], () or *items to Lst
+            ** substitute old item with new item
+            all=True -> replaces all occurences of item
+            all=False (default) replace the first occurence of item
+
+            l1 = Lst('a', 'b', 'b', 'c', 'c', 'd', 'd', 'd', 'b', 'e')
+            >>> l1.merge(
+                        *[['f','g','h', 'b', 'b'], ['z', 'z', 'z', 'z']],
+                        all=True,
+                        **{'b': 'B', 'a': 'A', 'h': 'H', 'x': 'X'}
+                        ).nodups()
+            >>> l1
+            ['e', 'H', 'A', 'z', 'd', 'B', 'g', 'c', 'f']
+
+            >>> new_list = l1.merge(*['dog', 'cat', 'cow', ('bert', 'ernie', 'bigbird')], **{'cow': 'kangaroo'})
+            >>> new_list
+            ['e',
+             'H',
+             'A',
+             'zzz',
+             'd',
+             'B',
+             'g',
+             'c',
+             'f',
+             'dog',
+             'cat',
+             'kangaroo',
+             ('bert', 'ernie', 'bigbird')]
+        '''
+        for arg in arglists:
+            if (isinstance(arg, list) is False):
+                arg = [arg]
+            self += arg
+        for (key, value) in sub.items():
+            self.replace(key, value, all=all)
+        return self
 
 class Storage(dict):
     ''' a dict with object-like attributes (and a few convenient methods)
@@ -203,7 +292,6 @@ class Storage(dict):
         if (str(key).lower() in self._keysmap()):
             key = self._keysmap()[str(key).lower()]
             return self[key]
-
 
     def get(self, key, default=None):
         if (str(key).lower() in self._keynames()):
@@ -393,7 +481,7 @@ class Storage(dict):
                     ):
                         self.delete(key)
                     elif (
-                            (overwrite is True) \
+                            (overwrite is True)
                             and (
                                     (value is not None)
                                     or (allow_nonevalue is True)
@@ -519,7 +607,7 @@ class StorageIndex(Storage):
         if (len(mKeys) == 0):
             return self.merge({0: item})
         if (
-                (idx == -1) \
+                (idx == -1)
                 | (idx > mKeys.last())
         ):
             return self.merge({(lastkey + 1): item})
@@ -573,10 +661,13 @@ class StorageIndex(Storage):
             startindex=0,
             order_by=None
     ):
-        objLst = sorted(objLst, key=lambda k: k[order_by]) \
-            if (order_by is not None) \
-            else objLst
         storelist = Lst()
+        if (order_by is not None):
+            objLst = Lst(
+                sorted(
+                    objLst, key=lambda k: k[order_by]
+                )
+            )
         if (len(objLst) > 0):
             if (type(objLst) is not StorageIndex):
                 if (isinstance(objLst(0), tuple) is False):
@@ -590,13 +681,17 @@ class StorageIndex(Storage):
                         try:
                             [
                                 storelist.append((enum, item)) for (enum, item)
-                                    in enumerate(objLst, startindex)
+                                in enumerate(objLst, startindex)
                             ]
                             storelist = StorageIndex(storelist)
                         except Exception as err:
                             return objLst
                 elif (reversed is True):
-                    storelist = StorageIndex({j: i for (i, j) in objLst})
+                    storelist = StorageIndex(
+                        {
+                            j: i for (i, j) in objLst
+                        }
+                    )
             elif (reversed is True):
                 storelist = StorageIndex(
                     {

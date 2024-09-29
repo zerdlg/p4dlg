@@ -90,6 +90,7 @@ class SpecIO(object):
         ):
             is_output = True
 
+        ''' for reporting
         specoptions = Storage(
             {
                 'is_input': is_input,
@@ -98,7 +99,8 @@ class SpecIO(object):
                 'requires_force': requires_force
             }
         )
-        #self.loginfo(f"spec command options: {specoptions}")
+        self.loginfo(f"spec command options: {specoptions}")
+        '''
 
         p4globals = ''.join(self.objp4.p4globals)
         for argsitem in (outputargs, inputargs):
