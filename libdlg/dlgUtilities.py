@@ -113,7 +113,8 @@ __all__ = [
            'reg_p4help_for_usage', 'reg_escape', 'reg_p4global', 'reg_aplphanumeric',
            'reg_p4dtime', 'reg_dbtablename', 'reg_explain', 'reg_usage',
            'reg_releaseversion', 'reg_marshal', 'reg_input', 'reg_output',
-           'reg_classvar', 'reg_filename', 'reg_rcs_quotes',
+           'reg_classvar', 'reg_filename', 'reg_rcs_quotes', 'reg_datetime_fieldtype',
+           'reg_datetime_fieldname',
     #
            'reg_type', 'reg_dbname', 'reg_w', 'reg_dot_field', 'reg_no_greedy_entity',
            'reg_upload_pattern', 'reg_cleanup_fn', 'reg_unpack', 'reg_python_keywords',
@@ -258,6 +259,8 @@ reg_default = {
     'datetime': '\d{4}\\\d{2}\\d{2} \d{2}\:\d{2}(\:\d{2}(\.\d*)?)?',
     }
 reg_epochtime = re.compile(r'^\d*(\.\d+)?$')
+reg_datetime_fieldname = re.compile(r'[dD]ate|[aA]ccess')
+reg_datetime_fieldtype = re.compile(r'^[dD]ate')
 p4charsymbols = {
                 '*': '%2A',
                 '#': '%23',

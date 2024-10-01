@@ -4,6 +4,7 @@ import re
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgStore import Lst, Storage, objectify
+from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
     bail,
     Flatten,
@@ -286,11 +287,16 @@ class Py4Table(object):
                 (key in ('objp4', '__members__', 'getdoc'))
         ):
             return
+
         if (self.tablename is not None):
+            if (self.fieldsmap[key.lower()] is None):
+                raise FieldNotBelongToTableError(self.tablename, key)
+            if (key.lower() in self.fieldsmap):
+                key = self.fieldsmap[key]
             if (key in self.fieldnames):
                 ''' is it a table attribute, or a field attribute, something else?
-                        and, more importantly, can we get the actual field value
-                        from fieldsmap?
+                    and, more importantly, can we get the actual field value
+                    from fieldsmap?
                 '''
                 if AND(
                         (len(self.fieldsmap) == 0),
@@ -328,17 +334,6 @@ class Py4Table(object):
                     self.logerror(f'[{key}]: Invalid field for table `{self.tablename}`')
         else:
             return Py4Field()
-
-    def insert(self, *args, **kwargs):
-        records = self.iterQuery(*args, **kwargs)
-        records = DLGRecords(
-            records=records,
-            cols=self.oQuery.cols,
-            objp4=self.objp4
-        )
-        records = self.filter_records(records, **kwargs)
-        self.oQuery.query = Lst()
-        return records
 
     '''
                     >>> qry = objp4.clients.Client == 'myClientName'

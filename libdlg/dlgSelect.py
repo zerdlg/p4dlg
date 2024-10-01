@@ -7,6 +7,7 @@ from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
     is_iterable,
     isnum,
@@ -17,6 +18,8 @@ from libdlg.dlgUtilities import (
     is_array,
     is_P4Jnl,
     reg_rev_change_specifier,
+    reg_datetime_fieldname,
+    reg_datetime_fieldtype,
     fix_name,
     ignore_actions,
     reg_dbtablename
@@ -42,7 +45,6 @@ class Select(DLGControl):
         self.objp4 = objp4
         if (self.objp4 is None):
             self.objp4 = Storage()
-
         [
             setattr(
                 self,
@@ -104,7 +106,7 @@ class Select(DLGControl):
                 None,
                 None
             )
-
+        self.memo={}
 
         if (hasattr(qry, 'left')):
             tablename = qry.left.tablename
@@ -115,6 +117,13 @@ class Select(DLGControl):
                 else self.objp4.tablememo[tablename].fieldsmap
         super(Select, self).__init__()
         self.oDateTime = DLGDateTime()
+
+    def memoize(self, val):
+        try:
+            memo = self.memo[val]
+        except KeyError:
+            memo = self.memo[val] = re.compile(val)
+        return memo
 
     def get_domaintypes(self):
         datatypes = self.oSchema.p4schema.datatypes.datatype
@@ -207,31 +216,23 @@ class Select(DLGControl):
                         (record.generic >= 1)
                         )
                 ):
-                    return (
-                        True,
-                        record.data
-                    )
-
-            return (
-                False,
-                None
-            )
-
+                    return (True, record.data)
+            return (False, None)
         try:
             if (isinstance(record, list)):
                 record = Storage(zip(self.cols, record))
             (record_is_error, error_data) = is_error()
             skip_record = Storage(
-                                    {
-                                        'record_is_error': (record_is_error is True),
-                                        'ignore_action':  AND(
-                                                                (record.db_action is not None),
-                                                                (record.db_action in ignore_actions)
-                                                                ),
-                                        'is_transaction_record': (isnum(tablename) is True),
-                                        'cols_NE_record_keys': (self.cols != record.getkeys()),
-                                        'inst_tablename_NE_tablename': (tablename != self.tablename)
-                                    }
+                {
+                    'record_is_error': (record_is_error is True),
+                    'ignore_action':  AND(
+                                            (record.db_action is not None),
+                                            (record.db_action in ignore_actions)
+                                            ),
+                    'is_transaction_record': (isnum(tablename) is True),
+                    'cols_NE_record_keys': (self.cols != record.getkeys()),
+                    'inst_tablename_NE_tablename': (tablename != self.tablename)
+                }
             )
             for reason in skip_record:
                 if AND(
@@ -250,13 +251,23 @@ class Select(DLGControl):
                 self.closed,
                 self.records,
                 self.query,
-                self.cols
+                self.cols,
+                self.distinct,
+                self.groupby,
+                self.having,
+                self.sort,
+                self.orderby,
             ) = \
                 (
                     True,
                     Lst(),
                     None,
-                    Lst()
+                    Lst(),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None
                 )
         finally:
             self.loginfo('DLGRecordSet records & query have been reset')
@@ -639,7 +650,7 @@ class Select(DLGControl):
 
     def filter_records(self, records, **kwargs):
         kwargs = Storage(kwargs)
-        count = kwargs.count
+        distinct = kwargs.distinct
         orderby = kwargs.orderby
         limitby = kwargs.limitby
         groupby = kwargs.groupby
@@ -824,19 +835,11 @@ class Select(DLGControl):
                 None,
                 None
             )
-            if (fieldname in (
-                    'date',
-                    'Date',
-                    'Access',
-                    'Update',
-                    'accessDate',
-                    'updateDate',
-            )
-            ):
+            if (reg_datetime_fieldname.search(fieldname) is not None):
                 datetime_fields.append(fieldname)
         return datetime_fields
 
-    def tablename_fieldnames_query_cols_records(
+    def get_record_components(
             self,
             *fieldnames,
             query,
@@ -879,7 +882,7 @@ class Select(DLGControl):
                 else query.left
             tablename = left.tablename
         ''' records
-                '''
+        '''
         if (records is None):
             records = self.records
         ''' records is not enumerator & whatever 
@@ -899,10 +902,10 @@ class Select(DLGControl):
             query=None,
             raw_records=False,
             close_session=True,
-            distinct=None,
             **kwargs
     ):
-        ''' tablename, query, cols, records
+        kwargs = Storage(kwargs)
+        ''' define & get relevant record components (tablename, fieldnames, query, cols & records))
         '''
         (
             tablename,
@@ -910,7 +913,7 @@ class Select(DLGControl):
             query,
             cols,
             records
-        ) = self.tablename_fieldnames_query_cols_records(
+        ) = self.get_record_components(
             *fieldnames,
             query=query,
             cols=cols,
@@ -923,7 +926,6 @@ class Select(DLGControl):
             )
         if (records is None):
             return DLGRecords(records=[], cols=cols, objp4=self.objp4)
-
         (
             eor,
             recordcounter
@@ -932,16 +934,35 @@ class Select(DLGControl):
                 False,
                 0
             )
+        kwargs.delete('fieldsmap', 'tablename')
         outrecords = Lst()
+        distinctrecords = Storage()
+        aggregators = (
+                'groupby',
+                'having',
+                'sortby',
+                'orderby',
+                'distinct'
+        )
+        for aggregator in aggregators:
+            if (kwargs[aggregator] is None):
+                kwargs.delete(aggregator)
+        if (kwargs.distinct is not None):
+            distinct = kwargs.pop('distinct')
+            if (not type(distinct).__name__ in ('JNLField', 'Py4Field')):
+                distinct = fieldnames(0)
         ''' insertrecords 
-            decide now if outrecords should be 
-            returned as a list or as DLGRecords
+            decide now if outrecords should be returned 
+            as DLGRecords or as a list of records 
             (insert or append?)
         '''
         insertrecord = outrecords.append
         if (raw_records is False):
             outrecords = DLGRecords(Lst(), cols, self.objp4)
             insertrecord = outrecords.insert
+        ''' make a list of fields that are datetime specific so 
+            that we can express Unix time to an ISO format
+        '''
         datetime_fields = self.get_records_datetime_fields(tablename)
         recordsiter = self.get_recordsIterator(records)
         while (eor is False):
@@ -965,8 +986,6 @@ class Select(DLGControl):
                     DOH! merging tables might require a list of 2 records!!! let's keep that in  mind.
                 '''
                 if (isinstance(record, list) is True):
-                    ''' Querying journal records 
-                    '''
                     record = Lst(record)
                     ''' action field: pv, dv, mx, etc. 
                         value of actionfield = 0 if not idx else 1 
@@ -982,44 +1001,45 @@ class Select(DLGControl):
                                 record
                             )
                         )
-                        ''' TODO:
-                            what if depotFile does not exist? 
-                            check if action is flagged as being 'deleted'
-                            
-                            {'code': 'error',
-                             'data': 'Colors - no such file(s).\n',
-                             'severity': 2,
-                             'generic': 17}
-                        '''
                     else:
                         table_mismatch = True
                 if (table_mismatch is False):
-                    if ('idx' in cols):
-                        if (not 'idx' in record):
-                            record.merge({'idx': idx})
-
+                    ''' The P4DB supports keyed tables, and field `id` 
+                        is already in use on some of the tables. Using 
+                        name `idx` instead. Add it cols if needed.
+                    '''
+                    if AND(
+                            ('idx' in cols),
+                            (not 'idx' in record)
+                    ):
+                        record.merge({'idx': idx})
+                    ''' evaluate the current record & collect 
+                        the result of each query statement                         
+                    '''
                     QResults = Lst()
                     if (len(query) == 0):
                         QResults.append(0)
                     for qry in query:
                         recresult = self.build_results(qry, record)
                         QResults.append(recresult)
-
+                    ''' sum the results (True = 1, False = 0) & keep the record 
+                        if sum(queries) == the length of queries, otherwise skip
+                        and move on to the next record
+                    '''
                     if (sum(QResults) == len(query)):
-                        ''' time to compute new columns (if any)
+                        ''' Positive result!
+                        '''
+                        ''' if any, compute new columns now and adjust the record
                         '''
                         if (len(self.compute) > 0):
                             record = Storage(self.computecolumns(record))
                         ''' match column to their records 
                         '''
-                        if (len(fieldnames) > 0):
-                            rec = Storage()
-                            for fn in fieldnames.keys():
-                                key = fieldnames[fn]
-                                value = record[fieldnames[fn]]
-                                rec.merge({key: value})
-                            record = rec
-
+                        intersect = fieldnames.getvalues().intersect(record.getkeys())
+                        if (len(intersect) != len(fieldnames)):
+                            raise RecordFieldsNotMatchCols(fieldnames.getvalues(), record.getkeys())
+                        ''' does anything lead us to believe that this record should be skipped?
+                        '''
                         skip = self.skiprecord(record, tablename)
                         if (skip is False):
                             if AND(
@@ -1027,17 +1047,26 @@ class Select(DLGControl):
                                     (record.code is not None)
                             ):
                                 record.delete('code')
-
+                            ''' convert epoch datetime stamps to ISO
+                                
+                                eg.  1726617600 --> '2024/09/17'
+                            '''
                             if (len(datetime_fields) > 0):
                                 record = self.update_datefields(record, datetime_fields)
-                            if (noneempty(self.maxrows) is False):
-                                recordcounter += 1
-                                if (recordcounter <= self.maxrows):
-                                    insertrecord(record)
-                                else:
-                                    eor = True
+                            if (distinct is not None):
+                                distinctvalue = record(distinct.fieldname or distinct)
+                                if (distinctvalue is not None):
+                                    distinctrecords.merge({distinctvalue: record}, overwrite=False)
+                                #return DLGRecords(distinctrecords, self.cols, self.objp4)
                             else:
-                                insertrecord(record)
+                                if (noneempty(self.maxrows) is False):
+                                    recordcounter += 1
+                                    if (recordcounter <= self.maxrows):
+                                        insertrecord(record)
+                                    else:
+                                        eor = True
+                                else:
+                                    insertrecord(record)
             # BUG: sometimes StopIteration is skipped (oJnl.rev.depotFile.contains(...))
             # so wrapping while loop in its own try: except: finally block for now...
             # until time for this is to be had... argh!!!!!
@@ -1048,10 +1077,8 @@ class Select(DLGControl):
             except Exception as err:
                 eor = True
                 bail(err)
-
         if (distinct is not None):
-            ''
-
+            outrecords = DLGRecords(distinctrecords.getvalues(), cols, self.objp4)
         if (len(kwargs) > 0):
             outrecords = self.filter_records(outrecords, **kwargs)
             self.loginfo(f'records filtered: {len(outrecords)}')

@@ -6,6 +6,10 @@
 __all__ = [
     'DLGError',
     'raiseException',
+    'FieldNotBelongToTableError',
+    'TableNotExistError',
+    'depotFileNotExistError',
+    'clientFileNotEsxistError',
     'MutuallyExclusiveError',
     'InternalRCSError',
     'CreateRevisionError',
@@ -13,6 +17,7 @@ __all__ = [
     'MissingRevision',
     'LockingError',
     'InvertError',
+    'RecordFieldsNotMatchCols',
 ]
 def raiseException(exception, msg):
     return exception(msg)
@@ -24,6 +29,48 @@ class LockingError(DLGError): pass
 class InvertError(DLGError): pass
 
 class ExtractError(DLGError): pass
+
+class RecordFieldsNotMatchCols(DLGError):
+    def __init__(self, fields, cols):
+        DLGError.__init__(self)
+        self.fieldslength = len(fields)
+        self.colslength = len(cols)
+
+    def __str__(self):
+        return f'Len `cols` ({self.colslength}) does not match len of record fields ({self.fieldslength}) .'
+
+class FieldNotBelongToTableError(DLGError):
+    def __init__(self, tablename, fieldname):
+        DLGError.__init__(self)
+        self.tablename = tablename
+        self.fieldname = fieldname
+
+    def __str__(self):
+        return f'Field `{self.fieldname}` does not belong to table `{self.tablename}`.'
+
+class TableNotExistError(DLGError):
+    def __init__(self, tablename):
+        DLGError.__init__(self)
+        self.tablename = tablename
+
+    def __str__(self):
+        return f'Table `{self.tablename}` does not exist.'
+
+class depotFileNotExistError(DLGError):
+    def __init__(self, depotFile):
+        DLGError.__init__(self)
+        self.depotFile = depotFile
+
+    def __str__(self):
+        return f'depotFile `{self.depotFile}` does not exist.'
+
+class clientFileNotEsxistError(DLGError):
+    def __init__(self, clientFile):
+        DLGError.__init__(self)
+        self.clientFile = clientFile
+
+    def __str__(self):
+        return f'clientFile `{self.clientFile}` does not exist.'
 
 class MutuallyExclusiveError(DLGError):
     def __init__(self, *args):

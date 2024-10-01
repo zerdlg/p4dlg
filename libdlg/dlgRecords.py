@@ -461,6 +461,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             *fields,
             limitby=None,
             orderby=None,
+            having=None,
             reverse=False,
             groupdict=False,
             records=None

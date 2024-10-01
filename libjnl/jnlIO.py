@@ -173,20 +173,37 @@ class P4Jnl(object):
                                            guess the correct version (though yet untested)
         '''
         (args, kwargs) = (Lst(args), objectify(kwargs))
-
+        ''' logging stuff
+        '''
         self.loglevel = kwargs.loglevel or 'DEBUG'
         logfile = kwargs.logfile
         loggername = Lst(__name__.split('.'))(-1)
         self.logger = DLGControl(
             loggername=loggername,
             loglevel=self.loglevel,
-            logfile=logfile)
-
-        self.loginfo = self.logger.loginfo
-        self.logwarning = self.logger.logwarning
-        self.logerror = self.logger.logerror
-        self.logcritical = self.logger.logcritical
-
+            logfile=logfile
+            )
+        [
+            setattr(
+                self,
+                f'log{logitem}',
+                getattr(
+                    self.logger \
+                        if (hasattr(self, 'logger')) \
+                        else kwargs.logger or 'INFO',
+                    f'log{logitem}'
+                )
+            ) for logitem in (
+            'info',
+            'warning',
+            'error',
+            'critical'
+            )
+        ]
+        #self.loginfo = self.logger.loginfo
+        #self.logwarning = self.logger.logwarning
+        #self.logerror = self.logger.logerror
+        #self.logcritical = self.logger.logcritical
         ''' Journal and SchemaXML class reference
         '''
         try:

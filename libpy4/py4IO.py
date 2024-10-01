@@ -144,11 +144,24 @@ class Py4(object):
             loggername=loggername,
             loglevel=loglevel,
             logfile=logfile
-        )
-        self.loginfo = self.logger.loginfo
-        self.logwarning = self.logger.logwarning
-        self.logerror = self.logger.logerror
-        self.logcritical = self.logger.logcritical
+            )
+        [
+            setattr(
+                self,
+                f'log{logitem}',
+                getattr(
+                    self.logger \
+                        if (hasattr(self, 'logger')) \
+                        else kwargs.logger or 'INFO',
+                    f'log{logitem}'
+                )
+            ) for logitem in (
+            'info',
+            'warning',
+            'error',
+            'critical'
+            )
+        ]
         (
             self.p4credential_globals,
             self.supglobals

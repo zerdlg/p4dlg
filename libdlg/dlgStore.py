@@ -459,17 +459,26 @@ class Storage(dict):
     '''
     def merge(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
+        constrainsts = Storage(
+            {
+                'overwrite': True,
+                'add_missing': True,
+                'allow_nonevalue': True,
+                'allow_value_askey': True,
+                'extend_listvalues': True
+            }
+        )
+        [
+            setattr(constrainsts, ckey, kwargs.pop(ckey)) for ckey in [
+            key for (key, value) in kwargs.items() if key in constrainsts
+            ]
+        ]
+
         any = args.storageindex(reversed=True) \
             if (len(args) > 0) \
             else Lst([kwargs]).storageindex(reversed=True) \
             if (len(kwargs) > 0) \
             else Lst().storageindex(reversed=True)
-
-        overwrite = kwargs.overwrite or True
-        add_missing = kwargs.add_missing or True
-        allow_nonevalue = kwargs.allow_nonevalue or True
-        allow_value_askey = kwargs.allow_value_askey or True
-        extend_listvalues = kwargs.extend_listvalues or True
 
         def mergedict(anydict):
             def updater(key, value):
@@ -477,21 +486,21 @@ class Storage(dict):
                 if (key in gkeys):
                     if (
                             (value is None)
-                            and (allow_nonevalue is False)
+                            and (constrainsts.allow_nonevalue is False)
                     ):
                         self.delete(key)
                     elif (
-                            (overwrite is True)
+                            (constrainsts.overwrite is True)
                             and (
                                     (value is not None)
-                                    or (allow_nonevalue is True)
+                                    or (constrainsts.allow_nonevalue is True)
                             )
                     ):
                         self[key] = value
-                elif (add_missing is True):
+                elif (constrainsts.add_missing is True):
                     if (
                             (value is not None) \
-                            or (allow_nonevalue is True)
+                            or (constrainsts.allow_nonevalue is True)
                     ):
                         self[key] = value
 
@@ -501,18 +510,18 @@ class Storage(dict):
                     if (len(value) > 0):
                         if (
                                 (value.getkeys().first() == self[key]) \
-                                and (allow_value_askey is True)
+                                and (constrainsts.allow_value_askey is True)
                         ):
                             key = value.getkeys().first()
                 elif (isinstance(value, list)):
                     if (
                             (isinstance(self[key], list)) \
-                            and (extend_listvalues is True)
+                            and (constrainsts.extend_listvalues is True)
                     ):
                         value = Lst(value + self[key])
                 if (
                         (type(value) is not NoneType) \
-                        or (allow_nonevalue is False)
+                        or (constrainsts.allow_nonevalue is False)
                 ):
                     updater(key, value)
 

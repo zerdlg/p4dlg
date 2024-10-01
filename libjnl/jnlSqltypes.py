@@ -9,6 +9,7 @@ from libdlg.dlgStore import (
 from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgSchemaTypes import SchemaType
+from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
     reg_ipython_builtin,
     serializable,
@@ -437,10 +438,26 @@ class JNLTable(object):
                 return modelfield
 
     def __getattr__(self, key):
+        ''' does pkey start with P4|p4 ?
+
+            we get a 'p4' prefix when sQuery encounters a JNLTable name or a JNLField name
+            happens to be an SQL reserved keyword for a given SQL system. I.e.: db.user
+            loses its 'db.' prefix so then 'user' becomes problamatic. In this case the new
+            'user' tablename gets renamed to 'p4user' while the 'User/user' fieldname gets
+            renamed to 'P4user'. Anyways, its what I have
+        '''
+        rkey = re.sub(r"^[pP]4", '', key).lower()
+        if (self.fieldsmap[rkey] is not None):
+            key = rkey
+        if (self.fieldsmap[key.lower()] is None):
+            raise FieldNotBelongToTableError(self.tablename, key)
+        if (key.lower() in self.fieldsmap):
+            key = self.fieldsmap[key]
+
         key_dismiss_attr = [
             item for item in (
                                 (reg_ipython_builtin.match(key)),
-                                (re.match(r'^_.*$', str(key))),
+                                (re.match(r'^_.*$', key)),
                                 (re.match(r'^shape$', key))
             ) \
             if (
@@ -453,29 +470,10 @@ class JNLTable(object):
                 ('tablename' in self.__dict__.keys()),
                 (not 'fieldname' in self.__dict__.keys())
         ):
+            ''' is it a table attribute, or a JNLField, something else?
+            '''
             if (self.tablename is None):
                 return JNLField()
-        ''' is it a table attribute, or a JNLField, something else?
-        '''
-        try:
-            if (key.lower() in self.fieldsmap.keys()):
-                pkey = self.fieldsmap.get(key.lower())
-                if (pkey is not None):
-                    ''' does pkey start with P4|p4 ?
-    
-                        we get a 'p4' prefix when sQuery encounters a JNLTable name or a JNLField name
-                        happens to be an SQL reserved keyword for a given SQL system. I.e.: db.user
-                        loses its 'db.' prefix so then 'user' becomes problamatic. In this case the new 
-                        'user' tablename gets renamed to 'p4user' while the 'User/user' fieldname gets 
-                        renamed to 'P4user'. Anyways, its what I have
-                    '''
-                    rkey = re.sub(r"^[pP]4", '', pkey)
-                    if (self.fieldsmap.get(rkey) is not None):
-                        key = rkey
-                else:
-                    key = pkey
-        except Exception as err:
-            print(err)
         try:
             '''  if key is a JNLField, then set it as class instance attribute
                  and with its real intended name provided by self.fieldsmap
@@ -487,84 +485,9 @@ class JNLTable(object):
             ):
                 if (key == fieldatt.name):
                     return getattr(self, key)
-            self.logerror(f'[{key}]: Invalid field for table `{self.tablename}`.')
+            self.logerror(f'[{key}] does not belong to table `{self.tablename}`.')
         except KeyError:
-            self.logerror(f'[{key}]: Invalid field for table `{self.tablename}`.')
-
-    def insert(self, *args, **kwargs):
-        kwargs = Storage(kwargs)
-        records = self.iterQuery(*args, **kwargs)
-        records = DLGRecords(
-            records=records,
-            cols=self.oQuery.cols,
-            objp4=self.objp4
-        )
-        records = self.modify_records(records, **kwargs)
-        self.oQuery.query = Lst()
-        return records
-
-    def update_record(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
-        ''' TODO: Implement '''
-
-    def delete_record(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
-        ''' TODO: Implement '''
-
-    def update(self, *args, **kwargs):
-        ''' Fake/Bad implementation -
-            TODO: Implement
-        '''
-        kwargs = Storage(kwargs)
-        records = self.oQuery.iterQuery(*args, **kwargs)
-        records = DLGRecords(
-            records=records,
-            cols=self.oQuery.cols,
-            objP4=self.objP4
-        )
-        records = self.filter_records(records, **kwargs)
-        self.oQuery.query = Lst()
-        return records
-
-    def delete(self, *args, **kwargs):
-        ''' Fake/Bad implementation -
-            TODO: Implement
-        '''
-        (args, kwargs) = (Lst(args), Storage(kwargs))
-        records = self.oQuery.iterQuery(*args, **kwargs)
-        records = DLGRecords(
-            records=records,
-            cols=self.oQuery.cols,
-            objP4=self.objP4
-        )
-        records = self.filter_records(records, **kwargs)
-        self.oQuery.query = Lst()
-        return records
-
-    def insert(self, *args, **kwargs):
-        ''' Fake/Bad implementation -
-            TODO: Implement
-        '''
-        kwargs = Storage(kwargs)
-        records = self.oQuery.iterQuery(*args, **kwargs)
-        records = DLGRecords(
-            records=records,
-            cols=self.oQuery.cols,
-            objP4=self.objP4
-        )
-        records = self.filter_records(records, **kwargs)
-        self.oQuery.query = Lst()
-        return records
-
-    def fetch(self, *fields, **kwargs):
-        ''' Fake/Bad implementation -
-            TODO: Implement
-        '''
-        kwargs = Storage(kwargs)
-        fields = self.define_fields(*fields, **kwargs)
-        record = self.oQuery.fetch(*fields, **kwargs)
-        self.oQuery.query = Lst()
-        return record
+            self.logerror(f'[{key}] does not belong to table `{self.tablename}`.')
 
 
 class JNLField(DLGExpression):
@@ -580,9 +503,7 @@ class JNLField(DLGExpression):
         [setattr(self,k, v) for (k, v) in kwargs.items()
          if (len(kwargs) > 0)]
 
-    #__hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4.itervalues())))
     __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
-    #__hash__ = lambda self: hash(frozenset(self))
 
     def containschars(self):
         return self.__contains__(self)

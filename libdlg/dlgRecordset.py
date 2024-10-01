@@ -330,9 +330,6 @@ class DLGRecordSet(object):
         self.loginfo(f'defined: {len(queries)} query(ies)')
         return queries
 
-    def isempty(self):
-        return not self.select(limiy=(0, 1))
-
     def __call__(self, *queries, **kwargs):
         self.query = self.define_queries(*queries, **kwargs) \
             if (len(queries) > 0) \
@@ -844,7 +841,6 @@ class DLGRecordSet(object):
     #    self.oQuery.query = Lst()
     #    return record
 
-
     def _select(
                 self,
                 *fields,
@@ -904,17 +900,22 @@ class DLGRecordSet(object):
                 **kwargs
     ):
         kwargs = Storage(kwargs)
-        cols = cols or self.cols
-        records = records or self.records
-        query = query or self.query
-        objp4 = self.objp4 if (hasattr(self, 'objp4')) else self
+        if (query is None):
+            query = self.query
+        if (records is None):
+            records = self.records
+        if (cols is None):
+            cols = self.cols
+        objp4 = self.objp4 \
+            if (hasattr(self, 'objp4')) \
+            else self
+
         oSelect = Select(
             objp4,
             records,
             cols,
             query
         )
-        #outrecords = DLGRecords([], cols=self.cols, objp4=objp4)
         tablename = self.tablename
         if (len(fieldnames) == 0):
             fieldnames = self.fieldnames or cols
@@ -937,29 +938,49 @@ class DLGRecordSet(object):
         )
         return outrecords
 
+    def isempty(self):
+        return not self.select(limiy=(0, 1))
 
     def count(
             self,
-            query=None,
-            records=None,
-            cols=None,
+            field=None,
             distinct=None,
             ** kwargs
     ):
-        recslength = len(self.records)
         kwargs = Storage(kwargs)
-        cols = cols or self.cols
-        records = records or self.records
-        query = query or self.query
-        objp4 = self.objp4 if (hasattr(self, 'objp4')) else self
+        cols = self.cols
+        records = self.records
+        query = self.query
+        objp4 = self.objp4 \
+            if (hasattr(self, 'objp4')) \
+            else self
+
         oSelect = Select(
             objp4,
-            records=records,
-            cols=cols,
-            query=query,
-            distinct=distinct
+            records,
+            cols,
+            query
         )
 
+        tablename = self.tablename
+        if (field is None):
+            field = self.fieldnames(0) or cols(0)
+        fieldsmap = self.fieldsmap
+
+        kwargs.merge(
+            {
+                'fieldsmap': fieldsmap,
+                'tablename': tablename,
+                'distinct': distinct
+            }
+        )
+
+        outrecords = oSelect.select(
+            field,
+            raw_records=True,
+            **kwargs
+        )
+        return len(outrecords)
 
         '''
         # outrecords = DLGRecords([], cols=self.cols, objp4=objp4)
