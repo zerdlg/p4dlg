@@ -947,6 +947,7 @@ class Select(DLGControl):
         for aggregator in aggregators:
             if (kwargs[aggregator] is None):
                 kwargs.delete(aggregator)
+        distinct = kwargs.pop('distinct') if (kwargs.distinct is not None) else False#fieldnames(0)
         if (kwargs.distinct is not None):
             distinct = kwargs.pop('distinct')
             if (not type(distinct).__name__ in ('JNLField', 'Py4Field')):
@@ -965,6 +966,7 @@ class Select(DLGControl):
         '''
         datetime_fields = self.get_records_datetime_fields(tablename)
         recordsiter = self.get_recordsIterator(records)
+
         while (eor is False):
             table_mismatch = False
             try:
@@ -1057,7 +1059,6 @@ class Select(DLGControl):
                                 distinctvalue = record(distinct.fieldname or distinct)
                                 if (distinctvalue is not None):
                                     distinctrecords.merge({distinctvalue: record}, overwrite=False)
-                                #return DLGRecords(distinctrecords, self.cols, self.objp4)
                             else:
                                 if (noneempty(self.maxrows) is False):
                                     recordcounter += 1

@@ -129,6 +129,8 @@ __all__ = [
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
            'ALLLOWER', 'ALLUPPER', 'PY2',
     #
+           'SQLType', 'objecttypes', 'tabletypes', 'fieldtypes',
+    #
            'Flatten', 'fractions2Float', 'percents2Float', 'isnum', 'is_iterable', 'is_array',
            'decode_bytes', 'Plural',
     #
@@ -153,9 +155,7 @@ __all__ = [
 (mloads, mload, mdump, mdumps) = (loads, load, dump, dumps)
 hashlib_md5 = lambda s: hashlib.md5(bytes(s, 'utf-8'))
 reg_objdict = re.compile('^(\w+)\.([^.]+)$')
-objectify = Storage.objectify
 PY2 = sys.version_info[0] == 2
-
 
 ''' regex for usage strings
 '''
@@ -369,6 +369,40 @@ dttypes = (
     datetime,
     time
 )
+
+''' SQLTypes
+'''
+SQLType = objectify(
+    {
+        'objects': (
+            'Py4',
+            'P4Jnl',
+            'PyNO',
+            'PyRCS',
+            'PyD',
+            'P4DB',
+        ),
+        'tables': (
+            'Py4Table',
+            'JNLTable',
+            'NOTable',
+            'RCSTable',
+            'PyDTable',
+            'P4DTable'
+        ),
+        'fields': (
+            'Py4Field',
+            'JNLField',
+            'NOField',
+            'RCSField',
+            'PyDField',
+            'P4DBField'
+        )
+    }
+)
+objecttypes = SQLType.objects
+tabletypes = SQLType.tables
+fieldtypes = SQLType.fields
 
 def is_Py4(p4obj):
     return True \

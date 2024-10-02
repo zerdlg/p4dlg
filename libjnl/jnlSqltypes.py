@@ -465,7 +465,8 @@ class JNLTable(object):
             )
         ]
         if (len(key_dismiss_attr) > 0):
-            return
+            pass
+
         if AND(
                 ('tablename' in self.__dict__.keys()),
                 (not 'fieldname' in self.__dict__.keys())
@@ -489,6 +490,7 @@ class JNLTable(object):
         except KeyError:
             self.logerror(f'[{key}] does not belong to table `{self.tablename}`.')
 
+    __getitem__ = __getattr__
 
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"
@@ -537,9 +539,9 @@ class JNLField(DLGExpression):
             fieldname=fieldname,
             tablename=tablename
         )
-
+        fieldattributes = [fielditem for fielditem in field]
+        self.attributesmap = Storage({fitem.lower(): fitem for fitem in fieldattributes})
         [setattr(self, fielditem, field[fielditem]) for fielditem in field]
-
         self.__dict__ = objectify(self.__dict__)
 
         if OR(
@@ -594,11 +596,37 @@ class JNLField(DLGExpression):
         '''
         [setattr(self, key, kwargs[key]) for key in kwargs]
 
-    keys = lambda self: self.oSchema.p4model[self.tablename].keys()
-    attributes = lambda self: self.__dict__.keys()
-
     def __call__(self, *args, **kwargs):
         return self
+
+    def __getattr__(self, key):
+        key_dismiss_attr = [
+            item for item in (
+                (reg_ipython_builtin.match(key)),
+                (re.match(r'^_.*$', key)),
+                (re.match(r'^shape$', key))
+            ) \
+            if (
+                    item not in (None, False)
+            )
+        ]
+        if (len(key_dismiss_attr) > 0):
+            pass
+        if OR(
+                (re.match(r'^_([_aA-zZ])*_$', key) is not None),
+                (key in ('objp4', '__members__', 'getdoc'))
+        ):
+            pass
+
+        attkeys = Storage(self.__dict__).getkeys()
+        if (not key in attkeys):
+            if (self.attributesmap[key.lower()] is not None):
+                return getattr(self, self.attributesmap[key.lower()])
+            return
+        return getattr(self, key)
+
+    __getitem__ = __getattr__
+    __get__ = lambda self: self.__getitem__
 
     def as_dict(self, flat=False, sanitize=True):
         attrs = (

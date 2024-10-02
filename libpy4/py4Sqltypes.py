@@ -279,14 +279,13 @@ class Py4Table(object):
                     item not in (None, False)
             )
         ]
-
         if (len(key_dismiss_attr) > 0):
-            return
+            pass
         if OR(
                 (re.match(r'^_([_aA-zZ])*_$', key) is not None),
                 (key in ('objp4', '__members__', 'getdoc'))
         ):
-            return
+            pass
 
         if (self.tablename is not None):
             if (self.fieldsmap[key.lower()] is None):
@@ -332,6 +331,7 @@ class Py4Table(object):
                     return getattr(self, keyname)
                 else:
                     self.logerror(f'[{key}]: Invalid field for table `{self.tablename}`')
+
         else:
             return Py4Field()
 
@@ -430,15 +430,8 @@ class Py4Field(DLGExpression):
         self.fieldname = fieldname
         self.name = fieldname
 
-        super(Py4Field, self).__init__(
-            objp4,
-            None,
-            self,
-            None,
-            fieldname=fieldname,
-            tablename=tablename
-        )
         self.__dict__ = objectify(self.__dict__)
+
         if OR(
                 (not isinstance(fieldname, str)),
                 (reg_valid_table_field.match(fieldname) is None)
@@ -496,7 +489,15 @@ class Py4Field(DLGExpression):
         self.label = label or fieldname
         [setattr(self, key, kwargs[key]) for key in kwargs]
 
-    __get__ = lambda self: self.__getitem__
+        super(Py4Field, self).__init__(
+            objp4,
+            None,
+            self,
+            None,
+            fieldname=fieldname,
+            tablename=tablename
+        )
+
 
     def __bool__(self):
         return True
@@ -508,6 +509,8 @@ class Py4Field(DLGExpression):
             self.logwarning(err)
 
     keys = lambda self: Storage(self.__dict__).getkeys()
+
+    __get__ = lambda self: self.__getitem__
 
     def __call__(self, *args, **kwargs):
         return self

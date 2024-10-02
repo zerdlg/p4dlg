@@ -6,6 +6,7 @@
 __all__ = [
     'DLGError',
     'raiseException',
+    'AttributeNotBelongToFieldError',
     'FieldNotBelongToTableError',
     'TableNotExistError',
     'depotFileNotExistError',
@@ -38,6 +39,15 @@ class RecordFieldsNotMatchCols(DLGError):
 
     def __str__(self):
         return f'Len `cols` ({self.colslength}) does not match len of record fields ({self.fieldslength}) .'
+
+class AttributeNotBelongToFieldError(DLGError):
+    def __init__(self, fieldname, att):
+        DLGError.__init__(self)
+        self.fieldname = fieldname
+        self.att = att
+
+    def __str__(self):
+        return f'Attribute `{self.att}` does not belong to field `{self.fieldname}`.'
 
 class FieldNotBelongToTableError(DLGError):
     def __init__(self, tablename, fieldname):

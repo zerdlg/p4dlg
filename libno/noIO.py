@@ -11,14 +11,14 @@ from libno.noSqltypes import NOTable
      [$Author: mart $]
 '''
 
-__all__ = ['P4NO']
+__all__ = ['PyNO']
 
-class P4NO(DLGControl):
+class PyNO(DLGControl):
     def __init__(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), objectify(kwargs))
         loglevel = kwargs.loglevel or 'DEBUG'
         loggername = Lst(__name__.split('.'))(-1)
-        super(P4NO, self).__init__(loggername, loglevel)
+        super(PyNO, self).__init__(loggername, loglevel)
         self.tablememo = {}
         #self.queryformat = kwargs.queryformat or "strQuery"  # funcQuery, recQuery
 

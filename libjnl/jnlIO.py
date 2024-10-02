@@ -165,7 +165,7 @@ class P4Jnl(object):
     __rand__ = __and__
     __ror__ = __or__
 
-    __getitem__ = lambda self, i: self.__dict__.get(i)
+    #__getitem__ = lambda self, i: self.__dict__.get(i)
 
     def __init__(self, *args, **kwargs):
         '''     required args:  args(0) -> journal file or journalReader
@@ -283,6 +283,8 @@ class P4Jnl(object):
             return self.__dict__[tablename]
         except KeyError as err:
             bail(invalidAttributeError)
+
+    __getitem__ = __getattr__
 
     def guessVersion(self):
         '''    "GuessRelease" will parse the target journal until it has collected a sufficient

@@ -11,7 +11,7 @@ from libdlg.dlgUtilities import noneempty, bail
 from libdlg.dlgFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
 from libdlg.dlgQuery_and_operators import (
-                                    AND,
+                                    AND, OR,
                                     optable,
                                     is_fieldType,
 )
@@ -974,13 +974,16 @@ class DLGRecordSet(object):
                 'distinct': distinct
             }
         )
-
-        outrecords = oSelect.select(
-            field,
-            raw_records=True,
-            **kwargs
-        )
-        return len(outrecords)
+        if OR(
+                (isinstance(distinct, bool)),
+                (type(distinct).__name__ in ('JNLField', 'Py4Field'))
+        ):
+            outrecords = oSelect.select(
+                field,
+                raw_records=True,
+                **kwargs
+            )
+            return len(outrecords)
 
         '''
         # outrecords = DLGRecords([], cols=self.cols, objp4=objp4)
