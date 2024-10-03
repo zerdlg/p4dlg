@@ -47,6 +47,13 @@ It kind of looks like a .CSV file, but without column headers. P4D does not disc
 #                          
 # Create a connection to a journal with jnlconnect.create
 # 3 parameters: args[0]  -> name, journal_path, release
+
+jnlconnect.create('jnl',
+                  **{
+                     'journal': './resc/journals/checkpoint.rasp',
+                     'oSchema': oSchema
+                     }
+                 )
 ```
 ![shell_create_connection](https://github.com/user-attachments/assets/3e09eb1c-a933-496a-ba70-312535a693c0)
 
@@ -62,6 +69,45 @@ qry = (oJnl.domain.type == 'client')
 ```
 
 ## Building a query.
+```Python
+In [23]: jnl
+Out[23]: <P4Jnl ./resc/journals/journal.8>
+
+In [24]: qry = (jnl.domain.type == 'client')
+In [25]: qry
+Out[25]: 
+<DLGQuery {'inversion': False,
+ 'left': <JNLField type>,
+ 'objp4': <P4Jnl ./resc/journals/journal.8>,
+ 'op': <function EQ at 0x104d32700>,
+ 'right': 'client'}>
+
+In [26]: clients = jnl(qry).select()
+In [27]: clients
+Out[27]: <DLGRecords (188)>
+
+In [28]: clients.first()
+Out[28]: 
+<DLGRecord {'accessDate': '2021/11/14',
+ 'db_action': 'pv',
+ 'description': 'Created by mart.\n',
+ 'extra': 'LAPTOP-I424S433',
+ 'idx': 1,
+ 'mount': 'c:Usersgoodcdepot',
+ 'mount2': '',
+ 'mount3': '',
+ 'name': 'mart.win',
+ 'options': '0',
+ 'owner': 'mart',
+ 'partition': '0',
+ 'serverid': '',
+ 'stream': '',
+ 'table_name': 'db.domain',
+ 'table_revision': '6',
+ 'type': '99',
+ 'updateDate': '2021/11/14'}>
+```
+
 ![shell_qry_clients](https://github.com/user-attachments/assets/20862973-bf37-46cd-92ca-b0805904c6bb)
 
 ## A connnector has useful attributes
