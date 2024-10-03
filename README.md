@@ -46,12 +46,19 @@ It kind of looks like a .CSV file, but without column headers. P4D does not disc
 #                          purge     combines unload/destroy
 #                          
 # Create a connection to a journal with jnlconnect.create
-# 3 parameters: args[0]  -> name, journal_path, release
+# parameters: args[0]  -> name,
+#             keyword  -> journal = journal_path
+#             keyword  -> version = release of the p4d instance
+#                                   that created the journal
+#             keyword  -> oSchema = the schema that that defines the p4db
+#
+#             Note that keywords `version` & ` oSchema` are mutually exclusive.
+#             Pass in one or the orther.
 
 jnlconnect.create('jnl',
                   **{
                      'journal': './resc/journals/checkpoint.rasp',
-                     'oSchema': oSchema
+                     'version': 'r16.2'
                      }
                  )
 ```
@@ -70,25 +77,23 @@ qry = (oJnl.domain.type == 'client')
 
 ## Building a query.
 ```Python
-In [23]: jnl
-Out[23]: <P4Jnl ./resc/journals/journal.8>
-
-In [24]: qry = (jnl.domain.type == 'client')
+In [24]: qry = (jnl.domain.type == 'client')     # A simple query, the WHERE clause.
 In [25]: qry
 Out[25]: 
-<DLGQuery {'inversion': False,
+<DLGQuery {'inversion': False,                   # A query is a reference to class `DLGQuery`.
  'left': <JNLField type>,
- 'objp4': <P4Jnl ./resc/journals/journal.8>,
+ 'objp4': <P4Jnl ./resc/journals/journal.8>,     
  'op': <function EQ at 0x104d32700>,
  'right': 'client'}>
 
-In [26]: clients = jnl(qry).select()
+In [26]: clients = jnl(qry).select()             # SELECT * FROM domain WHERE type = client
 In [27]: clients
-Out[27]: <DLGRecords (188)>
+Out[27]: <DLGRecords (188)>                      # The target journal contains 188 `clientspec` records.
 
-In [28]: clients.first()
+In [28]: clients.first()                         # `clients` is a reference to class `DLGRecords`, and
+                                                 # exposes interesting SQL attributes.
 Out[28]: 
-<DLGRecord {'accessDate': '2021/11/14',
+<DLGRecord {'accessDate': '2021/11/14',          # `DLGRecords contains references to class `DLGRecord`
  'db_action': 'pv',
  'description': 'Created by mart.\n',
  'extra': 'LAPTOP-I424S433',
