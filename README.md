@@ -37,13 +37,14 @@ It kind of looks like a .CSV file, but without column headers. P4D does not disc
 ## Create or load an existing connection.
 ```Python
 # Use `jnlconnect` to manage connections.
-# methods:    create - load - update - unload - destroy - purge
+# methods:    create - load - update - unload - destroy - purge - show
 # `jnlconnect` attributes: create    create and store a connection to a journal
 #                          load      load an existing connector
 #                          update    update a connector's values
 #                          unload    unload a connectior from the current scope
 #                          destroy   destroy an existing connector
 #                          purge     combines unload/destroy
+#                          show      display the the data that defined the object
 #                          
 # Create a connection to a journal with jnlconnect.create
 # parameters: args[0]  -> name,
@@ -62,10 +63,10 @@ jnlconnect.create('jnl',
                      }
                  )
 ```
-![shell_create_connection](https://github.com/user-attachments/assets/3e09eb1c-a933-496a-ba70-312535a693c0)
 
-## Query syntax
+## Building a query.
 ```Python
+# The syntax.
 #             table     op    value
 #              |        |      |
 #              V        V      V
@@ -73,10 +74,7 @@ qry = (oJnl.domain.type == 'client')
 #       ^           ^
 #       |           |
 #    connector    column
-```
 
-## Building a query.
-```Python
 In [24]: qry = (jnl.domain.type == 'client')     # A simple query, the WHERE clause.
 In [25]: qry
 Out[25]: 
@@ -113,9 +111,64 @@ Out[28]:
  'updateDate': '2021/11/14'}>
 ```
 
-![shell_qry_clients](https://github.com/user-attachments/assets/20862973-bf37-46cd-92ca-b0805904c6bb)
-
 ## A connnector has useful attributes
+eg.
+```Python
+# List all available table for this version
+jnl.tables
+Out[29]: 
+['config',
+ 'counters',
+ 'nameval',
+ 'logger',
+ 'ldap',
+ 'server',
+ 'svrview',
+ 'remote',
+ 'rmtview',
+ 'stash',
+ 'userrp',
+ 'user',
+ 'group',
+...
+]
+
+# Once referenced, a table object is acceesible as an attribute oif the connection object.
+
+In [30]: jnl.domain
+Out[30]: <libjnl.jnlSqltypes.JNLTable at 0x16099e210>      # A table is a reference to class JNLTable (in this case).
+In [31]: jnl.domain.fields                                 # A table object exposes its fields and other usefull attributes.
+Out[31]: 
+[<JNLField idx>,
+ <JNLField db_action>,
+ <JNLField table_revision>,
+ <JNLField table_name>,
+ <JNLField name>,
+ <JNLField type>,
+ <JNLField extra>,
+ <JNLField mount>,
+ <JNLField mount2>,
+ <JNLField mount3>,
+ <JNLField owner>,
+ <JNLField updateDate>,
+ <JNLField accessDate>,
+ <JNLField options>,
+ <JNLField description>,
+ <JNLField stream>,
+ <JNLField serverid>,
+ <JNLField partition>]
+
+In [32]: jnl.domain.desc                                   # The tables description attribute, as per the referenced schema.
+Out[33]: 'Domains: depots, clients, labels, branches, streams, and typemap'
+
+In [34]: jnl.domain.type                                   # The table's field objects are exposed.
+Out[34]: <JNLField type>
+
+In [35]: jnl.domain.type.desc                              # A table's field attributes can be accessed.
+Out[35]: 'Type of domain'
+
+```
+
 
 ![shell_jnl_tablenames](https://github.com/user-attachments/assets/bd8ceb9f-858b-4ab3-be9b-c416884bb880)
 ![shell_table_objects_and_fields](https://github.com/user-attachments/assets/519f8ea8-5b84-416c-97cf-5d95b94f3a9f)
