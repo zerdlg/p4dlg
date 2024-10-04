@@ -217,9 +217,9 @@ linuxclient 2021/11/24                # Though perforce stores datetime values i
 linuxclient 2021/11/27                # to the more readable ISO format, apparently favoured by their own client 
 linuxclient 2021/12/01                # programs.
 linuxclient 2021/12/01
-
-More examples below on the use of aggregators, operators, queries and expressions as well as p4dlg's take on using SQL mechanics as an approach to drive interactions with a Perforce instance.
 ```
+### More examples below on the use of aggregators, operators, queries and expressions as well as p4dlg's take on using SQL mechanics as an approach to drive interactions with a Perforce instance.
+
 ## 2. Py4
 ## 3. P4db
 ## 4. Rcs
