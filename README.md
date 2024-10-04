@@ -138,7 +138,7 @@ Out[29]:
 ...
 ]
 
-# Once referenced, a table object is acceesible as an attribute oif the connection object.
+# Once referenced, a table object becomes acceesible as an attribute of said connection object.
 
 In [30]: jnl.domain
 Out[30]: <libjnl.jnlSqltypes.JNLTable at 0x16099e210>      # A table is a reference to class JNLTable (in this case).
@@ -178,11 +178,12 @@ Out[35]: 'Type of domain'
 
 ```Python
 In [36]: client_groups = clients.groupby('name', orderby=jnl.domain.accessdate, groupdict=True)
+
 # This will return all the selected records, grouped by name and ordered by accessDate. 
-# The `groupdict` attribute modifies groupby's return tyoe. When set to True (False is the default),
-# it will not return the set of records, but instead a dict where the keys are the field values that
-# set to group said client records. The values are the records belonging to the field that groups the
-# the records.
+# The `groupdict` attribute modifies groupby's return type. When set to True (False is the default),
+# it will not return the set of records, as we would expect, but instead, a dict where the keys are the 
+# field values that set to group said client records. The values are the records belonging to the field 
+# that groups the the records.
 
 In [37]: client_groups
 Out[37]: 
