@@ -84,14 +84,19 @@ Out[25]:
  'op': <function EQ at 0x104d32700>,
  'right': 'client'}>
 
-In [26]: clients = jnl(qry).select()             # SELECT * FROM domain WHERE type = client
+In [24]: clientset = jnl(qry)                    # Connection objects are callable. You can pass in queries.
+
+In [25]: clientset                               # It returns a `DLGRecoirdSet`
+Out[25]: <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>) >
+
+In [26]: clients = clientset.select()            # SELECT * FROM domain WHERE type = client
 In [27]: clients
 Out[27]: <DLGRecords (188)>                      # The target journal contains 188 `clientspec` records.
 
 In [28]: clients.first()                         # `clients` is a reference to class `DLGRecords`, and
                                                  # exposes interesting SQL attributes.
 Out[28]: 
-<DLGRecord {'accessDate': '2021/11/14',          # `DLGRecords contains references to class `DLGRecord`
+<DLGRecord {'accessDate': '2021/11/14',          # `DLGRecords` contains references to class `DLGRecord`
  'db_action': 'pv',
  'description': 'Created by mart.\n',
  'extra': 'LAPTOP-I424S433',
@@ -169,13 +174,50 @@ Out[35]: 'Type of domain'
 
 ```
 
+## Agregators Operators, Expressions, Queries etc.
 
-![shell_jnl_tablenames](https://github.com/user-attachments/assets/bd8ceb9f-858b-4ab3-be9b-c416884bb880)
-![shell_table_objects_and_fields](https://github.com/user-attachments/assets/519f8ea8-5b84-416c-97cf-5d95b94f3a9f)
+```Python
+In [36]: client_groups = clients.groupby('name', orderby=jnl.domain.accessdate, groupdict=True)
+# This will return all the selected records, grouped by name and ordered by accessDate. 
+# The `groupdict` attribute modifies groupby's return tyoe. When set to True (False is the default),
+# it will not return the set of records, but instead a dict where the keys are the field values that
+# set to group said client records. The values are the records belonging to the field that groups the
+# the records.
 
-## Agregators like *groupby*, *orderby*, *sortby*, *exclude*, *limitby*, *find*, etc.
-![shell_records_groupby](https://github.com/user-attachments/assets/b6164493-1728-425a-ab7d-c0eb1e8c6c8c)
+In [37]: client_groups
+Out[37]: 
+{'mart.win': <DLGRecords (2)>,
+ 'p4vtest': <DLGRecords (23)>,
+ 'pycharmclient': <DLGRecords (1)>,
+ 'lpycharmclient': <DLGRecords (32)>,
+ 'linuxclient': <DLGRecords (4)>,
+ 'lxcharlotte.pycharm': <DLGRecords (10)>,
+ 'p4source': <DLGRecords (1)>,
+ 'mscharlotte': <DLGRecords (3)>,
+ 'upycharmclient': <DLGRecords (13)>,
+ 'test': <DLGRecords (3)>,
+ 'bsclient': <DLGRecords (2)>,
+ 'martclient': <DLGRecords (1)>,
+ 'anastasia': <DLGRecords (9)>,
+ 'gc.pycharm': <DLGRecords (36)>,
+ 'computer.depot': <DLGRecords (29)>,
+ 'miscclient': <DLGRecords (1)>,
+ 'projclient': <DLGRecords (8)>,
+ 'gc.local': <DLGRecords (4)>,
+ 'gc.charlotte': <DLGRecords (1)>,
+ 'gc.fred': <DLGRecords (3)>,
+ 'uxcharlotte.pycharm': <DLGRecords (1)>,
+ 'computer.bck': <DLGRecords (1)>}
 
+In [38]: for client in client_groups.linuxclient:
+    print(client.name, client.accessdate)
+    
+linuxclient 2021/11/24                # Though perforce stores datetime values in linux time, p4dlg converts them 
+linuxclient 2021/11/27                # to the more readable ISO format, apparently favoured by their own client 
+linuxclient 2021/12/01                # programs.
+linuxclient 2021/12/01
+
+```
 ## 2. Py4
 ## 3. P4db
 ## 4. Rcs
