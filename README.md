@@ -17,11 +17,12 @@ Though *p4dlg* can be imported and used in script or broader programs, it can al
 
 * Please look in the /p4dlg/libsample directory for a more examples & samples.
 
-# Connectors.
+# Connectors
 ## P4Jnl
-### Access all your metadata without being hindered by proprietary hurdles and without any perforce client program or admin program.
+### Access all your metadata without being hindered by proprietary hurdles and without any perforce client or admin program. It is our data after all.
 
-A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the data to an ongoing journal (until truncated). Conversely, they can be used to rebuild your database by replaying a checkpoint (or set of journals), or a modified checkpoint (or fragment thereof) to modify existing records (checkpoint surgery). In opther words, they can be used to insert, update and delete records. 
+### basics
+A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the journal data to an ongoing file (until truncated). Conversely, checkpoints and journals (or fragments thereof) can be used to rebuild your database or modified to update existing records (checkpoint surgery). In other words, they can be used to insert, update, delete & query records.
 
 ### A sample journal fragment.
 ```Python
@@ -31,7 +32,7 @@ A checkpoint is a snapshot, a textual representation of your Perforce DB. As rec
 @pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 1 131072 0 11 1615560173 1614326814 B72B933FC28A76969DB23DA8A219091A 46151 0 0 @//depot/codesamples/squery/squery.py@ @1.11@ 131072
 ```
 
-It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is nice t o have. Luckily, the know-how is naked-in to p4dlg, for any server/schema release.
+It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some kind of transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is nice to have. Luckily, that know-how is baked-in to p4dlg, for any server/schema release.
 
 ### Create or load an existing connection.
 ```Python
