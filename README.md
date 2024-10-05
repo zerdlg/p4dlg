@@ -6,7 +6,7 @@ While I work on formal documentation, this README should at least give you an id
 
 ### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction.
 
-## Where?
+## How do we use it?
 Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell where p4dlg is fully baked into it. Just type the following cmdline:
 
 
@@ -16,15 +16,15 @@ Though *p4dlg* can be imported and used in script or broader programs, it can al
 
 ![run_shell](https://github.com/user-attachments/assets/14825c81-ada0-48d4-a0e6-834f9b8090c1)
 
-* Please look into the /p4dlg/libsample directory for a more detailed examples.
+* Please look in the /p4dlg/libsample directory for a more examples & samples.
 
-# P4Jnl
+# Connectors.
+## P4Jnl
 ### Access all your metadata without being hindered by proprietary hurdles and without any perforce client program or admin program.
 
 A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the data to an ongoing journal (until truncated). Conversely, they can be used to rebuild your database by replaying a checkpoint (or set of journals), or a modified checkpoint (or fragment thereof) to modify existing records (checkpoint surgery). In opther words, they can be used to insert, update and delete records. 
 
 ### A sample journal fragment.
-
 ```Python
 @pv@ 7 @db.user@ @bigbird@ @bigbird@@pycharmclient@ @@ 1624456923 1624456923 @bigbird@ @@ 2 @@ 0 0 0 0 0 0
 @pv@ 6 @db.domain@ @localclient@ 99 @raspberrypi@ @/home/pi@ @@ @@ @mart@ 1615718544 1618412757 0 @Created by bigbird.\n@
@@ -32,9 +32,9 @@ A checkpoint is a snapshot, a textual representation of your Perforce DB. As rec
 @pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 1 131072 0 11 1615560173 1614326814 B72B933FC28A76969DB23DA8A219091A 46151 0 0 @//depot/codesamples/squery/squery.py@ @1.11@ 131072
 ```
 
-It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is needed. Luckely, the knowledge is built-in to p4dlg, for any server/schema release.
+It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is nice t o have. Luckily, the know-how is naked-in to p4dlg, for any server/schema release.
 
-## Create or load an existing connection.
+### Create or load an existing connection.
 ```Python
 # Use `jnlconnect` to manage connections.
 # methods:    create - load - update - unload - destroy - purge - show
@@ -53,46 +53,78 @@ It kind of looks like a .CSV file, but without column headers. P4D does not disc
 #                                   that created the journal
 #             keyword  -> oSchema = the schema that that defines the p4db
 #
-#             Note that keywords `version` & ` oSchema` are mutually exclusive.
+#             Note that keywords `version` & `oSchema` are mutually exclusive.
 #             Pass in one or the orther.
+#             * a bit more on schemas further down. 
+In [17]: jnlconnect.create('jnl',
+                        **{
+                           'journal': './resc/journals/checkpoint.rasp',
+                           'version': 'r16.2'
+                           }
+                       )
 
-jnlconnect.create('jnl',
-                  **{
-                     'journal': './resc/journals/checkpoint.rasp',
-                     'version': 'r16.2'
-                     }
-                 )
+# the connectors are persistent & p4dlg keeps track to make them available for reuse. The can be loaded at any time.
+In [18]: jnlcon.load('jnl')
+Reference (jnl) loaded
+Out[18]: <P4Jnl ./resc/journals/journal.8>
 ```
 
-## Building a query.
+### Query syntax
 ```Python
-# The syntax.
-#             table     op    value
-#              |        |      |
-#              V        V      V
-qry = (oJnl.domain.type == 'client')
-#       ^           ^
-#       |           |
-#    connector    column
+#                     table     op    value
+#                      |        |      |
+In [19]: qry = (jnl.domain.type == 'client')
+#                |           |
+#             connector    column
+```
 
-In [24]: qry = (jnl.domain.type == 'client')     # A simple query, the WHERE clause.
-In [25]: qry
-Out[25]: 
+### Building a query.
+```Python
+In [20]: qry = (jnl.domain.type == 'client')     # A simple query.
+In [21]: qry
+Out[21]: 
 <DLGQuery {'inversion': False,                   # A query is a reference to class `DLGQuery`.
  'left': <JNLField type>,
  'objp4': <P4Jnl ./resc/journals/journal.8>,     
  'op': <function EQ at 0x104d32700>,
  'right': 'client'}>
+```
 
-In [24]: clientset = jnl(qry)                    # Connection objects are callable. You can pass in queries.
+Passing in a query to the connector's __call__ method, forces it to return a set of records, *DLGRecordSet*.
+The set of records are not the same as the selected records. It is basically a generator with useful methods
+and attributes.
+### Conector + query = record set
+```Python
+In [22]: jnl(qry)                                # Connection objects are callable. Among other things,
+                                                 # you can pass in queries forces it to return a set of
+                                                 # records
+Out[23]: <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>) >
 
-In [25]: clientset                               # It returns a `DLGRecoirdSet`
-Out[25]: <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>) >
+In [24]: clients = recordset.select()            # equivalent to `SELECT * FROM domain WHERE type = client`
+In [25]: clients
+Out[25]: <DLGRecords (188)>                      # The target journal contains 188 `clientspec` records.
+```
 
-In [26]: clients = clientset.select()            # SELECT * FROM domain WHERE type = client
-In [27]: clients
-Out[27]: <DLGRecords (188)>                      # The target journal contains 188 `clientspec` records.
+## Selecting records / syntax
+### Typing the thing as a one liner, say in an interactive QT Console, flows from the end of your finger tips.
+```Python
+In [26]: clients = jnl(jnl.domain.type == 'client').select()
+Out[26]: <DLGRecords (188)>
+```
+### Break it down to its syntactical parts.
+```
 
+In [27]: client_recordset = jnl(jnl.domain.type == 'client')
+```
+
+eg.
+```Python
+
+In [27]: qry = (jnl.domain.type == 'client')
+
+```
+
+```Python
 In [28]: clients.first()                         # `clients` is a reference to class `DLGRecords`, and
                                                  # exposes interesting SQL attributes.
 Out[28]: 
@@ -116,7 +148,7 @@ Out[28]:
  'updateDate': '2021/11/14'}>
 ```
 
-## A connnector has useful attributes
+### A connnector has useful attributes
 eg.
 ```Python
 # List all available table for this version
@@ -176,13 +208,13 @@ Out[35]: 'Type of domain'
 
 ## Agregators Operators, Expressions, Queries etc.
 
+eg. Group client (domain) records by `name` & order them by `accessDate`.
 ```Python
 In [36]: client_groups = clients.groupby('name', orderby=jnl.domain.accessdate, groupdict=True)
 
-# This will return all the selected records, grouped by name and ordered by accessDate. 
 # The `groupdict` attribute modifies groupby's return type. When set to True (False is the default),
 # it will not return the set of records, as we would expect, but instead, a dict where the keys are the 
-# field values that set to group said client records. The values are the records belonging to the field 
+# field values that make up the tagret group names. The values are the records belonging to the field 
 # that groups the the records.
 
 In [37]: client_groups
@@ -218,11 +250,13 @@ linuxclient 2021/11/27                # to the more readable ISO format, apparen
 linuxclient 2021/12/01                # programs.
 linuxclient 2021/12/01
 ```
-### More examples below on the use of aggregators, operators, queries and expressions as well as p4dlg's take on using SQL mechanics as an approach to drive interactions with a Perforce instance.
+### More examples below on the use of aggregators, operators, queries, expressions, etc., as well as p4dlg's take on using SQL mechanics to drive interactions with a Perforce instance.
 
-## 2. Py4
+Moving on to the next coonector...
+## Py4
+### A client
+
 ## 3. P4db
 ## 4. Rcs
-#### A fun use case... create a list of records equivalent to the result of running  ```>>> p4 clients```
 
 
