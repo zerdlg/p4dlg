@@ -1,14 +1,13 @@
 # p4dlg
 
-### A set of *abstractions* that use SQL, supported by a common set of APIs, to interact with your Perforce instance and its resources. 
+### A set of *abstractions* that use SQL, supported by a common set of APIs, to interact with your Perforce instance and its resources.
 
 While I work on formal documentation, this README should at least give you an idea of what *p4dlg* is. There are also working samples and examples in /p4q/libsample.
 
-### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction.
+### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction covered in this readme.
 
-## How do we use it?
-Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell where p4dlg is fully baked into it. Just type the following cmdline:
-
+## How do we use *p4dlg*?
+Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Just type the following cmdline to start it up!
 
 ```Python
 %> python dlg.py shell
