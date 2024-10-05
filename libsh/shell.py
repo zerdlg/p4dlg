@@ -1,4 +1,5 @@
-import sys
+import os, sys
+import re
 from pprint import pprint
 from datetime import datetime, time
 from importlib import __import__
@@ -23,10 +24,12 @@ from lz4 import block as lz4block
 
 ''' qtconsole imports
 '''
-from qtconsole.rich_jupyter_widget import *
+from qtconsole.rich_jupyter_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
 from IPython.lib import guisupport
-# from IPython.core.debugger import Pdb
+from IPython.core.debugger import Pdb
+
+
 ''' p4dlg import
 '''
 from libdlg import *
@@ -99,6 +102,8 @@ mdata = """
     )
 
 ''' p4 -F %depotFile% describe -s 210 | p4 -F %depotFile% -x - grep -e bananas
+
+    jupiter qtconsole options:  >>> jupyter qtconsole -h
 '''
 def createdir(directory):
     try:
@@ -201,55 +206,26 @@ class DLGShell(object):
         self.db_migrate = True
         self.db_migrate_enabled = True
         self.db_pool_size = 5
-
-        ''' vars for QTConsole (default configs)
-            
-             default styles:
-             ['linux', 'lightbg', 'nocolor']
-
-             line completion can be set to one of the following:
-             ['plain', 'droplist', ['ncurses']]
-
-             'kind' define the type of underlying text widget to use
-             [['plain'], 'rich']
-
-             valide options for paging
-             ['inside', 'hsplit', 'vsplit', 'custom', 'none']        
-        '''
         self.qt_set_default_style = 'lightbg'
         self.qt_banner = f"DLGShell {mdata}\n\n"
         self.qt_ansi_codes = True
         self.qt_buffer_size = '1200'
         self.qt_execute_on_complete_input = True
-        self.qt_gui_completion = 'droplist'
+        self.qt_gui_completion = 'ncurses'
+        self.qt_default_style = 'linux'
         self.qt_kind = 'rich'
         self.qt_enable_calltips = True
         self.qt_paging = 'vsplit'
         self.qt_font_family = 'monaco'
         self.qt_font_size = 13
-        self.qt_width = 2400
-        self.qt_height = 1500
+        self.qt_console_width = 150
+        self.qt_console_height = 75
         self.qt_override_shortcuts = False
-        self.qt_executable = 'python'
         self.qt_backend = 'matplotlib'
-        self.qt_gui = 'qt4'
+        self.qt_gui = 'qt'
 
-        ''' populate cmd_ & cmdcls_ attributes
+        ''' here's a good spot to populate cmd_ & cmdcls_ attributes - whatever, whenever
         '''
-        self.var_editor = 'vim'
-        self._editor = os.environ.get('EDITOR', self.var_editor)
-        self.var_operators = Lst(
-            '=',
-            '>',
-            '<',
-            '>=',
-            '<=',
-            '?',
-            '@',
-            '?',
-            '%',
-            '#'
-        )
 
         '''      
                     enables add/modify/delete instance variables @runtime, as well
@@ -601,27 +577,37 @@ class DLGShell(object):
     class cmdcls_shterm(object):
         def __init__(self, obj):
             self.obj = obj
-
-        def __call__(self, *args, **kwargs):
-            return self
-
-        def styles(self): return [
+            self.styles = [
             'nocolor',
             'linux',
             'lightbg'
         ]
+            self.qtvars = self.obj.cmd_qtvars()
 
-        def setstyle(self, _style): self.obj.qtWidget.set_default_style(
-            _style \
-                 if (_style in self.styles) \
-                 else 'linux')
+        def __call__(self, *args, **kwargs):
+            return self
 
-        def buffersize(self, size): self.obj.qtWidget.buffer_size(
-            size \
-                if (isinstance(size, int)) \
-                else int(size))
+        def set_term(self, terminal='xterm-color', location='/etc/terminfo'):
+            if (os.environ['TERM'] is False):
+                os.environ.update(
+                    **{
+                        'TERM': terminal,
+                        'terminfo': location
+                    }
+                )
 
-        def restart(self): self.obj.qtWidget.request_restart_kernel()
+        def setstyle(self, style):
+            if (not style in self.styles):
+                style = self.qtvars.default_style
+            self.obj.qtWidget.set_default_style(style)
+
+        def buffersize(self, size):
+            if (isinstance(size, int) is False):
+                size = int(size)
+            self.obj.qtWidget.buffer_size(size)
+
+        def restart(self):
+            self.obj.qtWidget.request_restart_kernel()
 
         # def stacktracer(self): return Pdb
         def close(self):
@@ -651,31 +637,31 @@ class DLGShell(object):
     '''  Jupiter widget instance
     '''
     def get_widget(self, *args, **kwargs):
-        qtWidget = RichJupyterWidget()
         qtinstvars = self.cmd_qtvars()
-        qtWidget.locals = self.kernel.shell.ns_table
-        qtWidget.kernel_manager = self.kernel_manager
-        qtWidget.kernel_client = self.kernel_client
-        ''' shell configs
+        RJWidget = RichJupyterWidget()
+        RJWidget.set_default_style(qtinstvars.default_style)
+        RJWidget._set_completion_widget(qtinstvars.gui_completion)
+        RJWidget.locals = self.kernel.shell.ns_table
+        RJWidget.kernel_manager = self.kernel_manager
+        RJWidget.kernel_client = self.kernel_client
+        ''' shell configs        
         '''
-        qtWidget.banner = qtinstvars.banner
-        qtWidget.ansi_codes = qtinstvars.ansi_codes
-        qtWidget.set_default_style(qtinstvars.set_default_style)
-        qtWidget.buffer_size = int(qtinstvars.buffer_size)
-        qtWidget.execute_on_complete_input = qtinstvars.execute_on_complete_input
-        qtWidget.gui_completion = qtinstvars.gui_completion
-        qtWidget.kind = qtinstvars.kind
-        qtWidget.paging = qtinstvars.paging
-        qtWidget.font_family = qtinstvars.font_family
-        qtWidget.font_size = qtinstvars.font_size
-        qtWidget.width = qtinstvars.width
-        qtWidget.height = qtinstvars.height
-        qtWidget.override_shortcuts = qtinstvars.override_shortcuts
+        RJWidget.console_height = qtinstvars.console_height
+        RJWidget.console_width = qtinstvars.console_width
+        RJWidget.banner = qtinstvars.banner
+        RJWidget.ansi_codes = qtinstvars.ansi_codes
+        RJWidget.buffer_size = int(qtinstvars.buffer_size)
+        RJWidget.kind = qtinstvars.kind
+        RJWidget.paging = qtinstvars.paging
+        RJWidget.font_family = qtinstvars.font_family
+        RJWidget.font_size = qtinstvars.font_size
+        RJWidget.override_shortcuts = qtinstvars.override_shortcuts
         ''' TODO: verify why calltips hang when auto-completing args :( 
         '''
-        qtWidget.enable_calltips = False #qtinstvars.enable_calltips
-        qtWidget.editor = "vim"
-        return qtWidget
+        RJWidget.execute_on_complete_input = qtinstvars.execute_on_complete_input
+        RJWidget.enable_calltips = False#qtinstvars.enable_calltips
+        RJWidget.editor = "gnome-terminal -- vim"
+        return RJWidget
 
     '''  DLGQuery wrapped in an IPython QTShell requires IPython & PyQT4 | 5 (SIP)
     '''
