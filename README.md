@@ -93,16 +93,16 @@ Out[21]:
 Passing in a query to the connector's __call__ method, forces it to return a set of records, *DLGRecordSet*.
 The set of records are not the same as the selected records. It is basically a generator with useful methods
 and attributes.
-### Conector + query = record set
+### Connector + query = recordset
 ```Python
-In [22]: jnl(qry)                                # Connection objects are callable. Among other things,
-                                                 # you can pass in queries forces it to return a set of
-                                                 # records
-Out[23]: <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>) >
+In [22]: recordste = jnl(qry)                    # Connection objects are callable, take queries and expose
+                                                 # useful attributes such as  `select`, `fetch`, update, etc.
+In [23]: RECORDSET
+Out[23]: <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>)>
 
 In [24]: clients = recordset.select()            # equivalent to `SELECT * FROM domain WHERE type = client`
 In [25]: clients
-Out[25]: <DLGRecords (188)>                      # The target journal contains 188 `clientspec` records.
+Out[25]: <DLGRecords (188)>                      # The target journal defines 188 `clientspec` records.
 ```
 
 ## Selecting records / syntax
@@ -113,7 +113,6 @@ Out[26]: <DLGRecords (188)>
 ```
 ### Break it down to its syntactical parts.
 ```
-
 In [27]: client_recordset = jnl(jnl.domain.type == 'client')
 ```
 
@@ -130,15 +129,15 @@ In [28]: clients.first()                         # `clients` is a reference to c
 Out[28]: 
 <DLGRecord {'accessDate': '2021/11/14',          # `DLGRecords` contains references to class `DLGRecord`
  'db_action': 'pv',
- 'description': 'Created by mart.\n',
- 'extra': 'LAPTOP-I424S433',
+ 'description': 'Created by bert.\n',
+ 'extra': 'desktop_bert',
  'idx': 1,
- 'mount': 'c:Usersgoodcdepot',
+ 'mount': 'c:/Users/goodbert/depot',
  'mount2': '',
  'mount3': '',
- 'name': 'mart.win',
+ 'name': 'bert_workspace',
  'options': '0',
- 'owner': 'mart',
+ 'owner': 'bert',
  'partition': '0',
  'serverid': '',
  'stream': '',
@@ -219,28 +218,28 @@ In [36]: client_groups = clients.groupby('name', orderby=jnl.domain.accessdate, 
 
 In [37]: client_groups
 Out[37]: 
-{'mart.win': <DLGRecords (2)>,
+{'bert_workspace': <DLGRecords (2)>,
  'p4vtest': <DLGRecords (23)>,
- 'pycharmclient': <DLGRecords (1)>,
- 'lpycharmclient': <DLGRecords (32)>,
- 'linuxclient': <DLGRecords (4)>,
- 'lxcharlotte.pycharm': <DLGRecords (10)>,
- 'p4source': <DLGRecords (1)>,
- 'mscharlotte': <DLGRecords (3)>,
- 'upycharmclient': <DLGRecords (13)>,
+ 'pycharm_client': <DLGRecords (1)>,
+ 'lpycharm_client': <DLGRecords (32)>,
+ 'linux_client': <DLGRecords (4)>,
+ 'lx_ernie_pycharm': <DLGRecords (10)>,
+ 'p4grover': <DLGRecords (1)>,
+ 'thecount_workspace': <DLGRecords (3)>,
+ 'upycharm_client': <DLGRecords (13)>,
  'test': <DLGRecords (3)>,
  'bsclient': <DLGRecords (2)>,
- 'martclient': <DLGRecords (1)>,
+ 'bigbirdclient': <DLGRecords (1)>,
  'anastasia': <DLGRecords (9)>,
- 'gc.pycharm': <DLGRecords (36)>,
+ 'bert_pycharm': <DLGRecords (36)>,
  'computer.depot': <DLGRecords (29)>,
  'miscclient': <DLGRecords (1)>,
  'projclient': <DLGRecords (8)>,
- 'gc.local': <DLGRecords (4)>,
- 'gc.charlotte': <DLGRecords (1)>,
+ 'gc_local': <DLGRecords (4)>,
+ 'gc_bob': <DLGRecords (1)>,
  'gc.fred': <DLGRecords (3)>,
- 'uxcharlotte.pycharm': <DLGRecords (1)>,
- 'computer.bck': <DLGRecords (1)>}
+ 'ux_pycharm': <DLGRecords (1)>,
+ 'computer_bck': <DLGRecords (1)>}
 
 In [38]: for client in client_groups.linuxclient:
     print(client.name, client.accessdate)
@@ -252,9 +251,45 @@ linuxclient 2021/12/01
 ```
 ### More examples below on the use of aggregators, operators, queries, expressions, etc., as well as p4dlg's take on using SQL mechanics to drive interactions with a Perforce instance.
 
-Moving on to the next coonector...
 ## Py4
-### A client
+### A client program, A wrapper, an abstraction layer over the p4 cmd line client API probably describes it better. If you're like me, you have favoured the more robust and never failing cmd line client when interacting with your Perforce server. So using this connector might be counter intiative, at first. If we are to think SQL instead of `executable cmd *args`, we must alter our mind set, a little bit. Please, bare with me & let's just rip off the bandaid.
+
+Let's forget the executable, the command and everything else that comes after that. I propose instead that we accept a new Perforce where the executable no longer an executable but rather a name. That is a name of a connection to a DB (after all the P4DB is just that, a DB). ALong the same lines, a command is no longer a command, but rather a table. Think of Postgres or mysql. Like that. Of course if we think of tables, we will start seeing fields with values. Here's what I mean:
+
+```c++
+
+>>> p4 client computer_p4dlg
+Client:▷computer_p4dlg
+ 
+ Update:▷2024/09/20 23:53:18
+ 
+ Access:▷2024/10/04 19:14:53
+  
+ Owner:▷⋅bigbird
+  
+ Host:▷⋅⋅computer.local
+  
+ Description:
+ ▷⋅⋅⋅Created by bigbird.
+  
+ Root:▷⋅⋅/Users/gc/anastasia/dev/p4dlg
+  
+ Options:▷⋅⋅⋅noallwrite noclobber nocompress unlocked nomodtime normdir
+  
+ SubmitOptions:▷⋅submitunchanged
+ 
+ LineEnd:▷⋅⋅⋅local
+  
+ View:
+ ▷⋅⋅⋅//dev/p4dlg/... //computer_p4dlg/... 
+```
+
+
+
+
+
+
+
 
 ## 3. P4db
 ## 4. Rcs
