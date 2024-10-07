@@ -1,3 +1,10 @@
+```mermaid
+graph TD
+A(P4dlg)
+    A --> B(P4Jnl)
+    A --> C(Py4)
+```
+
 # p4dlg
 
 ### A set of *abstractions* that use SQL, supported by a common set of APIs, to interact with your Perforce instance and its resources.
