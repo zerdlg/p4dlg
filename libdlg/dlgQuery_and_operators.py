@@ -2893,6 +2893,9 @@ class DLGExpression(object):
 
     __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
 
+    def __or__(self, value):
+        return Lst(self, value)
+
     def __init__(
             self,
             objp4,

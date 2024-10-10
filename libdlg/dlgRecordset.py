@@ -785,6 +785,7 @@ class DLGRecordSet(object):
 
     def fetch(self, *fields, **kwargs):
         try:
+            kwargs.update(**{'limitby':(0,1)})
             records = self.select(*fields, **kwargs)
             return records.first()
         except Exception as err:

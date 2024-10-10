@@ -879,14 +879,15 @@ class Py4(object):
                                 return lastarg
                 ''' priority 3
                 '''
-                if (isanyfile(query.right) is True):
-                    if (query.left.fieldname.lower() in ('depotfile', 'clientfile', 'path')):
-                        if (query.op in (EQ, NE, '=', '!=')):
-                            cmdargs = self.p4globals + ['where', query.right]
-                            out = self.p4OutPut(tablename, *cmdargs)
-                            lastarg = out.depotFile
-                    else:
-                        lastarg = None
+                if (query is not None):
+                    if (isanyfile(query.right) is True):
+                        if (query.left.fieldname.lower() in ('depotfile', 'clientfile', 'path')):
+                            if (query.op in (EQ, NE, '=', '!=')):
+                                cmdargs = self.p4globals + ['where', query.right]
+                                out = self.p4OutPut(tablename, *cmdargs)
+                                lastarg = out.depotFile
+                        else:
+                            lastarg = None
                 ''' lastly... use the client lastarg
                 '''
                 if (noneempty(lastarg) is True):

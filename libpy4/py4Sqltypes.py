@@ -41,6 +41,8 @@ class Py4Table(object):
                  'sqltype': {'fieldtype': 'string'},
                  'type': 'Change'}
     '''
+    def __or__(self, othertable):
+        return Lst(self, othertable)
 
     def __init__(self, objp4, *args, **tabledata):
         self.objp4 = objp4
@@ -402,6 +404,7 @@ class Py4Field(DLGExpression):
 
     def __len__(self):
         return lambda i: len(self.__dict__[i])
+
 
     def __init__(
                  self,

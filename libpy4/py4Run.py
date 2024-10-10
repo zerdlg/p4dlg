@@ -53,7 +53,9 @@ class Py4Run(object):
                 (tablename in self.objp4.spec_takes_no_lastarg)
         ):
             return
-        lastarg = self.objp4.define_lastarg(tablename, *cmdargs)
+        lastarg = self.objp4.define_lastarg(tablename, *cmdargs) \
+            if (not tablename in self.objp4.nocommands + self.objp4.fetchfirst) \
+            else ''
         self.objp4.p4globals += self.objp4.supglobals
         ''' tablename should be cmdargs' 1st argument. so either insert if
             missing or, if suspected to be in the wrong position, pop 

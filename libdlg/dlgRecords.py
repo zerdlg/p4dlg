@@ -76,7 +76,7 @@ class DLGRecords(object):
             self,
             idx,
             default=None,
-            cast=DLGRecord
+            cast=None#DLGRecord
     ):
         '''  Don't raise an  exception on IndexError, return default
         '''
@@ -95,15 +95,9 @@ class DLGRecords(object):
                             cast
         )
         if (record is not None):
-            try:
-                return cast(record) \
-                    if (
-                            (not type(cast).__name__ in invalid_types)
-                            & (callable(cast) is True)
-                ) \
-                    else record
-            except Exception as err:
-                print(err)
+            if (not type(cast).__name__ in invalid_types):
+                if (callable(cast) is True):
+                    record = cast(record)
         if (isinstance(record, dict) is True):
             record = DLGRecord(record)
         return record
@@ -176,31 +170,24 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 if (record in alt_records):
                     records.append(record)
                     alt_records.remove(record)
-            return DLGRecords(records, self.cols, self.objp4)
+            return DLGRecords(Lst(records), self.cols, self.objp4)
 
     def __or__(self, altrecords):
-        if (self.cols == altrecords.cols):
-            records = Lst([
-                    record for record in altrecords.records if (not record in self.records)
-            ] + self.records)
-            return DLGRecords(records, self.cols, self.objp4)
+        if (self.cols != altrecords.cols):
+            raise Exception("columns of one record are not compatible with fields of the other")
+        records = Lst([
+                record for record in altrecords.records if (not record in self.records)
+        ] + self.records)
+        return self.__class__(records, self.cols, self.objp4)
+
 
     def __eq__(self, altrecords):
         return (self.records == altrecords.records) \
-            if (isinstance(altrecords, DLGRecords)) \
+            if (type(altrecords).__name__ == 'DLGRecords') \
             else False
 
     def __getitem__(self, key):
-        record = self.records(key)
-        if (isinstance(record, list)):
-            return record
-        if (type(record).__name__ == 'DLGRecord'):
-            record = record.as_dict()
-        if (isinstance(record, Storage)):
-            keys = record.getkeys()
-            if (len(keys) == 1):
-                return record[record.getkeys().first()]
-        return record
+        return self.records[key]
 
     def __iter__(self):
         for i in xrange(len(self)):
@@ -209,27 +196,15 @@ Our record fields: {cols}\nYour record fields: {othercols}'
     def append(self, record):
         self.records.append(DLGRecord(record))
 
-    def insert(self, record):
-        try:
-            if (len(record) == len(self.cols)):
-                self.records.append(DLGRecord(record))
-        except Exception as err:
-            bail(
-                f'Failed to insert new record: {record}\nError: {err}'
-            )
+    def insert(self, idx, record):
+        self.records.insert(idx, DLGRecord(record))
 
     def bulkinsert(self, *records):
-        try:
-            [
-                self.records.append(DLGRecord(record) \
-                    if (type(record) is not DLGRecord) \
-                    else record) for record in records
-
-            ]
-        except Exception as err:
-            bail(
-                f"Failed to do a bulkinsert of new records:\nError: {err}"
-            )
+        [
+            self.records.insert(idx, DLGRecord(record) \
+                if (type(record) is not DLGRecord) \
+                else record) for (idx, record) in records
+        ]
 
     def delete(self, func):
         '''  not yet implemented
@@ -421,8 +396,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         ''' returns a new set of P4Records / does not modify the original.
             >>> out = records.orderby(*[oJnl.domain.name, oJnl.domain.accessDate],)
             >>> out.as_grid()
-
-
         '''
 
         records = self \

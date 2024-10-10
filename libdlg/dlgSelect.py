@@ -16,7 +16,7 @@ from libdlg.dlgUtilities import (
     noneempty,
     xrange,
     is_array,
-    is_P4Jnl,
+    is_P4Jnl, is_Py4,
     reg_rev_change_specifier,
     reg_datetime_fieldname,
     reg_datetime_fieldtype,
@@ -38,9 +38,9 @@ class Select(DLGControl):
                 objp4,
                 records=None,
                 cols=None,
-                query=None, **kwargs
+                query=None, **tabledata
     ):
-        kwargs = Storage(kwargs)
+        tabledata = Storage(tabledata)
         self.closed = False
         self.objp4 = objp4
         if (self.objp4 is None):
@@ -52,7 +52,7 @@ class Select(DLGControl):
                 getattr(
                     self.objp4.logger \
                         if (hasattr(self.objp4, 'logger')) \
-                        else kwargs.logger or 'INFO',
+                        else tabledata.logger or 'INFO',
                     f'log{logitem}'
                 )
             ) for logitem in (
@@ -62,7 +62,13 @@ class Select(DLGControl):
             'critical'
         )
         ]
+        ''' who's asking?
+        '''
         self.is_jnlobject = (is_P4Jnl(self.objp4) is True)
+        self.is_Py4 = (is_Py4(self.objp4) is True)
+        ''' Everything is built on knowing the schema of this 
+            current server version, keeping it close by!
+        '''
         self.oSchema = self.objp4.oSchema
         ''' importing DomainType directly will cause a circular 
             dependency problem, so use objp4's class reference.
@@ -70,53 +76,86 @@ class Select(DLGControl):
         self.oSchemaType = self.objp4.oSchemaType \
             if (hasattr(self.objp4, 'oSchemaType')) \
             else None
-        ''' I don't like this but, if we can't get help from SchemaType 
-            because of a circular dependency, we'll crack open the schema
-            and grab the data we need...
-            
-            TODO: fix circular dependency. 
+        ''' considering journals, is may not matter the table we query, 
+            but if it does belong to db.domain, then we will need to dig 
+            in and allocate the actual filds needed. 
         '''
         self.domaintypes = self.oSchemaType.values_names_bydatatype('DomainType') \
             if (self.oSchemaType is not None) \
             else self.get_domaintypes()
         ''' compute new columns
         '''
-        self.compute = Lst()
-        compute = self.objp4.compute or []
-        if (noneempty(compute) is False):
-            if (isinstance(compute, str)):
-                self.compute = Lst(item.strip().split('=') for item in \
-                                   Lst(compute.split(';')).clean()).clean()
-            elif (isinstance(compute, list)):
-                self.compute = compute
-
+        compute = self.objp4.compute
+        if (isinstance(compute, str)):
+            self.compute = Lst(
+                item.strip().split('=') for item in Lst(
+                    compute.split(';')
+                ).clean()
+            ).clean()
+        self.compute = compute or Lst()
         self.maxrows = self.objp4.maxrows
         self.oTableFix = fix_name('remove')
         self.cols = cols
         self.records = records
+        self.oDateTime = DLGDateTime()
+        self.memo = {}
         self.query = query or Lst()
-        qry = query \
-            if (isinstance(query, list) is False) \
-            else query[0]
+        ''' if we don't have tablename & fieldsmap, 
+            we have nothing. If that is the case then
+            either make they get passed in to select() 
+            or face an error! 
+        '''
         (
             tablename,
             fieldsmap
-        )  = \
+            )  = \
             (
-                None,
-                None
+                tabledata.tablename,
+                tabledata.fieldsmap
             )
-        self.memo={}
+        if (None in (tablename, fieldsmap)):
+            qry = query \
+                if (isinstance(query, Lst) is False) \
+                else query(0)
 
-        if (hasattr(qry, 'left')):
-            tablename = qry.left.tablename
-        self.tablename = tablename
-        if (tablename is not None):
-            self.fieldsmap = self.objp4.fieldsmap \
-                if (self.is_jnlobject is False) \
-                else self.objp4.tablememo[tablename].fieldsmap
+            if (self.is_jnlobject is True):
+                if (tablename is None):
+                    if (hasattr(qry, 'left')):
+                        tablename = qry.left.tablename
+                    elif (type(qry).__name__ == 'JNLTable'):
+                        tablename = self.objp4.qry.tablename
+
+                if AND(
+                        (tablename is not None),
+                        (fieldsmap is None)
+                ):
+                    fieldsmap =self.objp4.tablememo[tablename].fieldsmap
+            elif (self.is_Py4 is True):
+                if (tablename is None):
+                    if (hasattr(qry, 'left')):
+                        tablename = qry.left.tablename
+                    elif (type(qry).__name__ == 'Py4Table'):
+                        tablename = self.objp4.qry.tablename
+
+                if AND(
+                        (tablename is not None),
+                        (fieldsmap is None)
+                ):
+                    if hasattr(tabledata, 'fieldsmap'):
+                        fieldsmap = tabledata.fieldsmap
+                    else:
+                        fieldsmap = self.objp4.tablememo[tablename].fieldsmap
+            (
+                self.query,
+                self.tablename,
+                self.fieldsmap
+            ) = \
+                (
+                    query,
+                    tablename,
+                    fieldsmap
+                )
         super(Select, self).__init__()
-        self.oDateTime = DLGDateTime()
 
     def memoize(self, val):
         try:
@@ -659,31 +698,17 @@ class Select(DLGControl):
         filter = kwargs.filter
         exclude = kwargs.exclude
         search = kwargs.search
-        filters = pformat(
-            [
-                fltr for fltr in
-                           (
-                               orderby,
-                               limitby,
-                               groupby,
-                               sort,
-                               find,
-                               filter,
-                               exclude,
-                               search
-                           )
-                if (fltr is not None)
-            ]
-        )
-        self.loginfo(f'Applying filters: {filters}')
         if (orderby is not None):
             '''  orderby         -->     and/or limitby
             '''
+
             try:
                 if (isinstance(orderby, str)):
                     orderby = [item for item in orderby.split(',')] \
                         if (',' in orderby) \
                         else [orderby]
+                elif (type(orderby).__name__ in ('JNLField', 'Py4Field')):
+                    orderby = [orderby]
                 records = records.orderby(*orderby) \
                     if (limitby is None) \
                     else records.orderby(*orderby, limitby=limitby)
@@ -758,12 +783,11 @@ class Select(DLGControl):
         reg = re.compile(f'^db\.{self.tablename}$')
         if (self.is_jnlobject is True):
             try:
-                target_records = [
+                target_records = enumerate([
                     rec[1] for (idx, rec) in enumerate(records)
                     if (reg.match(Lst(Lst(rec)(1))(2)))
-                ]
-                self.loginfo(f'{len(target_records)} target records')
-                return enumerate(target_records, start=1)
+                ], start=1)
+                return target_records
             except Exception as err:
                 bail(err)
         return enumerate(records, start=1) \
@@ -891,6 +915,12 @@ class Select(DLGControl):
         '''
         if (type(records) != enumerate):
             records = self.guess_records(query, tablename)
+
+        if (len(fieldnames) == 1):
+            fieldtype = type(fieldnames[0]).__name__
+            if (fieldtype in ('JNLTable', 'Py4Table')):
+                fieldnames = cols#self.objp4.fieldnames
+
         fieldnames = Lst(fieldnames or self.objp4.fieldnames).storageindex(reversed=True)
         return (tablename, fieldnames, query, cols, records)
 
@@ -947,26 +977,29 @@ class Select(DLGControl):
         for aggregator in aggregators:
             if (kwargs[aggregator] is None):
                 kwargs.delete(aggregator)
-        distinct = kwargs.pop('distinct') if (kwargs.distinct is not None) else False#fieldnames(0)
+        distinct = kwargs.pop('distinct') if (kwargs.distinct is not None) else None#fieldnames(0)
         if (kwargs.distinct is not None):
             distinct = kwargs.pop('distinct')
             if (not type(distinct).__name__ in ('JNLField', 'Py4Field')):
                 distinct = fieldnames(0)
+            elif (distinct is False):
+                distinct = None
         ''' insertrecords 
             decide now if outrecords should be returned 
             as DLGRecords or as a list of records 
             (insert or append?)
         '''
-        insertrecord = outrecords.append
-        if (raw_records is False):
-            outrecords = DLGRecords(Lst(), cols, self.objp4)
-            insertrecord = outrecords.insert
+        #insertrecord = outrecords.append
+        #if (raw_records is False):
+        #    outrecords = DLGRecords(Lst(), cols, self.objp4)
+        #    insertrecord = outrecords.insert
+        outrecords = DLGRecords(Lst(), cols, self.objp4)
+        insertrecord = outrecords.insert
         ''' make a list of fields that are datetime specific so 
             that we can express Unix time to an ISO format
         '''
         datetime_fields = self.get_records_datetime_fields(tablename)
         recordsiter = self.get_recordsIterator(records)
-
         while (eor is False):
             table_mismatch = False
             try:
@@ -1036,10 +1069,22 @@ class Select(DLGControl):
                         if (len(self.compute) > 0):
                             record = Storage(self.computecolumns(record))
                         ''' match column to their records 
-                        '''
+                        
                         intersect = fieldnames.getvalues().intersect(record.getkeys())
                         if (len(intersect) != len(fieldnames)):
                             raise RecordFieldsNotMatchCols(fieldnames.getvalues(), record.getkeys())
+                        '''
+                        if (len(fieldnames) > 0):
+                            rec = Storage()
+                            for fn in fieldnames.keys():
+                                field = fieldnames[fn]
+                                fieldtype = type(field).__name__
+                                if (fieldtype in ('JNLField', 'Py4Field')):
+                                    field = field.fieldname
+                                value = record[field]
+                                rec.merge({field: value})
+                            record = rec
+
                         ''' does anything lead us to believe that this record should be skipped?
                         '''
                         skip = self.skiprecord(record, tablename)
@@ -1063,11 +1108,13 @@ class Select(DLGControl):
                                 if (noneempty(self.maxrows) is False):
                                     recordcounter += 1
                                     if (recordcounter <= self.maxrows):
-                                        insertrecord(record)
+                                        #insertrecord(record)
+                                        insertrecord(idx, record)
                                     else:
                                         eor = True
                                 else:
-                                    insertrecord(record)
+                                    #insertrecord(record)
+                                    insertrecord(idx, record)
             # BUG: sometimes StopIteration is skipped (oJnl.rev.depotFile.contains(...))
             # so wrapping while loop in its own try: except: finally block for now...
             # until time for this is to be had... argh!!!!!

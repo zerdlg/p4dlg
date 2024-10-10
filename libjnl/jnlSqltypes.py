@@ -7,7 +7,6 @@ from libdlg.dlgStore import (
     Lst
 )
 from libdlg.dlgQuery_and_operators import *
-from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgSchemaTypes import SchemaType
 from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
@@ -254,6 +253,9 @@ class JNLTable(object):
              'sqltype': {'fieldtype': 'string'},
              'type': 'Change'}
     '''
+
+    def __or__(self, othertable):
+        return Lst(self, othertable)
 
     def __init__(
                     self,

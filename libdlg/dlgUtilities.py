@@ -297,7 +297,9 @@ journal_actions = [
     "ex",
     "mx",
     "nx",
-    "dl"
+    "dl",
+    "ver",
+    #Null
 ]
 ignore_actions = [
     "ex",
