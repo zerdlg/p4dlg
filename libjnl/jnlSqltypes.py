@@ -298,10 +298,8 @@ class JNLTable(object):
         self.peek_lockseq = tabledata.peek_lockseq
         self.keying = tabledata.keying
         self.desc = tabledata.desc
-        self.tablename = tablename
         self.schemaversion = tabledata.schemaversion
         self.referenced_by = []
-
         [
             setattr(
                 self,
@@ -320,7 +318,7 @@ class JNLTable(object):
 
         ''' maps and field names & references
         '''
-        fields = Lst()#Storage()
+        fields = Lst()
         for field in self.modelfields:
             try:
                 field.merge(
@@ -340,7 +338,6 @@ class JNLTable(object):
                                 oSchema=self.oSchema,
                                 oSchemaType=self.oSchemaType
             )
-            #fields.merge({field.name: oField})
             setattr(self, field.name, oField)
             fields.append(getattr(self, field.name))
         self.fields = objectify(fields)
@@ -530,7 +527,9 @@ class JNLField(DLGExpression):
                  table=None,
                  **kwargs
     ):
-        self.fieldname = fieldname = field.fieldname
+        self.fieldname = fieldname = field.fieldname \
+            if (hasattr(field, 'fieldname')) \
+            else field
         self.tablename = tablename = field.tablename
         self.table = table
         super(JNLField, self).__init__(

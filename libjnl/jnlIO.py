@@ -515,21 +515,21 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         self.compute = kwargs.compute or Lst()
         if (noneempty(self.compute) is False):
             self.loginfo(f"compute = f{self.compute}")
-        if (isinstance(query, JNLTable)):
+        if (is_tableType(query) is True):
             tablename = query.tablename
             tabledata = self.memoizetable(tablename)
         elif ((noneempty(query) is False) | (type(query).__name__ in (
                 'DLGExpression',
                 'DLGQuery',
-                'Py4Table',
-                'Py4Field'
+                'JNLTable',
+                'JNLField'
                 )
             )
         ):
             qries = Lst()
             if (isinstance(query, str)):
                 qries = objectify(Lst(queryStringToStorage(q) for q in query.split()))
-            elif (isinstance(query, (list, Lst, tuple, JNLTable))):
+            elif (isinstance(query, (list, Lst, tuple))):
                 qries = objectify(Lst(query))
             elif OR(
                     (isinstance(query, dict)),
@@ -683,7 +683,8 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                                     'fieldsmap': fieldsmap,
                                     'fieldtypesmap': fieldtypesmap,
                                     'fieldnames': fieldnames,
-                                    'logger': self.logger
+                                    'logger': self.logger,
+                                    #'tablename': tablename
                                 }
             )
             '''  table attributes & specify keying fields
@@ -697,8 +698,8 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                     if (tableattribute == 'keying'):
                         value = value.split(',')
                     tabledata.merge({tableattribute: value})
-            if (hasattr(self, tablename) is False):
-                self.set_table(tablename)
+            #if (hasattr(self, tablename) is False):
+            #    self.set_table(tablename)
             tabledata[tablename] = getattr(self, tablename)
             self.loginfo(f'jnltable defined: {tablename}')
         return tabledata

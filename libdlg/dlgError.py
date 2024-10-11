@@ -19,6 +19,7 @@ __all__ = [
     'LockingError',
     'InvertError',
     'RecordFieldsNotMatchCols',
+    'FieldNotInRecord',
 ]
 def raiseException(exception, msg):
     return exception(msg)
@@ -30,6 +31,15 @@ class LockingError(DLGError): pass
 class InvertError(DLGError): pass
 
 class ExtractError(DLGError): pass
+
+class FieldNotInRecord(DLGError):
+    def __init__(self, field, fields):
+        DLGError.__init__(self)
+        self.field = field
+        self.fields = fields
+
+    def __str__(self):
+        return f"field `{self.field}` not in record fields {self.fields}"
 
 class RecordFieldsNotMatchCols(DLGError):
     def __init__(self, fields, cols):

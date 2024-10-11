@@ -14,6 +14,8 @@ from libdlg.dlgQuery_and_operators import (
                                     AND, OR,
                                     optable,
                                     is_fieldType,
+                                    is_tableType,
+                                    is_field_tableType
 )
 from libjnl.jnlFile import JNLFile
 
@@ -871,7 +873,6 @@ class DLGRecordSet(object):
                                     query=query,
                                     records=records,
                                     cols=cols,
-                                    raw_records=True,
                                     close_session=False,
                                     **kwargs
         )
@@ -896,44 +897,72 @@ class DLGRecordSet(object):
                 query=None,
                 records=None,
                 cols=None,
-                raw_records=False,
                 close_session=True,
                 **kwargs
     ):
         kwargs = Storage(kwargs)
+        tablename = self.tablename \
+            if (hasattr(self, 'tablename')) \
+            else None
+
+        (
+            fieldnames,
+            fieldsmap
+        ) = \
+            (
+                Lst(fieldnames),
+                Storage()
+            )
+
+        if AND(
+                AND(
+                    (len(fieldnames) == 1),
+                    (is_field_tableType(fieldnames(0)) is True)
+                ), ~(hasattr(self, 'tablename'))
+        ):
+            self.tablename = tablename = fieldnames(0).tablename
+
+        if (cols is None):
+            cols = self.cols
+
+        if (self.objp4.tablememo[tablename] is not None):
+            if (len(fieldnames) == 0):
+                fieldnames = self.objp4.tablememo[tablename].fieldnames
+            if (len(cols) == 0):
+                self.cols = cols = self.objp4.tablememo[tablename].fieldnames
+            if ~(hasattr(self, 'fieldnames')):
+                self.fieldnames = self.objp4.tablememo[tablename].fieldnames
+            elif (len(self.fieldnames) == 0):
+                self.fieldnames = self.cols
+            self.fieldsmap = fieldsmap = self.objp4.tablememo[tablename].fieldsmap
+
         if (query is None):
             query = self.query
         if (records is None):
             records = self.records
-        if (cols is None):
-            cols = self.cols
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
+
+        tabledata = Storage(
+            tablename=tablename,
+            fieldnames = fieldnames,
+            fieldsmap = fieldsmap
+        )
 
         oSelect = Select(
             objp4,
             records,
             cols,
-            query
+            query,
+            **tabledata
         )
-        tablename = self.tablename
-        if (len(fieldnames) == 0):
-            fieldnames = self.fieldnames or cols
-        fieldsmap = self.fieldsmap
         '''
         update_fields
         delete_records
         '''
-        kwargs.merge(
-            {
-                'fieldsmap': fieldsmap,
-                'tablename': tablename
-            }
-        )
         outrecords = oSelect.select(
             *fieldnames,
-            raw_records=raw_records,
             close_session=close_session,
             **kwargs
         )
@@ -981,7 +1010,6 @@ class DLGRecordSet(object):
         ):
             outrecords = oSelect.select(
                 field,
-                raw_records=True,
                 **kwargs
             )
             return len(outrecords)

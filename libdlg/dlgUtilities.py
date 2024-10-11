@@ -945,8 +945,6 @@ def bail(err, exit=True, exception=None, logger=None):
         else pformat(err) \
         if (isinstance(err, dict) is True) \
         else str(err)
-    if msg == "No module named 'libpy4.p4model'":
-        print('here')
     msg = f'Bailing...{msg}'
 
     if (logger is not None):

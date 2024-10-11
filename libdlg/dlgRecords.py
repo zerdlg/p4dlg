@@ -1,11 +1,19 @@
 import os
 from types import LambdaType
 from libdlg.dlgRecord import DLGRecord
-from libdlg.dlgStore import Lst, Storage, objectify
+from libdlg.dlgStore import (
+    Lst,
+    Storage,
+    objectify
+)
 from libdlg.dlgSearch import Search
-# from libdlg.p4qLogger import LogHandler
-from libdlg.dlgUtilities import bail, xrange, noneempty
+from libdlg.dlgUtilities import (
+    bail,
+    xrange,
+    noneempty
+)
 from libdlg.dlgTables import *
+# from libdlg.p4qLogger import LogHandler
 from libdlg.dlgError import *
 
 '''  [$File: //dev/p4dlg/libdlg/dlgRecords.py $] [$Change: 479 $] [$Revision: #36 $]
@@ -76,7 +84,7 @@ class DLGRecords(object):
             self,
             idx,
             default=None,
-            cast=None#DLGRecord
+            cast=DLGRecord
     ):
         '''  Don't raise an  exception on IndexError, return default
         '''
@@ -422,11 +430,15 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             fieldname = field.fieldname \
                 if (type(field).__name__ in ('JNLField', 'Py4Field')) \
                 else field
+            recordfields = records.records(0).getkeys()
+            if fieldname not in recordfields:
+                raise FieldNotInRecord(fieldname, recordfields)
             records = sorted(
                 records,
                 key=lambda k: k[fieldname],
                 reverse=reverse
             )
+
         return DLGRecords(records, self.cols, self.objp4)
 
     def groupby(

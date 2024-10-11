@@ -106,55 +106,29 @@ class Select(DLGControl):
             or face an error! 
         '''
         (
-            tablename,
-            fieldsmap
+            self.tablename,
+            self.fieldsmap
             )  = \
             (
                 tabledata.tablename,
                 tabledata.fieldsmap
             )
-        if (None in (tablename, fieldsmap)):
-            qry = query \
-                if (isinstance(query, Lst) is False) \
-                else query(0)
 
-            if (self.is_jnlobject is True):
-                if (tablename is None):
-                    if (hasattr(qry, 'left')):
-                        tablename = qry.left.tablename
-                    elif (type(qry).__name__ == 'JNLTable'):
-                        tablename = self.objp4.qry.tablename
+        qry = query \
+            if (isinstance(query, Lst) is False) \
+            else query(0)
+        if (self.tablename is None):
+            if (hasattr(qry, 'left')):
+                self.tablename = qry.left.tablename
+            elif (is_tableType(qry) is True):
+                self.tablename = self.objp4.qry.tablename
+        if (self.fieldsmap is None):
+            if AND(
+                    (self.tablename is not None),
+                    (self.fieldsmap is None)
+            ):
+                self.fieldsmap =self.objp4.tablememo[self.tablename].fieldsmap
 
-                if AND(
-                        (tablename is not None),
-                        (fieldsmap is None)
-                ):
-                    fieldsmap =self.objp4.tablememo[tablename].fieldsmap
-            elif (self.is_Py4 is True):
-                if (tablename is None):
-                    if (hasattr(qry, 'left')):
-                        tablename = qry.left.tablename
-                    elif (type(qry).__name__ == 'Py4Table'):
-                        tablename = self.objp4.qry.tablename
-
-                if AND(
-                        (tablename is not None),
-                        (fieldsmap is None)
-                ):
-                    if hasattr(tabledata, 'fieldsmap'):
-                        fieldsmap = tabledata.fieldsmap
-                    else:
-                        fieldsmap = self.objp4.tablememo[tablename].fieldsmap
-            (
-                self.query,
-                self.tablename,
-                self.fieldsmap
-            ) = \
-                (
-                    query,
-                    tablename,
-                    fieldsmap
-                )
         super(Select, self).__init__()
 
     def memoize(self, val):
@@ -186,7 +160,7 @@ class Select(DLGControl):
                 records=None,
                 cols=None,
                 query=None,
-                raw_records=False,
+                #raw_records=False,
                 close_session=True,
                 *fieldnames,
                 **kwargs
@@ -208,7 +182,7 @@ class Select(DLGControl):
             records=records,
             cols=cols,
             query=query,
-            raw_records=False,
+            #raw_records=False,
             close_session=close_session,
             *fieldnames,
             **kwargs
@@ -916,13 +890,15 @@ class Select(DLGControl):
         if (type(records) != enumerate):
             records = self.guess_records(query, tablename)
 
+        fieldsmap = self.fieldsmap = kwargs.fieldsmap
+
         if (len(fieldnames) == 1):
             fieldtype = type(fieldnames[0]).__name__
             if (fieldtype in ('JNLTable', 'Py4Table')):
                 fieldnames = cols#self.objp4.fieldnames
 
         fieldnames = Lst(fieldnames or self.objp4.fieldnames).storageindex(reversed=True)
-        return (tablename, fieldnames, query, cols, records)
+        return (tablename, fieldnames, fieldsmap, query, cols, records)
 
     def select(
             self,
@@ -940,6 +916,7 @@ class Select(DLGControl):
         (
             tablename,
             fieldnames,
+            fieldsmap,
             query,
             cols,
             records
@@ -954,6 +931,9 @@ class Select(DLGControl):
             bail(
                 "tablename may not be None!"
             )
+        if (query is None):
+            query = []
+        kwargs.delete('fieldsmap', 'tablename')
         if (records is None):
             return DLGRecords(records=[], cols=cols, objp4=self.objp4)
         (
@@ -964,8 +944,8 @@ class Select(DLGControl):
                 False,
                 0
             )
-        kwargs.delete('fieldsmap', 'tablename')
-        outrecords = Lst()
+
+        #outrecords = Lst()
         distinctrecords = Storage()
         aggregators = (
                 'groupby',
