@@ -1,4 +1,37 @@
-# p4dlg
+# p4dlg 
+## A set of *abstractions* that use SQL to access and interact with your Perforce instance and its resources.
+
+### You can query your metadata.
+```Python
+In [12]: target_files = jnl(jnl.rev.change == 142).select()
+
+In [13]: target_files
+Out[13]: <DLGRecords (2)>
+
+In [14]: target_files.first()
+Out[14]: 
+<DLGRecord {'action': '8',
+ 'change': '142',
+ 'date': '2021/11/25',
+ 'db_action': 'pv',
+ 'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+ 'depotRev': '1',
+ 'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+ 'idx': 1,
+ 'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+ 'lbrIsLazy': '1',
+ 'lbrRev': '1.121',
+ 'lbrType': '0',
+ 'modTime': '1630482775',
+ 'size': '18420',
+ 'table_name': 'db.rev',
+ 'table_revision': '9',
+ 'traitLot': '0',
+ 'type': '0'}>
+```
+
+
+## Access all your metadata without being hindered by proprietary hurdles and without any perforce client or admin program
 
 ### A set of *abstractions* that use SQL, supported by a common set of APIs, to interact with your Perforce instance and its resources.
 
