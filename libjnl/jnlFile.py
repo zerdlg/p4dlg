@@ -10,6 +10,9 @@ import dask.dataframe as df
 import pandas as pd
 #import parquet
 
+def xrange(x):
+    return iter(range(x))
+
 __all__=['JNLFile']
 
 '''  [$File: //dev/p4dlg/libjnl/jnlFile.py $] [$Change: 458 $] [$Revision: #9 $]
@@ -86,6 +89,11 @@ register_dialect("journal-tab", journal_tab)
 field_size_limit(1000000000)
 
 class JNLFile(object):
+
+    def __iter__(self):
+        for i in xrange(len(self)):
+            yield self[i]
+
     def __init__(
             self,
             journalfile,

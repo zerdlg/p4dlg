@@ -4,7 +4,7 @@ from libdlg.dlgStore import *
 from libdlg.dlgQuery_and_operators import AND, OR
 from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgUtilities import Flatten, bail
-
+from libpy4.py4Run import *
 
 class SpecIO(object):
     def __init__(self, objp4):

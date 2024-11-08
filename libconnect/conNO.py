@@ -16,24 +16,29 @@ class ObjNO(object):
     def __init__(self, shellObj, loglevel='INFO'):
         self.shellObj = shellObj
         self.loglevel = loglevel.upper()
+        self.stored = None
+        self.varsdef = self.shellObj.cmd_novars
         self.setstored()
 
     def __call__(self, loglevel=None):
         self.loglevel = loglevel.upper() or self.loglevel
         return self
 
+    def show(self, name):
+        return self.varsdef(name)
+
     def setstored(self):
-        self.stored = Lst(key for key in self.shellObj.cmd_novars().keys() \
+        self.stored = Lst(key for key in self.varsdef().keys() \
                           if (key != '__session_loaded_on__'))
 
     def create(self, name, **kwargs):
         value = Storage(kwargs)
-        self.shellObj.cmd_novars(name, value)
+        self.varsdef(name, value)
         self.shellObj.kernel.shell.push({name: value})
         print(f'Reference ({name}) created')
 
     def load(self, name):
-        ret = self.shellObj.cmd_novars(name)
+        ret = self.varsdef(name)
         if (ret is not None):
             self.shellObj.kernel.shell.push({name: Lst()})
             print(f'Reference ({name}) loaded')
@@ -58,9 +63,9 @@ class ObjNO(object):
         kwargs = Storage(kwargs)
         if (len(kwargs) > 0):
             self.unload(name)
-            old_value = self.shellObj.cmd_novars(name)
+            old_value = self.varsdef(name)
             new_value = old_value.merge(kwargs)
-            self.shellObj.cmd_novars(name, new_value)
+            self.varsdef(name, new_value)
             print(f'Reference ({name}) updated')
             self.shellObj.kernel.shell.push({name: new_value})
             self.setstored()
@@ -73,7 +78,7 @@ class ObjNO(object):
         self.unload(name)
         if (is_writable(filename) is False):
             make_writable(filename)
-        self.shellObj.cmd_novars(name, None)
+        self.varsdef(name, None)
         try:
             globals().__delattr__(name)
         except:

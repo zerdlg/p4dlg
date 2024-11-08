@@ -4,7 +4,6 @@ from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgQuery_and_operators import AND
 from libdlg.dlgFileIO import is_writable, make_writable
 
-
 '''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 476 $] [$Revision: #12 $]
      [$DateTime: 2024/09/13 01:55:06 $]
      [$Author: mart $]
@@ -42,6 +41,7 @@ from libdlg.dlgFileIO import is_writable, make_writable
 '''
 
 __all__ = ['ObjJnl']
+
 
 class ObjJnl(DLGControl):
     def __init__(self, shellObj, loglevel='INFO'):
@@ -132,6 +132,7 @@ class ObjJnl(DLGControl):
         self.varsdef(name, None)
         try:
             globals().__delattr__(name)
-        except:pass
+        except:
+            pass
         self.setstored()
         print(f'Reference ({name}) destroyed')

@@ -122,7 +122,12 @@ class ObjP4db(object):
                 None,
                 None
             )
+        self.stored = None
+        self.varsdef = self.shellObj.cmd_p4dbvars
         self.setstored()
+
+    def show(self, name):
+        return self.varsdef(name)
 
     def fixkeys(self, **kwargs):
         def fixkey(key):
@@ -130,14 +135,14 @@ class ObjP4db(object):
         return {fixkey(kkey): value for (kkey, value) in kwargs.items()}
 
     def delete(self, name, key):
-        if (self.shellObj.cmd_p4dbvars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'Key Error - No such key "{key}"')
         else:
             try:
-                kwargs = self.shellObj.cmd_p4dbvars(name)
+                kwargs = self.varsdef(name)
                 kwargs.delete(key)
                 objp4db = Py4(**kwargs)
-                self.shellObj.cmd_p4dbvars(name, kwargs)
+                self.varsdef(name, kwargs)
                 self.load(name)
                 self.shellObj.kernel.shell.push({name: objp4db})
                 self.setstored()
@@ -146,7 +151,7 @@ class ObjP4db(object):
                 print(f'{err}')
 
     def setstored(self):
-        self.stored = Lst(key for key in self.shellObj.cmd_p4dbvars().keys() if (key != '__session_loaded_on__'))
+        self.stored = Lst(key for key in self.varsdef().keys() if (key != '__session_loaded_on__'))
 
     ''' temporarily set or change any valid p4 globals
     '''
@@ -160,8 +165,8 @@ class ObjP4db(object):
         if (kwargs.port is not None):
             kwargs.port = set_localport(kwargs.p4droot)
         try:
-            p4kwargs = self.shellObj.cmd_p4dbvars(name).merge(kwargs)
-            self.shellObj.cmd_p4dbvars(name, p4kwargs)
+            p4kwargs = self.varsdef(name).merge(kwargs)
+            self.varsdef(name, p4kwargs)
             print(f'Reference ({name}) updated')
             objp4db = self.load(name)
             self.shellObj.kernel.shell.push({name: p4kwargs})
@@ -187,7 +192,7 @@ class ObjP4db(object):
                 oFile.close()
 
     def create(self, name, *args, **kwargs):
-        if (self.shellObj.cmd_p4dbvars(name) is not None):
+        if (self.varsdef(name) is not None):
             print(f'CreateError:\n Name already exists "{name}" - use self.update({name}) instead')
         else:
             (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
@@ -219,7 +224,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
                             'client_root': '/Users/mart/p4db',
                             ''})
         '''
-        if (self.shellObj.cmd_p4dbvars(name) is not None):
+        if (self.varsdef(name) is not None):
             print(f'CreateError:\n Name already exists "{name}" - use self.update({name}) instead')
         StopError = None
 
@@ -264,7 +269,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
         if (StopError is not None):
             print(f'Error:\n{StopError}')
         else:
-            self.shellObj.cmd_p4dbvars(name, kwargs)
+            self.varsdef(name, kwargs)
             self.setstored()
             '''  time to load the thing
             '''
@@ -290,11 +295,11 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
                     p4opener.close()
 
     def load(self, name):
-        if (self.shellObj.cmd_p4dbvars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'KeyError:\n No such key "{name}"')
         else:
             try:
-                kwargs = self.shellObj.cmd_p4dbvars(name)
+                kwargs = self.varsdef(name)
                 kwargs.update(**{'loglevel': self.loglevel})
                 p4port = kwargs.port
                 (connected, connect_msg) = self.is_connected(p4port)
@@ -310,7 +315,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
                 bail(f'KeyError: \n{err}')
 
     def unload(self, name):
-        if (self.shellObj.cmd_p4dbvars(name) is None):
+        if (self.varsdef(name) is None):
             bail(
                 f'Attribute Error:\n No such attribute "{name}"'
             )
@@ -326,7 +331,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
                 print(f'KeyError:\n{err}')
 
     def destroy(self, name):
-        if (self.shellObj.cmd_p4dbvars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'KeyError:\nNo such key "{name}"')
         else:
             try:
@@ -334,7 +339,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
                 self.unload(name)
                 if (is_writable(filename) is False):
                     make_writable(filename)
-                self.shellObj.cmd_p4dbvars(name, None)
+                self.varsdef(name, None)
                 if hasattr(globals(), name):
                     globals().__delattr__(name)
                 self.setstored()

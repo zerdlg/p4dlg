@@ -6,7 +6,7 @@ from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import Storage, Lst, StorageIndex
 from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
     is_iterable,
@@ -19,7 +19,6 @@ from libdlg.dlgUtilities import (
     is_P4Jnl, is_Py4,
     reg_rev_change_specifier,
     reg_datetime_fieldname,
-    reg_datetime_fieldtype,
     fix_name,
     ignore_actions,
     reg_dbtablename
@@ -34,11 +33,13 @@ __all__ = ('Select',)
 
 class Select(DLGControl):
     def __init__(
-                self,
-                objp4,
-                records=None,
-                cols=None,
-                query=None, **tabledata
+            self,
+            objp4,
+            records=None,
+            cols=None,
+            query=None,
+            #constraint=None,
+            **tabledata
     ):
         tabledata = Storage(tabledata)
         self.closed = False
@@ -65,7 +66,7 @@ class Select(DLGControl):
         ''' who's asking?
         '''
         self.is_jnlobject = (is_P4Jnl(self.objp4) is True)
-        self.is_Py4 = (is_Py4(self.objp4) is True)
+        self.is_py4object = (is_Py4(self.objp4) is True)
         ''' Everything is built on knowing the schema of this 
             current server version, keeping it close by!
         '''
@@ -93,12 +94,12 @@ class Select(DLGControl):
                 ).clean()
             ).clean()
         self.compute = compute or Lst()
+
         self.maxrows = self.objp4.maxrows
         self.oTableFix = fix_name('remove')
         self.cols = cols
         self.records = records
         self.oDateTime = DLGDateTime()
-        self.memo = {}
         self.query = query or Lst()
         ''' if we don't have tablename & fieldsmap, 
             we have nothing. If that is the case then
@@ -107,35 +108,43 @@ class Select(DLGControl):
         '''
         (
             self.tablename,
-            self.fieldsmap
+            self.fieldsmap,
+            #self.constraint,
             )  = \
             (
                 tabledata.tablename,
-                tabledata.fieldsmap
+                tabledata.fieldsmap,
+                #constraint,
             )
 
         qry = query \
             if (isinstance(query, Lst) is False) \
             else query(0)
+
         if (self.tablename is None):
             if (hasattr(qry, 'left')):
                 self.tablename = qry.left.tablename
             elif (is_tableType(qry) is True):
                 self.tablename = self.objp4.qry.tablename
+
         if (self.fieldsmap is None):
             if AND(
                     (self.tablename is not None),
                     (self.fieldsmap is None)
             ):
-                self.fieldsmap =self.objp4.tablememo[self.tablename].fieldsmap
+                self.fieldsmap = self.objp4.tablememo[self.tablename].fieldsmap
 
         super(Select, self).__init__()
 
-    def memoize(self, val):
+    def memoize_constraint_table(self, key, record=None):
+        '''
+        '''
+        memo = {}
         try:
-            memo = self.memo[val]
+            memo = self.constraint_memo[key]
         except KeyError:
-            memo = self.memo[val] = re.compile(val)
+            if (record is not None):
+                memo = self.constraint_memo[key] = record
         return memo
 
     def get_domaintypes(self):
@@ -151,16 +160,19 @@ class Select(DLGControl):
         except Exception as err:
             bail(err)
 
+    #def __iter__(self):
+    #    for i in xrange(len(self.records)):
+    #        yield self[i]
+
     def __iter__(self):
-        for i in xrange(len(self.records)):
-            yield self[i]
+        for col in self.cols:
+            yield self[col]
 
     def __call__(
                 self,
                 records=None,
                 cols=None,
                 query=None,
-                #raw_records=False,
                 close_session=True,
                 *fieldnames,
                 **kwargs
@@ -182,7 +194,6 @@ class Select(DLGControl):
             records=records,
             cols=cols,
             query=query,
-            #raw_records=False,
             close_session=close_session,
             *fieldnames,
             **kwargs
@@ -270,6 +281,7 @@ class Select(DLGControl):
                 self.having,
                 self.sort,
                 self.orderby,
+                self.contraint,
             ) = \
                 (
                     True,
@@ -280,7 +292,8 @@ class Select(DLGControl):
                     None,
                     None,
                     None,
-                    None
+                    None,
+                    None,
                 )
         finally:
             self.loginfo('DLGRecordSet records & query have been reset')
@@ -661,9 +674,8 @@ class Select(DLGControl):
         except Exception as err:
             bail(err)
 
-    def filter_records(self, records, **kwargs):
+    def aggregate(self, records, query=None, **kwargs):
         kwargs = Storage(kwargs)
-        distinct = kwargs.distinct
         orderby = kwargs.orderby
         limitby = kwargs.limitby
         groupby = kwargs.groupby
@@ -675,7 +687,6 @@ class Select(DLGControl):
         if (orderby is not None):
             '''  orderby         -->     and/or limitby
             '''
-
             try:
                 if (isinstance(orderby, str)):
                     orderby = [item for item in orderby.split(',')] \
@@ -705,9 +716,9 @@ class Select(DLGControl):
         if (exclude is not None):
             '''  exclude
 
-                    >>> for record in records.exclude(lambda rec: rec.type=='99'):
-                    >>>     print record.client
-                    Catmart_client
+                 >>> for record in records.exclude(lambda rec: rec.type=='99'):
+                 >>>     print record.client
+                 my_client
             '''
             try:
                 records = records.exclude(exclude)
@@ -747,21 +758,23 @@ class Select(DLGControl):
                 records = records.sort(sort)
             except Exception as err:
                 bail(err)
+
         if (search is not None):
             for record in records:
                 if (record.depotFile is not None):
                     fcontent = ''
         return records
 
-    def get_recordsIterator(self, records):
-        reg = re.compile(f'^db\.{self.tablename}$')
+    def get_recordsIterator(self, records, tables=[]):
+        #reg = re.compile(f'^db\.{self.tablename}$')
         if (self.is_jnlobject is True):
+            tablenames = [f'db.{tbl}' for tbl in tables] or [f'db.{self.tablename}']
             try:
-                target_records = enumerate([
+                return enumerate([
                     rec[1] for (idx, rec) in enumerate(records)
-                    if (reg.match(Lst(Lst(rec)(1))(2)))
+                    if (rec[1][2] in tablenames)#if (reg.match(rec[1][2]))
                 ], start=1)
-                return target_records
+                #return filter(lambda rec: (rec[1][2] in tablenames), records)
             except Exception as err:
                 bail(err)
         return enumerate(records, start=1) \
@@ -871,14 +884,17 @@ class Select(DLGControl):
         tablename = self.tablename or kwargs.tablename
         if (self.tablename is None):
             self.tablename = tablename
-        if AND(
-                (tablename is None),
-                (query is not None)
-        ):
-            left = query[0].left \
-                if (isinstance(query, list)) \
-                else query.left
-            tablename = left.tablename
+
+        if (tablename is None):
+            try:
+                if (isinstance(query, Lst) is True):
+                    tablename = query(0).left.tablename
+                else:
+                    tablename = query.left.tablename
+            except:
+                if (hasattr(self, 'constraint')):
+                    if (self.constraint is not None):
+                        tablename = self.constraint.left.tablename
         ''' records
         '''
         if (records is None):
@@ -890,13 +906,12 @@ class Select(DLGControl):
         if (type(records) != enumerate):
             records = self.guess_records(query, tablename)
 
-        fieldsmap = self.fieldsmap = kwargs.fieldsmap
+        fieldsmap = kwargs.fieldsmap or self.fieldsmap
 
         if (len(fieldnames) == 1):
             fieldtype = type(fieldnames[0]).__name__
             if (fieldtype in ('JNLTable', 'Py4Table')):
                 fieldnames = cols#self.objp4.fieldnames
-
         fieldnames = Lst(fieldnames or self.objp4.fieldnames).storageindex(reversed=True)
         return (tablename, fieldnames, fieldsmap, query, cols, records)
 
@@ -906,7 +921,6 @@ class Select(DLGControl):
             records=None,
             cols=None,
             query=None,
-            raw_records=False,
             close_session=True,
             **kwargs
     ):
@@ -927,15 +941,28 @@ class Select(DLGControl):
             records=records,
             **kwargs
         )
+
         if (tablename is None):
-            bail(
-                "tablename may not be None!"
-            )
+            if (len(fieldnames) > 0):
+                try:
+                    fld = fieldnames[0]
+                    tablename = fld.tablename
+                except:
+                    bail(
+                    "tablename may not be None!"
+                    )
         if (query is None):
-            query = []
+            query = self.query \
+                if (self.query is not None) \
+                else []
+        if (isinstance(query, list) is False):
+            query = Lst([query])
+
         kwargs.delete('fieldsmap', 'tablename')
+
         if (records is None):
             return DLGRecords(records=[], cols=cols, objp4=self.objp4)
+
         (
             eor,
             recordcounter
@@ -945,9 +972,9 @@ class Select(DLGControl):
                 0
             )
 
-        #outrecords = Lst()
         distinctrecords = Storage()
         aggregators = (
+                'left',
                 'groupby',
                 'having',
                 'sortby',
@@ -957,29 +984,88 @@ class Select(DLGControl):
         for aggregator in aggregators:
             if (kwargs[aggregator] is None):
                 kwargs.delete(aggregator)
-        distinct = kwargs.pop('distinct') if (kwargs.distinct is not None) else None#fieldnames(0)
-        if (kwargs.distinct is not None):
-            distinct = kwargs.pop('distinct')
-            if (not type(distinct).__name__ in ('JNLField', 'Py4Field')):
+
+        distinct = kwargs.pop('distinct') \
+            if (kwargs.distinct is not None) \
+            else None
+        if (distinct is not None):
+            if (is_fieldType(distinct) is False):
                 distinct = fieldnames(0)
             elif (distinct is False):
                 distinct = None
-        ''' insertrecords 
-            decide now if outrecords should be returned 
-            as DLGRecords or as a list of records 
-            (insert or append?)
+
+        (
+            oJoin,
+            jointype,
+            exclude_matches
+        ) = \
+            (
+                None,
+                'inner',
+                False
+            )
+        ''' Are we joining records ? 
+            What kind of joi (inner /left)?
+            Should we exclude matching fields ?
         '''
-        #insertrecord = outrecords.append
-        #if (raw_records is False):
-        #    outrecords = DLGRecords(Lst(), cols, self.objp4)
-        #    insertrecord = outrecords.insert
+        if (kwargs.join is not None):
+            oJoin = kwargs.pop('join')
+        elif (kwargs.left is not None):
+            oJoin = kwargs.pop('left')
+            jointype = 'left'
+        if (kwargs.exclude_matches is not None):
+            exclude_matches = kwargs.pop('exclude_matches')
+        if AND(
+                (oJoin is None),
+                (hasattr(self, 'constraint'))
+        ):
+            constraint = self.constraint
+            if (constraint is not None):
+                oJoin = constraint.left._table.on(constraint)
+
+        """
+        #constraint = None
+        #constraint_type = None
+        constraint_recordset = None
+        constraint_fieldnames = None
+        merged_fieldnames = None
+        constraint_exclude_filednames = [
+            'idx',
+            'db_action',
+            'table_revision',
+            'table_name',
+            'access',
+            'accessDate',
+            'update',
+            'updateDate',
+            'status',
+            'code'
+        ]
+        if (kwargs.join is not None):
+            constraint_recordset = kwargs.pop('join')
+            constraint_type = 'join'
+
+        if (constraint_recordset is not None):
+            constraint = constraint_recordset.constraint
+            constraint_left = constraint.left
+            constraint_right = constraint.right
+            constraint_op = constraint.op
+            constraint_field = constraint_left
+            constraint_records = constraint_recordset.select()
+            constraintgroups = constraint_records.groupby(constraint_field, orderby='idx', groupdict=True)
+            constraint_tabledata = constraint_recordset.constraint_tabledata
+            constraint_fieldnames = constraint_tabledata.fieldnames.clean(*constraint_exclude_filednames)
+
+            for (key, value) in constraintgroups.items():
+                self.memoize_constraint_table(key, value.last())
+        """
         outrecords = DLGRecords(Lst(), cols, self.objp4)
         insertrecord = outrecords.insert
         ''' make a list of fields that are datetime specific so 
             that we can express Unix time to an ISO format
         '''
         datetime_fields = self.get_records_datetime_fields(tablename)
-        recordsiter = self.get_recordsIterator(records)
+        recordsiter = self.get_recordsIterator(records)#, tables=['rev', 'change'])
         while (eor is False):
             table_mismatch = False
             try:
@@ -1042,8 +1128,6 @@ class Select(DLGControl):
                         and move on to the next record
                     '''
                     if (sum(QResults) == len(query)):
-                        ''' Positive result!
-                        '''
                         ''' if any, compute new columns now and adjust the record
                         '''
                         if (len(self.compute) > 0):
@@ -1064,7 +1148,6 @@ class Select(DLGControl):
                                 value = record[field]
                                 rec.merge({field: value})
                             record = rec
-
                         ''' does anything lead us to believe that this record should be skipped?
                         '''
                         skip = self.skiprecord(record, tablename)
@@ -1084,16 +1167,15 @@ class Select(DLGControl):
                                 distinctvalue = record(distinct.fieldname or distinct)
                                 if (distinctvalue is not None):
                                     distinctrecords.merge({distinctvalue: record}, overwrite=False)
+
                             else:
                                 if (noneempty(self.maxrows) is False):
                                     recordcounter += 1
                                     if (recordcounter <= self.maxrows):
-                                        #insertrecord(record)
                                         insertrecord(idx, record)
                                     else:
                                         eor = True
                                 else:
-                                    #insertrecord(record)
                                     insertrecord(idx, record)
             # BUG: sometimes StopIteration is skipped (oJnl.rev.depotFile.contains(...))
             # so wrapping while loop in its own try: except: finally block for now...
@@ -1108,10 +1190,23 @@ class Select(DLGControl):
         if (distinct is not None):
             outrecords = DLGRecords(distinctrecords.getvalues(), cols, self.objp4)
         if (len(kwargs) > 0):
-            outrecords = self.filter_records(outrecords, **kwargs)
+            outrecords = self.aggregate(outrecords, **kwargs)
             self.loginfo(f'records filtered: {len(outrecords)}')
         self.loginfo(f'record counter: {recordcounter}')
         self.loginfo(f'records retrieved {len(outrecords)}')
+
+        ''' Time to join/merge records 
+        '''
+        if (oJoin is not None):
+            if (jointype == 'inner'):
+                outrecords = oJoin(outrecords).join()
+            else:
+                outrecords = oJoin(outrecords).left(exclude_matches=exclude_matches)
+            #outrecords = oJoin(outrecords).join() \
+            #    if (jointype == 'inner') \
+            #    else oJoin(outrecords).left(exclude_matches=exclude_matches)
+
         if (close_session is True):
             self.close()
+
         return outrecords

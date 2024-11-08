@@ -17,7 +17,7 @@ from libdlg.dlgUtilities import (
     reg_usage,
     reg_p4help_for_usage,
     reg_filename,
-    reg_option
+    reg_option,
 )
 
 '''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 473 $] [$Revision: #29 $]
@@ -85,10 +85,10 @@ class Py4Options(object):
         )
         ]
         self.spec_lastarg_pairs = objectify(
-            {'change': {
-                'lastarg': 'changelist#',
-                'default': '1'
-            },
+                {'change': {
+                    'lastarg': 'changelist#',
+                    'default': '1'
+                },
                 'depot': {
                     'lastarg': 'depotname',
                     'default': 'nodepot'
@@ -188,11 +188,13 @@ class Py4Options(object):
                                 '--explain'
                             ]
             )
+
+
             datarecord = self.objp4.p4OutPut(self.tablename, *cmdargs)
             if (len(datarecord) > 0):
                 if (isinstance(datarecord, (list, DLGRecords))):
                     datarecord = datarecord.first()
-                if (isinstance(datarecord, (Storage, DLGRecord))):
+                if (isinstance(datarecord, Storage) is True):
                     (
                         generic,
                         code,
@@ -275,70 +277,80 @@ class Py4Options(object):
                     ):
                         more_cmdargs = self.get_more_table_options(keywords)
                     elif (self.optionsdata.is_spec is True):
-                        lastarg = self.spec_lastarg_pairs[self.tablename].default
-                        ''' TODO: REQUIRES WORK!
-                        
-                            specs' last position options:
-
-                                change      ->      [ changelist# ]
-                                depot       ->      depotname
-                                server      ->      serverID
-                                group       ->      groupname
-                                job         ->      [ jobname ]
-                                label       ->      labelname
-                                client      ->      [ clientname ]
-                                ldap        ->      ldapname
-                                user        ->      [ username ]
-                                stream      ->      [ streamname ]
-                                remote      ->      [ remoteID ]
-                                spec        ->      type
-                                branch      ->      [ branchname ]
-
-                        when time permits ... 
-                        remove the `>>> p4 <spectype>` -o` crap for their field definitions!
-                        we need to do `>>> p4 spec <spectype>` instead 
-
-                        last_option = None
-                        if (reg_changelist.match(usage) is not None):
-                            last_option = '1'
-                        elif (reg_filename.match(usage) is not None):
-                            last_option = f'//{self.objp4._client}/...'
-                        # if ('max' in keywords):
-                        #    more_cmdargs.append('-m1')
-                        # if (last_option is not None):
-                        #    more_cmdargs.append(last_option)
-
-
-                            no args required:
-                                license
-                                protect
-                                triggers
-                                typemap
-                        '''
-                        more_cmdargs += ['--output', lastarg]
+                        if (self.tablename in self.spec_lastarg_pairs is True):
+                            lastarg = self.spec_lastarg_pairs[self.tablename].default
+                            ''' TODO: REQUIRES WORK!
+                            
+                                specs' last position options:
+    
+                                    change      ->      [ changelist# ]
+                                    depot       ->      depotname
+                                    server      ->      serverID
+                                    group       ->      groupname
+                                    job         ->      [ jobname ]
+                                    label       ->      labelname
+                                    client      ->      [ clientname ]
+                                    ldap        ->      ldapname
+                                    user        ->      [ username ]
+                                    stream      ->      [ streamname ]
+                                    remote      ->      [ remoteID ]
+                                    spec        ->      type
+                                    branch      ->      [ branchname ]
+    
+                            when time permits ... 
+                            remove the `>>> p4 <spectype>` -o` crap for their field definitions!
+                            we need to do `>>> p4 spec <spectype>` instead 
+    
+                            last_option = None
+                            if (reg_changelist.match(usage) is not None):
+                                last_option = '1'
+                            elif (reg_filename.match(usage) is not None):
+                                last_option = f'//{self.objp4._client}/...'
+                            # if ('max' in keywords):
+                            #    more_cmdargs.append('-m1')
+                            # if (last_option is not None):
+                            #    more_cmdargs.append(last_option)
+    
+    
+                                no args required:
+                                    license
+                                    protect
+                                    triggers
+                                    typemap
+                            '''
+                            more_cmdargs += ['--output', lastarg]
+                        else:
+                            more_cmdargs += ['--output']
                     else:
                         more_cmdargs = self.get_more_table_options(keywords)
                 cmdargs = cmdargs + more_cmdargs
                 records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)
-                if (isinstance(records, (DLGRecords, Lst)) is True):
-                    if (isinstance(records(0), (Storage, DLGRecord))):
+                if (isinstance(records, Lst) is True):
+                    if (isinstance(records(0), Storage)):
                         rec0 = records(0)
                         fieldnames = rec0.getkeys()
-                        rec_results = Lst(
-                            'code',
-                            'generic',
-                            'severity',
-                            'data'
-                        ).intersect(fieldnames)
                         if AND(
-                                (len(rec_results) == 4),
-                                (rec0.code == 'error')
+                                (len(fieldnames) == 1),
+                                (fieldnames(0) == 'code')
                         ):
-                            error = rec0.data
-                            fieldnames = Lst()
+                            rec0.delete('code')
+                            fieldnames.pop(0)
                         else:
-                            rec0 = Flatten(**Storage(rec0)).reduce()
-                            fieldnames = rec0.getkeys()
+                            rec_results = Lst(
+                                'code',
+                                'generic',
+                                'severity',
+                                'data'
+                            ).intersect(fieldnames)
+                            if AND(
+                                    (len(rec_results) == 4),
+                                    (rec0.code == 'error')
+                            ):
+                                error = rec0.data
+                                fieldnames = Lst()
+                            else:
+                                rec0 = Flatten(**Storage(rec0)).reduce()
+                                fieldnames = rec0.getkeys()
             else:
                 usage = f'usage string for cmd `{self.tablename}` could not be set.'
         if AND(

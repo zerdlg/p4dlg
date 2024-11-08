@@ -114,14 +114,13 @@ __all__ = [
            'reg_p4dtime', 'reg_dbtablename', 'reg_explain', 'reg_usage',
            'reg_releaseversion', 'reg_marshal', 'reg_input', 'reg_output',
            'reg_classvar', 'reg_filename', 'reg_rcs_quotes', 'reg_datetime_fieldtype',
-           'reg_datetime_fieldname',
+           'reg_datetime_fieldname', 'reg_time', 'reg_epochtime', 'reg_type',
     #
            'reg_type', 'reg_dbname', 'reg_w', 'reg_dot_field', 'reg_no_greedy_entity',
            'reg_upload_pattern', 'reg_cleanup_fn', 'reg_unpack', 'reg_python_keywords',
            'reg_select_as_parser', 'reg_const_string', 'reg_search_pattern', 'reg_square_brackets',
            'reg_store_pattern', 'reg_quotes', 'reg_alphanumeric', 'reg_valid_table_field',
-           'reg_ipython_builtin',
-           'reg_envvariable',
+           'reg_ipython_builtin', 'reg_envvariable', 'reg_changelist', 'reg_spec_usage',
     #
            'now', 'cacheprop', 'casttype', 'noneempty', 'IsMatch',
            'storageIndexToList', 'Casttype', 'BSTypeConvert', 'NumBase', 'itemgrouper_filler',
@@ -129,7 +128,7 @@ __all__ = [
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
            'ALLLOWER', 'ALLUPPER', 'PY2',
     #
-           'SQLType', 'objecttypes', 'tabletypes', 'fieldtypes',
+           'SQLType', 'objecttypes', 'tabletypes', 'fieldtypes', 'table_alias',
     #
            'Flatten', 'fractions2Float', 'percents2Float', 'isnum', 'is_iterable', 'is_array',
            'decode_bytes', 'Plural',
@@ -157,11 +156,26 @@ hashlib_md5 = lambda s: hashlib.md5(bytes(s, 'utf-8'))
 reg_objdict = re.compile('^(\w+)\.([^.]+)$')
 PY2 = sys.version_info[0] == 2
 
-''' regex for usage strings
+''' regex for getting usage string args,
+    essentially cmds take require positional 
+    args.
 '''
+def reg_spec_usage(specname, usageline):
+    specialcases = {'workspace': 'client', 'changelist': 'change'}
+    rname = specialcases[specname] if (specname in specialcases) else specname
+    reg = re.compile(f'^.*(\[)?({rname})?(name|list|ID|type)?(#)?(\])?$')
+    try:
+        res = reg.search(usageline)
+        if (res is not None):
+            return res
+    except:pass
+
 reg_filename = re.compile(r'^.*\sfile(s|name)?(\s)?(\.)?')
 reg_changelist = re.compile(r'^.*\schange(list)?(#)?(\s)?(\.)?')
-''' reg_filename & reg_change are used for parsing p4 usage messages
+
+''' reg = re.compile(f'^.*(file(s|name)?)?(\[)?({rname})?(name|list|ID|type)?(#)?(\.)?(\])?$')
+
+    reg_filename & reg_change are used for parsing p4 usage messages
 
     *** assuming all `[]` will get stripped out before parsing
 
@@ -189,21 +203,22 @@ reg_changelist = re.compile(r'^.*\schange(list)?(#)?(\s)?(\.)?')
         'depot'         depotname       -> domain spec
         'label'         labelname       -> domain spec
         'stream'        [streamname]    -> domain spec
-        'typemap'       None            -> domain spec
-
         'change'        [changelist#]
         'changelist'    [changelist#]
-        'server'        serverID
         'group'         groupname
         'job'           [jobname]
         'workspace'     [clientname]
         'ldap',         ldapname
         'user'          [username]
         'spec'          type
-        'remote'        [remoteID]
-        'license'       None
-        'triggers'      None
-        'protect'       None
+    
+        returns None:
+            'server'        serverID
+            'remote'        [remoteID]
+            'typemap'       None            -> domain spec
+            'license'       None
+            'triggers'      None
+            'protect'       None
 '''
 reg_envvariable = re.compile(r'^P4[A-Z]')
 reg_explain = re.compile(r'^--[a-zA-Z0-9_\-]+(\s\(-[a-zA-Z]\))?:.*$')
@@ -355,6 +370,14 @@ serializable = (
     tuple,
     basestring,
     type(None)
+)
+''' TODO: implement _rname on aliased tables!
+'''
+table_alias = Storage(
+    {
+        'changelist': 'change',
+        'workspace': 'client'
+    }
 )
 (
     date,

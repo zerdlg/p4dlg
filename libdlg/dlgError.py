@@ -20,9 +20,16 @@ __all__ = [
     'InvertError',
     'RecordFieldsNotMatchCols',
     'FieldNotInRecord',
+    'NoSuchTableError',
+    'NoSuchFieldError'
 ]
 def raiseException(exception, msg):
     return exception(msg)
+
+class DLGError_(Exception):
+    def __init__(self, msg=None):
+        self.message = msg
+        super(DLGError, self).__init__(msg)
 
 class DLGError(Exception): pass
 
@@ -106,6 +113,24 @@ class MutuallyExclusiveError(DLGError):
 
     def __str__(self):
         return f'Values are mutually exclusive, they cannot both be True (or False). Got ({self.left}, {self.right}).'
+
+class NoSuchTableError(DLGError):
+    def __init__(self, tablename):
+        DLGError.__init__(self)
+        self.tablename = tablename
+
+    def __str__(self):
+        return f"No such table `{self.tablename}`"
+
+class NoSuchFieldError(DLGError):
+    def __init__(self, tablename, fieldname):
+        DLGError.__init__(self)
+        self.fieldname = fieldname
+        self.tablename = tablename
+
+    def __str__(self):
+        return f"No such field (`{self.fieldname}`)  in table `{self.tablename}`"
+
 
 ''' RCS SPECIFIC ERRORS
 '''

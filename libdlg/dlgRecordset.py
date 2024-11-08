@@ -5,16 +5,13 @@ import timeit
 
 from libdlg.dlgSelect import Select
 from libdlg.dlgRecords import DLGRecords
-from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import Storage, Lst, objectify
 from libdlg.dlgUtilities import noneempty, bail
 from libdlg.dlgFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
 from libdlg.dlgQuery_and_operators import (
                                     AND, OR,
-                                    optable,
                                     is_fieldType,
-                                    is_tableType,
                                     is_field_tableType
 )
 from libjnl.jnlFile import JNLFile
@@ -94,8 +91,12 @@ class DLGRecordSet(object):
     )
     __bool__ = lambda self: True
     __copy__ = lambda self: self
-    __str__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
+    #__str__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
+    #__repr__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
+
     __repr__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
+    __str__ = __repr__
+
 
     def error(self, left, right, op, err):
         ''' badly formatted queries & other errors, return False
@@ -219,12 +220,16 @@ class DLGRecordSet(object):
             objp4=None,
             records=Lst(),
             query=None,
+            #constraint=None,
             *args,
             **tabledata
     ):
         (args, tabledata) = (Lst(args), objectify(tabledata))
+
         self.objp4 = objp4
 
+        ''' logging
+        '''
         [
             setattr(
                 self,
@@ -248,11 +253,21 @@ class DLGRecordSet(object):
         [
             setattr(self, tdata, tabledata[tdata]) for tdata in tabledata
         ]
+
         self.oSchema = self.objp4.oSchema or Storage()
         self.cols = self.fieldnames if (hasattr(self, 'fieldnames')) else Lst()
+        ''' recordset is the reference to jnlFile.JNLFile
+            should be re-used for the constraint_recordset
+        '''
         self.recordset = records
+        ''' records
+        '''
         self.records = self.defineRecords(records)
+        ''' queries
+        '''
         self.query = query
+        ''' schema resources
+        '''
         self.oSchemaType = self.objp4.oSchemaType \
             if (hasattr(self.objp4, 'oSchemaType') is True) \
             else None
@@ -280,6 +295,8 @@ class DLGRecordSet(object):
         self.querytables = set()
         self.fieldmemo = {}
         self.oTimer = timeit.timeit
+        self.constraint = None
+        self.__dict__ = objectify(self.__dict__)
 
     def updateenv(self, **kwargs):
         [
@@ -333,9 +350,15 @@ class DLGRecordSet(object):
         return queries
 
     def __call__(self, *queries, **kwargs):
-        self.query = self.define_queries(*queries, **kwargs) \
-            if (len(queries) > 0) \
-            else Lst()
+        kwargs = Storage(kwargs)
+        if AND(
+                (self.query is None),
+                (len(queries) > 0)
+        ):
+            self.query = self.define_queries(*queries, **kwargs) \
+                if (len(queries) > 0) \
+                else Lst()
+        self.constraint = kwargs.constraint
         return self
 
     def defineCols(self, records):
@@ -384,7 +407,7 @@ class DLGRecordSet(object):
                 return enumerate(records, start=1)
             if (isinstance(records, DLGRecords) is True):
                 if (len(records) > 0):
-                    record = records.first().tostorage()
+                    record = records.first()
                     if AND(
                             (record is not None),
                             (len(self.cols) == 0)
@@ -450,6 +473,8 @@ class DLGRecordSet(object):
             self.records = Lst()
             self.query = None
             self.cols = Lst()
+            self.constraint = None
+            #self.constraint_recordset = None
         finally:
             self.loginfo('DLGRecordSet records & query have been reset')
 
@@ -829,21 +854,6 @@ class DLGRecordSet(object):
             self.records.delete()
         return self.records
 
-    # def insert(self, *args, **kwargs):
-    #    kwargs = Storage(kwargs)
-    #    records = self.oQuery.iterQuery(*args, **kwargs)
-    #    records = DLGRecords(records=records, cols=self.oQuery.cols, objp4=self.objp4)
-    #    records = self.filter_records(records, **kwargs)
-    #    self.oQuery.query = Lst()
-    #    return records
-
-    #def fetch(self, *fields, **kwargs):
-    #    kwargs = Storage(kwargs)
-    #    fields = self.define_fields(*fields, **kwargs)
-    #    record = self.oQuery.fetch(*fields, **kwargs)
-    #    self.oQuery.query = Lst()
-    #    return record
-
     def _select(
                 self,
                 *fields,
@@ -901,40 +911,47 @@ class DLGRecordSet(object):
                 **kwargs
     ):
         kwargs = Storage(kwargs)
-        tablename = self.tablename \
-            if (hasattr(self, 'tablename')) \
-            else None
 
         (
+            tablename,
             fieldnames,
             fieldsmap
         ) = \
             (
+                kwargs.tablename,
                 Lst(fieldnames),
-                Storage()
+                kwargs.fieldsmap or Storage()
             )
 
-        if AND(
+        if (hasattr(self, 'tablename')):
+            tablename = self.tablename
+
+        elif AND(
                 AND(
                     (len(fieldnames) == 1),
                     (is_field_tableType(fieldnames(0)) is True)
                 ), ~(hasattr(self, 'tablename'))
         ):
-            self.tablename = tablename = fieldnames(0).tablename
+            tablename = fieldnames(0).tablename
+            fieldnames = Lst()
+            self.tablename = tablename
 
         if (cols is None):
             cols = self.cols
 
-        if (self.objp4.tablememo[tablename] is not None):
-            if (len(fieldnames) == 0):
-                fieldnames = self.objp4.tablememo[tablename].fieldnames
-            if (len(cols) == 0):
-                self.cols = cols = self.objp4.tablememo[tablename].fieldnames
-            if ~(hasattr(self, 'fieldnames')):
-                self.fieldnames = self.objp4.tablememo[tablename].fieldnames
-            elif (len(self.fieldnames) == 0):
-                self.fieldnames = self.cols
-            self.fieldsmap = fieldsmap = self.objp4.tablememo[tablename].fieldsmap
+        if (tablename is not None):
+            if (self.objp4.tablememo[tablename] is not None):
+                if (len(fieldnames) == 0):
+                    fieldnames = self.objp4.tablememo[tablename].fieldnames
+                if (len(cols) == 0):
+                    self.cols = cols = self.objp4.tablememo[tablename].fieldnames
+                if (not 'fieldnames' in self.__dict__.keys()):
+                    self.fieldnames = fieldnames#self.objp4.tablememo[tablename].fieldnames
+                elif (len(self.fieldnames) == 0):
+                    self.fieldnames = self.cols
+                if (noneempty(fieldsmap) is True):
+                    fieldsmap = self.objp4.tablememo[tablename].fieldsmap
+                self.fieldsmap = fieldsmap
 
         if (query is None):
             query = self.query
@@ -943,24 +960,22 @@ class DLGRecordSet(object):
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
-
         tabledata = Storage(
             tablename=tablename,
-            fieldnames = fieldnames,
-            fieldsmap = fieldsmap
+            fieldnames=fieldnames,
+            fieldsmap=fieldsmap,
         )
 
         oSelect = Select(
             objp4,
-            records,
-            cols,
-            query,
+            records=records,
+            cols=cols,
+            query=query,
             **tabledata
         )
-        '''
-        update_fields
-        delete_records
-        '''
+
+        if (self.constraint is not None):
+            kwargs.update(join=self.constraint.right._table.on(self.constraint))
         outrecords = oSelect.select(
             *fieldnames,
             close_session=close_session,
@@ -992,7 +1007,9 @@ class DLGRecordSet(object):
             query
         )
 
-        tablename = self.tablename
+        if (self.tablename  is not None):
+            tablename = self.tablename
+
         if (field is None):
             field = self.fieldnames(0) or cols(0)
         fieldsmap = self.fieldsmap

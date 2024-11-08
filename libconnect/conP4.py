@@ -102,7 +102,12 @@ class ObjP4(object):
     def __init__(self, shellObj, loglevel='INFO'):
         self.shellObj = shellObj
         self.loglevel = loglevel.upper()
+        self.stored = None
+        self.varsdef = self.shellObj.cmd_p4vars
         self.setstored()
+
+    def show(self, name):
+        return self.varsdef(name)
 
     def fixkeys(self, **kwargs):
         def fixkey(key):
@@ -110,14 +115,14 @@ class ObjP4(object):
         return {fixkey(kkey): value for (kkey, value) in kwargs.items()}
 
     def delete(self, name, key):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'Key Error - No such key "{key}"')
         else:
             try:
-                kwargs = self.shellObj.cmd_p4vars(name)
+                kwargs = self.varsdef(name)
                 kwargs.delete(key)
                 objp4 = Py4(**kwargs)
-                self.shellObj.cmd_p4vars(name, kwargs)
+                self.varsdef(name, kwargs)
                 self.load(name)
                 self.shellObj.kernel.shell.push({name: objp4})
                 self.setstored()
@@ -134,7 +139,7 @@ class ObjP4(object):
         self.setstored()
 
     def setstored(self):
-        self.stored = Lst(key for key in self.shellObj.cmd_p4vars().keys() if (key != '__session_loaded_on__'))
+        self.stored = Lst(key for key in self.varsdef().keys() if (key != '__session_loaded_on__'))
 
     ''' temporarily set or change any valid p4 globals
     '''
@@ -147,8 +152,8 @@ class ObjP4(object):
         if (kwargs.port is not None):
             kwargs.port = set_localport(kwargs.p4droot)
         try:
-            p4kwargs = self.shellObj.cmd_p4vars(name).merge(kwargs)
-            self.shellObj.cmd_p4vars(name, p4kwargs)
+            p4kwargs = self.varsdef(name).merge(kwargs)
+            self.varsdef(name, p4kwargs)
             print(f'Reference ({name}) updated')
             objp4 = self.load(name)
             self.shellObj.kernel.shell.push({name: p4kwargs})
@@ -160,7 +165,7 @@ class ObjP4(object):
             print(err)
 
     def create(self, name, *args, **kwargs):
-        if (self.shellObj.cmd_p4vars(name) is not None):
+        if (self.varsdef(name) is not None):
             print(f'CreateError:\n Name already exists "{name}" - use op4.update({name}) instead')
         try:
             (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
@@ -204,7 +209,7 @@ class ObjP4(object):
         if (StopError is not None):
             print(f'Error:\n{StopError}')
         else:
-            self.shellObj.cmd_p4vars(name, kwargs)
+            self.varsdef(name, kwargs)
             self.setstored()
             '''  time to load the thing
             '''
@@ -230,11 +235,11 @@ class ObjP4(object):
                     p4opener.close()
 
     def load(self, name):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'KeyError:\n No such key "{name}"')
         else:
             try:
-                kwargs = self.shellObj.cmd_p4vars(name)
+                kwargs = self.varsdef(name)
                 kwargs.update(**{'loglevel': self.loglevel})
                 p4port = kwargs.port
                 (connected, connect_msg) = self.is_connected(p4port)
@@ -250,7 +255,7 @@ class ObjP4(object):
                 bail(err)
 
     def unload(self, name):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             bail(
                 f'Attribute Error:\n No such attribute "{name}"'
             )
@@ -266,7 +271,7 @@ class ObjP4(object):
                 print(f'KeyError:\n{err}')
 
     def destroy(self, name):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'KeyError:\nNo such key "{name}"')
         else:
             try:
@@ -274,7 +279,7 @@ class ObjP4(object):
                 self.unload(name)
                 if (is_writable(filename) is False):
                     make_writable(filename)
-                self.shellObj.cmd_p4vars(name, None)
+                self.varsdef(name, None)
                 if hasattr(globals(), name):
                     globals().__delattr__(name)
                 self.setstored()

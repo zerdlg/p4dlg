@@ -53,13 +53,20 @@ class Py4Run(object):
                 (tablename in self.objp4.spec_takes_no_lastarg)
         ):
             return
-        lastarg = self.objp4.define_lastarg(tablename, *cmdargs) \
-            if (not tablename in self.objp4.nocommands + self.objp4.fetchfirst) \
-            else ''
+        ''' don't bother if this command 
+            doesn't take a last positional 
+            arg
+        '''
+        noargs_cmds = (
+                self.objp4.nocommands
+                + self.objp4.fetchfirst
+                + self.objp4.spec_takes_no_lastarg
+        )
+        lastarg = self.objp4.define_lastarg(tablename, *cmdargs) if (not tablename in noargs_cmds) else ''
         self.objp4.p4globals += self.objp4.supglobals
-        ''' tablename should be cmdargs' 1st argument. so either insert if
-            missing or, if suspected to be in the wrong position, pop 
-            it out, then insert it to the very left of cmdargs.
+        ''' tablename should be cmdargs' 1st argument. so either insert 
+            if missing or, if suspected to be in the wrong position, 
+            pop it out, then insert it to the very left of cmdargs.
         '''
         if (tablename is not None):
             if (not tablename in cmdargs):
@@ -73,21 +80,29 @@ class Py4Run(object):
                     (is_spec is True),
                     (not '--explain' in cmdargs)
             ):
-                '''
-                '''
                 cmdargs += self.options
                 ''' **cmdkwargs should contain only spec keys and values to create/update a spec.
                 
-                    >>> oP4.client('-S','other_client's_view', --force=True, 
-                                                    **{'Client':'my_client', 
-                                                       'Root': '/home/mart/projects'})
+                    >>> oP4.client(
+                        '-S',
+                        'other_client's_view', 
+                        --force=True,
+                        **{
+                            'Client':'my_client',
+                            'Root': '/home/mart/projects'
+                            }
+                        )
                 '''
                 (
                     specname,
                     specinput,
                     altarg
                 ) = (
-                    self.objp4.parseInputKeys(self.tabledata, lastarg, **cmdkwargs)
+                    self.objp4.parseInputKeys(
+                        self.tabledata,
+                        lastarg,
+                        **cmdkwargs
+                    )
                 )
                 if AND(
                         (is_spec is True),

@@ -14,6 +14,7 @@ from libdlg.dlgUtilities import (
     reg_default,
     reg_ipython_builtin
 )
+from libdlg.dlgJoin import DLGJoin
 from libdlg.dlgControl import DLGControl
 from libdlg.dlgQuery_and_operators import *
 
@@ -118,21 +119,40 @@ class Py4Table(object):
         ''' p4fields 
         '''
         self.fields = Lst()
-        if (len(self.fieldnames) > 0):
-            if (len(self.fieldsmap) == 0):
-                for fieldname in self.fieldnames:
-                    self.fieldsmap.merge({fieldname.lower(): fieldname})
-                    try:
-                        oField = Py4Field(
-                            fieldname,
-                            tablename=self.tablename,
-                            table=self,
-                            objp4=self.objp4
-                        )
-                        setattr(self, fieldname, oField)
-                        self.fields.append(getattr(self, fieldname))
-                    except Exception as err:
-                        bail(err)
+        if AND(
+                (len(self.fieldnames) > 0),
+                (len(self.fieldsmap) == 0)
+        ):
+            for fieldname in self.fieldnames:
+                self.fieldsmap.merge({fieldname.lower(): fieldname})
+                try:
+                    oField = Py4Field(
+                        fieldname,
+                        tablename=self.tablename,
+                        table=self,
+                        objp4=self.objp4
+                    )
+                    setattr(self, fieldname, oField)
+                    self.fields.append(getattr(self, fieldname))
+                except Exception as err:
+                    bail(err)
+        ''' Life is easier when the command options below are accessible from table objects!
+        
+            eg.
+            >>> oP4.client.usage
+            'client  -d -f -Fs -i -o -s   -t template | -S stream   -c change   clientname'
+            
+        '''
+        [setattr(self, optitem, tabledata.tableoptions[optitem])
+         for optitem in (
+             'keywords',
+             'missing_keywords',
+             'options',
+             'optionsmap',
+             'usage'
+            )
+         ]
+        self.ALL = self.fields
 
     __setitem__ = lambda self, key, value: setattr(self, str(key), value)
     __name__ = lambda self: self.tablename
@@ -263,6 +283,9 @@ class Py4Table(object):
         ]
         delattr(self, self.tablename)
         setattr(self, self.tablename, Lst())
+
+    def on(self, constraint):
+        return DLGJoin(self.objp4, constraint)
 
     def get(self, name):
         return self.getfield(name=name)

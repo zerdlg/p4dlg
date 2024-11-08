@@ -36,9 +36,9 @@ __all__ = [
            'NOT', 'AND', 'OR', 'XOR',
            'EQ', 'NE', 'GE', 'GT', 'LE', 'LT',
            'CONTAINS', 'ENDSWITH', 'STARTSWITH',
-           'ADD', 'SUB', 'MUL', 'MOD',
+           'ADD', 'SUB', 'MUL', 'MOD', 'ON',
            'CASE', 'CASEELSE', 'DIFF', 'MATCH', 'SEARCH',
-           'LOWER', 'UPPER', 'JOIN', 'LEFTJOIN',
+           'LOWER', 'UPPER', 'JOIN', 'LEFT',
            'PRIMARYKEY', 'COALESCE', 'COALESCEZERO',
            'EXTRACT', 'AGGREGATE', 'SUBSTRING', 'LIKE', 'ILIKE',
            'SUM', 'ABS',
@@ -47,9 +47,10 @@ __all__ = [
  \
            'qtypes', 'is_q_or_dicttype', 'is_queryType',
            'is_strType', 'is_dictType', 'is_fieldType',
-           'is_qType', 'is_recordsType', 'is_recordType',
+           'is_query_or_expressionType', 'is_recordsType', 'is_recordType',
            'is_expressionType', 'is_tableType', 'is_field_tableType',
-           'is_qType_or_field', \
+           'is_qType_or_field', 'query_is_constraint', 'is_list_of_queries',
+           'is_list_of_fields',
  \
     'DLGQuery', 'DLGExpression'
            ]
@@ -132,7 +133,7 @@ def is_dictType(left, right=None):
             else False
     return ret
 
-def is_qType(left, right=None):
+def is_query_or_expressionType(left, right=None):
     if OR(
             (isinstance(left, (int, bool)) is True),
             (isinstance(right, (int, bool)) is True)
@@ -161,11 +162,11 @@ def is_qType_or_field(left, right=None):
         ret = True \
             if AND(
                     OR(
-                        (is_qType(left) is True),
+                        (is_query_or_expressionType(left) is True),
                         (is_fieldType(left) is True)
                     ),
                     OR(
-                        (is_qType(right) is True),
+                        (is_query_or_expressionType(right) is True),
                         (is_fieldType(right) is True)
                     )
                 ) \
@@ -173,7 +174,7 @@ def is_qType_or_field(left, right=None):
     else:
         ret = True \
             if OR(
-                    (is_qType(left) is True),
+                    (is_query_or_expressionType(left) is True),
                     (is_fieldType(left) is True)
                 ) \
             else False
@@ -217,7 +218,6 @@ def is_queryType(left, right=None):
             if (type(left).__name__ == 'DLGQuery') \
             else False
     return ret
-
 
 def is_fieldType(left, right=None):
     if OR(
@@ -295,7 +295,7 @@ def is_q_or_dicttype(left, right=None):
     def istype(ttype):
         return True \
             if (
-                (is_qType(ttype) is True)
+                (is_query_or_expressionType(ttype) is True)
                 | (is_dictType(ttype) is True)
         ) \
             else False
@@ -323,6 +323,30 @@ def is_q_or_dicttype(left, right=None):
             if (isleft is True) \
             else False
     return ret
+
+def query_is_constraint(query):
+    if (is_query_or_expressionType(query) is True):
+        if (is_fieldType(query.left, query.right) is True):
+            return True
+    return False
+
+def is_list_of_fields(iterable):
+    try:
+        return True \
+            if (sum([int(is_fieldType(litem)) for litem in iterable]) == len(iterable)) \
+            else False
+    except Exception as err:
+        print(err)
+    return False
+
+def is_list_of_queries(iterable):
+    try:
+        return True \
+            if (sum([int(is_queryType(litem)) for litem in iterable]) == len(iterable)) \
+            else False
+    except Exception as err:
+        print(err)
+    return False
 
 ''' Bitwise Operators
 '''
@@ -457,13 +481,17 @@ def COALESCEZERO(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsCOALESCEZERO(**kwargs)(*args)
 
+def ON(*args, **kwargs):
+    #return clsNOTIMPLEMENTED(**kwargs)(*args)
+    return clsON(**kwargs)(*args)
+
 def JOIN(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsJOIN(**kwargs)(*args)
 
-def LEFTJOIN(*args, **kwargs):
+def LEFT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsLEFTJOIN(**kwargs)(*args)
+    #return clsLEFT(**kwargs)(*args)
 
 def YEAR(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
@@ -614,7 +642,7 @@ class QClass(object):
         else:
             attdict = objectify({"left": left, "right": right})
             for (akey, avalue) in attdict.items():
-                if (is_qType(avalue) is True) | (is_dictType(avalue) is True):
+                if (is_query_or_expressionType(avalue) is True) | (is_dictType(avalue) is True):
                     if (hasattr(avalue, 'op') is True):
                         if (avalue.op is not None):
                             avalue = self.build(avalue)
@@ -1211,47 +1239,6 @@ class clsNOT(QClass):
                 inversion
             ), name='NOT', err=err)
 
-class clsNE_OLD(QClass):
-    def __call__(self, *exps):
-        exps = Lst(exps)
-        (left, right) = (exps(0), exps(1))
-        try:
-            if (type(left).__name__ == 'Storage'):
-                qres = Storage({'op': NE, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'DLGQuery'):
-                qres = DLGQuery(left.objp4, NE, left, right)
-            elif (type(left).__name__ == 'DLGExpression'):
-                qres = DLGExpression(left.objp4, NE, left, right)
-            elif (
-                    (isinstance(left, (bool, int)))
-                    & (isinstance(right, (bool, int)))
-            ):
-                qres = reduce(lambda left, right: (left != right),
-                              self.getSequence(*exps))
-            elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                qres = Storage({'op': NE,
-                                'left': {
-                                            'tablename': tablename,
-                                            'fieldname': fieldname
-                                        },
-                               'right': value
-                                }
-                            )
-            else:
-                qres = self.build_query(
-                                        left,
-                                        right,
-                                        NE
-                )
-            return qres
-        except Exception as err:
-            op_error(lambda left, right, op: (
-                left,
-                right,
-                op or NE
-            ), name='NE', err=err)
-
 
 class clsNE(QClass):
     def __call__(self, *exps):
@@ -1657,6 +1644,53 @@ class clsBELONGS(QClass):
                 op or BELONGS
             ), name='BELONGS', err=err)
 
+class clsON(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+        (left, right) = (exps(0), exps(1))
+        try:
+            if (is_tableType(left) is True):
+                qres = DLGExpression(left.objp4, ON, left, right)
+            elif (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': ON, 'left': left, 'right': right})
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, ON, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, ON, left, right)
+            elif (
+                    (isinstance(left, (bool, int)))
+                    & (isinstance(right, (bool, int)))
+            ):
+                qres = reduce(lambda left, right: (re.match(f"^{right}", left) is not None),
+                              self.getSequence(*exps))
+            elif (isinstance(left, str) is True):
+                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                if ((tablename, fieldname) == (None, None)):
+                    qres = reduce(lambda left, right: (re.match(f"^{right}.*$", left) is not None),
+                                  self.getSequence(*exps))
+                else:
+                    qres = Storage({'op': STARTSWITH,
+                                    'left': {
+                                                'tablename': tablename,
+                                                'fieldname': fieldname
+                                            },
+                                   'right': value
+                                    }
+                                   )
+            else:
+                qres = self.build_query(
+                                        left,
+                                        right,
+                                        STARTSWITH
+                )
+            return qres
+        except Exception as err:
+            op_error(lambda left, right, op: (
+                left,
+                right,
+                op or STARTSWITH
+            ), name='STARTSWITH', err=err)
+
 ''' In case it comes up... but it could 
     cause more confusion than anything else.
     At some point, this will be removed
@@ -1673,7 +1707,7 @@ class clsSTARTSWITH(QClass):
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, STARTSWITH, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
-                qres = DLGExpression(self.objp4, STARTSWITH, left, right)
+                qres = DLGExpression(left.objp4, STARTSWITH, left, right)
             elif (
                     (isinstance(left, (bool, int)))
                     & (isinstance(right, (bool, int)))
@@ -2321,27 +2355,78 @@ class clsCASEELSE(QClass):
                 other
             ), name='CASEELSE', err=err)
 
+class REGEX(QClass):
+    ''' case sensitive '''
+    def __call__(self, *exps):
+        exps = Lst(exps)
+        (left, right) = (exps(0), exps(1))
+        OPERATOR = None
+        if (isinstance(left, str)):
+            if (left.startswith('%') is True):
+                (left, OPERATOR) = (f"^{left}$", CONTAINS) \
+                    if (left.endswith('%') is True) \
+                    else (f"{left}$", ENDSWITH)
+            else:
+                (left, OPERATOR) = (f"^{left}", STARTSWITH) \
+                    if (left.endswith('%') is True) \
+                    else (f"^{left}$", CONTAINS)
+        try:
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': LIKE, 'left': left, 'right': right})
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, LIKE, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, LIKE, left, right)
+            elif AND(
+                    (isinstance(left, (bool, int))),
+                    (isinstance(right, (bool, int)))
+            ):
+                ismatch = (re.search(left, right) is not None)
+                qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
+            elif (isinstance(left, str) is True):
+                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                if ((tablename, fieldname) == (None, None)):
+                    ismatch = (re.search(left, right) is not None)
+                    qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
+                else:
+                    qres = Storage({'op': LIKE,
+                                    'left': {
+                                        'tablename': tablename,
+                                        'fieldname': fieldname
+                                    },
+                                    'right': value
+                                    }
+                                   )
+            else:
+                qres = self.build_query(
+                    left,
+                    right,
+                    OPERATOR
+                )
+            return qres
+        except Exception as err:
+            op_error(lambda left, right, op: (
+                left,
+                right,
+                op or LIKE
+            ), name='LIKE', err=err)
+
 class clsLIKE(QClass):
     ''' case sensitive '''
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        releft = re.sub('%', '', left)
+        left = re.sub('%', '', left)
+        OPERATOR = None
         if (isinstance(left, str)):
             if (left.startswith('%') is True):
-                if (left.endswith('%') is True):
-                    left = f"^{releft}$"
-                    OPERATOR = CONTAINS
-                else:
-                    left = f"{releft}$"
-                    OPERATOR = ENDSWITH
+                (left, OPERATOR) = (f"^{left}$", CONTAINS) \
+                    if (left.endswith('%') is True) \
+                    else (f"{left}$", ENDSWITH)
             else:
-                if (left.endswith('%') is True):
-                    left = f"^{releft}"
-                    OPERATOR = STARTSWITH
-                else:
-                    left = f"^{releft}$"
-                    OPERATOR = CONTAINS
+                (left, OPERATOR) = (f"^{left}", STARTSWITH) \
+                    if (left.endswith('%') is True) \
+                    else (f"^{left}$", CONTAINS)
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LIKE, 'left': left, 'right': right})
@@ -2388,8 +2473,19 @@ class clsILIKE(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        left = left.lower()
-        releft = re.sub('%', '', left).lower()
+        #left = left.lower()
+        left = re.sub('%', '', left).lower()
+        OPERATOR = None
+        if (isinstance(left, str)):
+            if (left.startswith('%') is True):
+                (left, OPERATOR) = (f"^{left}$", CONTAINS) \
+                    if (left.endswith('%') is True) \
+                    else (f"{left}$", ENDSWITH)
+            else:
+                (left, OPERATOR) = (f"^{left}", STARTSWITH) \
+                    if (left.endswith('%') is True) \
+                    else (f"^{left}$", CONTAINS)
+        """
         if (left.startswith('%') is True):
             if (left.endswith('%') is True):
                 left = f"^{releft}$"
@@ -2404,6 +2500,7 @@ class clsILIKE(QClass):
             else:
                 left = f"^{releft}$"
                 OPERATOR = CONTAINS
+        """
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LIKE, 'left': left, 'right': right})
@@ -2707,7 +2804,7 @@ class clsJOIN(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 
-class clsLEFTJOIN(QClass):
+class clsLEFT(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 
@@ -2786,14 +2883,11 @@ class DLGQuery(object):
         self.inversion=kwargs.inversion or inversion
         self.oDate = DLGDateTime()
 
-        (
-            self.tablename,
-            self.fieldname
-        ) = \
-            (
-                kwargs.tablename or left.tablename,
-                kwargs.fieldname or left.fieldname
-            )
+        if OR(
+                (is_field_tableType(self) is False),
+                (is_field_tableType(right) is False)
+        ):
+            self.set_fieldname_tablename()
 
         opname = op.__name__ \
             if (callable(op) is True) \
@@ -2801,24 +2895,49 @@ class DLGQuery(object):
         if (opname in notops):
             self.inversion = True
 
-        if (is_tableType(self) is False):
-            if (None in (self.fieldname, self.tablename)):
-                if (left is not None):
-                    sumtypes = sum(
-                        (
-                            is_queryType(left),
-                            is_expressionType(left),
-                            is_dictType(left)
-                        )
+    def __getattr__x(self, name):
+        if (name in ('fieldname', 'tablename')):
+            try:
+                return  (
+                    object.__getattribute__(self, name)
+                )
+            except: pass
+
+    def set_fieldname_tablename(self):
+        (
+            left,
+            right,
+            fieldname,
+            tablename
+        ) = \
+            (
+                self.left,
+                self.right,
+                None,
+                None
+            )
+
+        '''
+        if AND(
+                (not hasattr(self, 'fieldname')),
+                 (not hasattr(self, 'tablename'))
+        ):
+            if (left is not None):
+                sumtypes = sum(
+                    (
+                        is_queryType(left),
+                        is_expressionType(left),
+                        is_dictType(left)
                     )
-                    if OR(
-                            (sumtypes > 1),
-                            is_field_tableType(left)
-                    ):
-                        if (hasattr(left, 'fieldname')):
-                            self.fieldname = left.fieldname
-                        if (hasattr(left, 'tablename')):
-                            self.tablename = left.tablename
+                )
+                if OR(
+                        (sumtypes > 1),
+                        is_field_tableType(left)
+                ):
+                    for item in ('fieldname', 'tablename'):
+                        if (item is not None):
+                            setattr(self, item, left[item])
+                '''
 
     def __repr__(self):
         qdict = pformat(
@@ -2832,9 +2951,9 @@ class DLGQuery(object):
         )
         return f'<DLGQuery {qdict}>'
 
-    __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
-
     __str__ = __repr__
+
+    __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
 
     def __and__(self, value):
         return DLGQuery(self.objp4, AND, self, value)
@@ -2931,15 +3050,21 @@ class DLGExpression(object):
         self.left = left
         self.right = right
         self.oDate = DLGDateTime()
+        if AND((not hasattr(self, 'fieldname')), (hasattr(self.left, 'fieldname'))):
+            self.fieldname = left.fieldname
 
-        (
-            self.tablename,
-            self.fieldname
-        ) = \
-            (
-                kwargs.tablename,
-                kwargs.fieldname
-            )
+        if AND((not hasattr(self, 'tablename')), (hasattr(self.left, 'tablename'))):
+            self.tablename = left.tablename
+
+        # not needed with JNLL, are attributes to self
+        #(
+        #    self.tablename,
+        #    self.fieldname
+        #) = \
+        #    (
+        #        kwargs.tablename,
+        #        kwargs.fieldname
+        #    )
 
         opname = op.__name__ \
             if (callable(op) is True) \
@@ -2991,10 +3116,29 @@ class DLGExpression(object):
         )
         return f'<DLGExpression {qdict}>'
 
+    #__str__ = __repr__
+
+    def __repr__new(self):
+        qdict = self.as_dict()
+        diff = qdict.getkeys().diff(['objp4', 'op', 'left', 'right', 'inversion'])
+        qdict.delete(*diff)
+        return f'<DLGExpression {qdict}>'
+
     __str__ = __repr__
 
-    def as_dict(self, flat=False):
+    def __str__Old(self):
+        qdict = pformat(
+            {
+                'objp4': self.objp4,
+                'op': self.op,
+                'left': self.left,
+                'right': self.right,
+                'inversion': self.inversion
+            }
+        )
+        return f'<DLGExpression {qdict}>'
 
+    def as_dict(self, flat=False):
         def loop(d):
             newd = dict()
             for k, v in d.items():
@@ -3168,6 +3312,43 @@ class DLGExpression(object):
 
     def ilike(self, value):
         return self.like(value, case_sensitive=False)
+
+    def on(self, constraint):
+        ''' `ON` the SQL conditional clause for joining. AT any rate that's what is should be, however
+            I got the idea to simply use ON as the springboard to defined join routines... it may or
+            may not turn out to be a good idea.
+
+            USAGE:
+
+            join (innerjoin)
+
+                >>> table_1 = jnl.rev
+                >>> table_2 = jnl.change
+                >>> fieldname = 'change'
+                >>> constraint = (table_1[fieldname] == table_2[fieldname])
+
+                >>> records = jnl(table_1).select(
+                                join=table_2.on(constraint)
+                                )
+
+                    or, this syntax is also supported:
+
+                >>> records = jnl(constraint).select()
+
+            left (left outerjoin)
+
+                >>> table_1 = jnl.rev
+                >>> table_2 = jnl.change
+                >>> fieldname = 'change'
+                >>> constraint = (table_1[fieldname] == table_2[fieldname])
+
+                >>> records = jnl(table_1).select(
+                                table_1.ALL, table_2.ALL,
+                                left=table_2.on(constraint),
+                                orderby=table_2.change
+                                )
+        '''
+        return DLGExpression(self.objp4, ON, self, constraint)
 
     def regexp(self, value):
         return DLGQuery(self.objp4, REGEX, self, value)
@@ -3409,7 +3590,7 @@ def expression_table(op):
             "CASEELSE": CASEELSE,
             "DIFF": DIFF,
             "JOIN": JOIN,
-            "LEFTJOIN": LEFTJOIN,
+            "LEFT": LEFT,
             "PRIMARYKEY": PRIMARYKEY,
             "COALESCE": COALESCE,
             "COALESCEZERO": COALESCEZERO,

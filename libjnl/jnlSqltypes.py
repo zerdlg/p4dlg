@@ -9,6 +9,7 @@ from libdlg.dlgStore import (
 from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgSchemaTypes import SchemaType
 from libdlg.dlgError import *
+from libdlg.dlgJoin import DLGJoin
 from libdlg.dlgUtilities import (
     reg_ipython_builtin,
     serializable,
@@ -214,12 +215,12 @@ a specification such as a `branch`, a `client`, a `depot`, a `label`, a `stream`
 or a `typemap`. Each domain type (spec) has a associated flag.   
 
     eg.
-            branch: 98
-            client: 99
-            depot: 100
-            label: 108
-            stream: 115
-            typemap: 116
+            branch:     98
+            client:     99
+            depot:      100
+            label:      108
+            stream:     115
+            typemap:    116
 
 That said, we can write queries to select domain records based on their type.
 P4Q will understand a query that specifies the domain type by flag or by name.
@@ -336,11 +337,13 @@ class JNLTable(object):
                                 field,
                                 objp4=objp4,
                                 oSchema=self.oSchema,
-                                oSchemaType=self.oSchemaType
+                                oSchemaType=self.oSchemaType,
+                                _table=self
             )
             setattr(self, field.name, oField)
             fields.append(getattr(self, field.name))
         self.fields = objectify(fields)
+        self.ALL = self.fields
 
     __setitem__ = lambda self, key, value: setattr(self, str(key), value)
     __name__ = lambda self: self.oSchema.p4model[self.tablename].name
@@ -375,7 +378,7 @@ class JNLTable(object):
                     dgen[key] = mergeKeyValue(self.__class__) \
                         if isinstance(value, JNLTable) \
                         else value
-                elif (type(value).__name__ in ('JNLField', 'Py4Field')):
+                elif (is_fieldType(value) is True):
                     dgen[key] = value.as_dict()
                 elif AND(
                         (isinstance(value, serializable) is True),
@@ -436,6 +439,10 @@ class JNLTable(object):
                 )
                 return modelfield
 
+    def set_attributes(self, *args, **attributes):
+        self.__dict__.update(*args, **attributes)
+        return self
+
     def __getattr__(self, key):
         ''' does pkey start with P4|p4 ?
 
@@ -491,6 +498,43 @@ class JNLTable(object):
 
     __getitem__ = __getattr__
 
+    def on(self, constraint):
+        return DLGJoin(self.objp4, constraint)
+    """
+    ''' Define the right side as the other0 query (constraint_query)
+    '''
+    constraint_query = constraint.right._table
+    constraint_tablename = constraint_query.tablename
+    constraint_tabledata = self.objp4.memoizetable(constraint_tablename)
+    [constraint_tabledata.update(**{kitem: constraint.objp4[kitem]}) for kitem in (
+        'recordchunks',
+        'schemadir',
+        'oSchemaType',
+        'logger',
+        'maxrows'
+    )]
+    constraint_tabledata.update(
+        **{
+            'tablename': constraint_tablename,
+            'constraint': constraint,
+            'tabletype': type(constraint.objp4)
+        }
+    )
+    ''' There are constraints for linking 2 table (SQL JOIN).
+        build a dedicated recordset then pass it on to
+        Select.select via `oRecordSet`
+    '''
+    journal = constraint.objp4.journal
+    reader = constraint.objp4.reader
+    oJNLFile = JNLFile(journal, reader=reader)
+    constraint_recordset = DLGRecordSet(self.objp4, oJNLFile, **constraint_tabledata)
+    [setattr(constraint_recordset, cKey, cValue) for (cKey, cValue) in {
+        'constraint': constraint,
+        'constraint_tabledata': Storage(constraint_tabledata)
+    }.items()]
+    return constraint_recordset
+    """
+
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"
 
@@ -524,14 +568,14 @@ class JNLField(DLGExpression):
                  filter_in=None,
                  filter_out=None,
                  _rname=None,
-                 table=None,
+                 _table=None,
                  **kwargs
     ):
         self.fieldname = fieldname = field.fieldname \
             if (hasattr(field, 'fieldname')) \
             else field
         self.tablename = tablename = field.tablename
-        self.table = table
+        self._table = _table or objp4[tablename]
         super(JNLField, self).__init__(
             objp4,
             None,
@@ -540,6 +584,7 @@ class JNLField(DLGExpression):
             fieldname=fieldname,
             tablename=tablename
         )
+
         fieldattributes = [fielditem for fielditem in field]
         self.attributesmap = Storage({fitem.lower(): fitem for fitem in fieldattributes})
         [setattr(self, fielditem, field[fielditem]) for fielditem in field]
@@ -564,7 +609,6 @@ class JNLField(DLGExpression):
         self.oSchema = oSchema
         self.oSchemaType = oSchemaType
         self.objp4 = objp4
-        self._table = None
 
         [
             setattr(
@@ -598,6 +642,10 @@ class JNLField(DLGExpression):
         [setattr(self, key, kwargs[key]) for key in kwargs]
 
     def __call__(self, *args, **kwargs):
+        return self
+
+    def set_attributes(self, *args, **attributes):
+        self.__dict__.update(*args, **attributes)
         return self
 
     def __getattr__(self, key):
@@ -680,7 +728,6 @@ class JNLField(DLGExpression):
                     )
                 )
         ):
-        #if not (not (self.readable or self.writable)):
             for attr in attrs:
                 if (flat is True):
                     try:

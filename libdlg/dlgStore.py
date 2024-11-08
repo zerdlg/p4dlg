@@ -176,20 +176,20 @@ class Lst(list):
 
     def clean(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
-        items = [args(0)] \
-            if (len(args) > 0) \
-            else [
-            '',
-            None,
-            [],
-            {},
-            ()
-        ]
-        iterable = args(1) or self.copy()
-        for item in items:
+        if (len(args) == 0):
+            args = Lst(
+                '',
+                None,
+                [],
+                {},
+                ()
+            )
+
+        iterable = self.copy()
+        for arg in args:
             iterable = Lst(
                 filter(
-                    lambda i: i != item, iterable
+                    lambda i: i != arg, iterable
                 )
             )
         return iterable
@@ -281,6 +281,9 @@ class Storage(dict):
             frozenset(self.getvalues())
         )
     )
+
+    def __and__(self, other):
+        return self.merge(other)
 
     def _keynames(self):
         return self.getkeys()

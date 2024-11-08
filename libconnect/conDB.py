@@ -22,26 +22,31 @@ class ObjDB(object):
         (agr, kwargs) = (Lst(args), Storage(kwargs))
         self.db = DAL(('sqlite://storage.sqlite', 'mysql://a:b@localhost/x'), folder=kwargs.folder)
         self.shellObj = shellObj
+        self.stored = None
+        self.varsdef = self.shellObj.cmd_dbvars
         self.setstored()
 
+    def show(self, name):
+        return self.varsdef(name)
+
     def delete(self, name, key):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'Key Error - No such key "{key}"')
         else:
             try:
-                kwargs = self.shellObj.cmd_dbvars(name)
+                kwargs = self.varsdef(name)
                 kwargs.delete(key)
                 objp4 = Py4(**kwargs)
-                self.shellObj.cmd_p4vars(name, kwargs)
+                self.varsdef(name, kwargs)
                 self.load(name)
                 self.shellObj.kernel.shell.push({name: objp4})
                 self.setstored()
                 print(f"key ({key}) deleted")
 
-                kwargs = self.shellObj.cmd_p4vars(name)
+                kwargs = self.varsdef(name)
                 kwargs.delete(key)
                 objp4 = Py4(**kwargs)
-                self.shellObj.cmd_p4vars(name, kwargs)
+                self.varsdef(name, kwargs)
                 self.load(name)
                 self.shellObj.kernel.shell.push({name: objp4})
                 self.setstored()
@@ -58,7 +63,7 @@ class ObjDB(object):
         self.setstored()
 
     def setstored(self):
-        self.stored = Lst(key for key in self.shellObj.cmd_p4vars()\
+        self.stored = Lst(key for key in self.varsdef()\
                 .keys() if (key != '__session_loaded_on__'))
 
     def __call__(self, *args, **kwargs):
@@ -69,8 +74,8 @@ class ObjDB(object):
         if (kwargs.port is not None):
             kwargs.port = self.setlocalport(kwargs.port, kwargs.p4droot)
         try:
-            p4kwargs = self.shellObj.cmd_p4vars(name).merge(kwargs)
-            self.shellObj.cmd_p4vars(name, p4kwargs)
+            p4kwargs = self.varsdef(name).merge(kwargs)
+            self.varsdef(name, p4kwargs)
             objp4 = self.load(name)
             self.shellObj.kernel.shell.push({name: p4kwargs})
             self.setstored()
@@ -110,7 +115,7 @@ class ObjDB(object):
         if (StopError is not None):
             print(f'Error:\n{StopError}')
         else:
-            self.shellObj.cmd_p4vars(name, kwargs)
+            self.varsdef(name, kwargs)
             self.setstored()
             '''  time to load the thing
             '''
@@ -120,11 +125,11 @@ class ObjDB(object):
             print(f'Reference ({name}) create!')
 
     def load(self, name):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'KeyError:\n No such key "{name}"')
         else:
             try:
-                kwargs = self.shellObj.cmd_p4vars(name)
+                kwargs = self.varsdef(name)
                 objp4 = Py4(**kwargs)
                 self.shellObj.kernel.shell.push({name: objp4})
                 self.setstored()
@@ -134,7 +139,7 @@ class ObjDB(object):
                 print(f'KeyError: \n{err}')
 
     def unload(self, name):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'Attribute Error:\n No such attribute "{name}"')
         else:
             try:
@@ -148,7 +153,7 @@ class ObjDB(object):
                 print(f'KeyError:\n{err}')
 
     def purge(self, name):
-        if (self.shellObj.cmd_p4vars(name) is None):
+        if (self.varsdef(name) is None):
             print(f'KeyError:\n No such key "{name}"')
         else:
             try:
@@ -156,7 +161,7 @@ class ObjDB(object):
                 self.unload(name)
                 if (is_writable(filename) is False):
                     make_writable(filename)
-                self.shellObj.cmd_p4vars(name, None)
+                self.varsdef(name, None)
                 if hasattr(globals(), name):
                     globals().__delattr__(name)
                 self.setstored()
