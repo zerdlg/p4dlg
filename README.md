@@ -30,12 +30,8 @@ Out[14]:
  'type': '0'}>
 ```
 
-
-## Access all your metadata without being hindered by proprietary hurdles and without any perforce client or admin program
-
-### A set of *abstractions* that use SQL, supported by a common set of APIs, to interact with your Perforce instance and its resources.
-
-While I work on formal documentation, this README should at least give you an idea of what *p4dlg* is. There are also working samples and examples in /p4q/libsample.
+## Samples &n Examples
+Please see working samples & example in /p4q/libsample.
 
 ### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction covered in this readme.
 
@@ -316,6 +312,7 @@ Client:▷computer_p4dlg
  View:
  ▷⋅⋅⋅//dev/p4dlg/... //computer_p4dlg/... 
 ```
+
 
 ## RCS <under_construction>
 ## P4DB <under_construction>
