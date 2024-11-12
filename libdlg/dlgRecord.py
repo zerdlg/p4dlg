@@ -2,7 +2,13 @@ import decimal
 from datetime import date, datetime, time
 
 from libdlg.dlgStore import Storage, Lst
-from libdlg.dlgUtilities import reg_objdict, bail, Flatten, ALLLOWER
+from libdlg.dlgUtilities import (
+    reg_objdict,
+    bail,
+    Flatten,
+    ALLLOWER,
+    annoying_ipython_attributes
+)
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgTables import DataTable
 
@@ -189,7 +195,6 @@ class DLGRecord(Storage):
 
                 overwrite - add_missing - allow_nonevalue  - extend_listvalues
     '''
-
     def merge(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
         any = args.storageindex(reversed=True) \

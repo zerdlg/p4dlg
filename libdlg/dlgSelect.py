@@ -38,7 +38,6 @@ class Select(DLGControl):
             records=None,
             cols=None,
             query=None,
-            #constraint=None,
             **tabledata
     ):
         tabledata = Storage(tabledata)
@@ -94,7 +93,6 @@ class Select(DLGControl):
                 ).clean()
             ).clean()
         self.compute = compute or Lst()
-
         self.maxrows = self.objp4.maxrows
         self.oTableFix = fix_name('remove')
         self.cols = cols
@@ -109,12 +107,10 @@ class Select(DLGControl):
         (
             self.tablename,
             self.fieldsmap,
-            #self.constraint,
             )  = \
             (
                 tabledata.tablename,
                 tabledata.fieldsmap,
-                #constraint,
             )
 
         qry = query \
@@ -134,6 +130,7 @@ class Select(DLGControl):
             ):
                 self.fieldsmap = self.objp4.tablememo[self.tablename].fieldsmap
 
+        self.constraint = None
         super(Select, self).__init__()
 
     def memoize_constraint_table(self, key, record=None):
@@ -412,27 +409,45 @@ class Select(DLGControl):
                 if (
                         op in ('=', EQ)
                 ):
-                    res = self.objp4.__eq__(str(record[fieldname]), str(value))
+                    res = self.objp4.__eq__(
+                        str(record[fieldname]),
+                        str(value)
+                    )
                 elif (
                         op in ('!=', NE)
                 ):
-                    res =self.objp4.__ne__(str(record[fieldname]), str(value))
+                    res =self.objp4.__ne__(
+                        str(record[fieldname]),
+                        str(value)
+                    )
                 elif (
                         op in ('<', LT)
                 ):
-                    res = self.objp4.__lt__(float(record[fieldname]), float(value))
+                    res = self.objp4.__lt__(
+                        float(record[fieldname]),
+                        float(value)
+                    )
                 elif (
                         op in ('<=', LE)
                 ):
-                    res = self.objp4.__le__(float(record[fieldname]), float(value))
+                    res = self.objp4.__le__(
+                        float(record[fieldname]),
+                        float(value)
+                    )
                 elif (
                         op in ('>', GT)
                 ):
-                    res = self.objp4.__gt__(float(record[fieldname]), float(value))
+                    res = self.objp4.__gt__(
+                        float(record[fieldname]),
+                        float(value)
+                    )
                 elif (
                         op in ('>=', GE)
                 ):
-                    res = self.objp4.__ge__(float(record[fieldname]), float(value))
+                    res = self.objp4.__ge__(
+                        float(record[fieldname]),
+                        float(value)
+                    )
                 elif (
                         op in (NOT)
                 ):
@@ -440,19 +455,27 @@ class Select(DLGControl):
                 elif (
                         op in ('#', '#?', CONTAINS, SEARCH)
                 ):
-                    res = (self.objp4.memoizefield(value).search(str(record[fieldname])) is not None)
+                    res = (self.objp4.memoizefield(value).search(
+                        str(record[fieldname])) is not None
+                           )
                 elif (
                         op in ('#^', STARTSWITH)
                 ):
-                    res = (self.objp4.memoizefield(f'^{value}').match(str(record[fieldname])) is not None)
+                    res = (self.objp4.memoizefield(f'^{value}').match(
+                        str(record[fieldname])) is not None
+                           )
                 elif (
                         op in ('#$', ENDSWITH)
                 ):
-                    res = (self.objp4.memoizefield(f'{value}$').match(str(record[fieldname])) is not None)
+                    res = (self.objp4.memoizefield(f'{value}$').match(
+                        str(record[fieldname])) is not None
+                           )
                 elif (
                         op in ('#^$', '##', MATCH)
                 ):
-                    res = (self.objp4.memoizefield(f'^{value}$').match(str(record[fieldname])) is not None)
+                    res = (self.objp4.memoizefield(f'^{value}$').match(
+                        str(record[fieldname])) is not None
+                           )
                 elif (
                         isinstance(record[fieldname], (list, dict))
                 ):
@@ -577,16 +600,37 @@ class Select(DLGControl):
             opname = op.__name__ \
                 if (callable(op) is True) \
                 else op
-            exp_func = expression_table(opname)
-            qry_func = optable(opname)
+
+            (
+                exp_func,
+                qry_func
+            ) = \
+                (
+                    expression_table(opname),
+                    optable(opname)
+                )
+
             ''' queries can be wrapped in AND/OR/XOR/NOT expressions...
                 start with these
             '''
-            operators = andops + orops + xorops + notops
+            operators = (andops + orops + xorops + notops)
             if (opname in operators):
-                (buildleft, buildright) = (None, None)
-                buildleft = self.build_results(left, record)
+
+                (
+                    buildleft,
+                    buildright
+                ) = \
+                    (
+                        self.build_results(left, record),
+                        None
+                    )
+
                 if (right is not None):
+                    # this should likely cause an exception,
+                    # the value of righnt should be a qry (
+                    # with 'op', 'left', 'right' attributes
+                    #
+                    # TODO: fix this likely exception
                     buildright = self.build_results(right, record)
                     if (isinstance(buildright, (int, bool)) is False):
                         if (buildright.right is not None):
@@ -676,43 +720,46 @@ class Select(DLGControl):
 
     def aggregate(self, records, query=None, **kwargs):
         kwargs = Storage(kwargs)
-        orderby = kwargs.orderby
-        limitby = kwargs.limitby
-        groupby = kwargs.groupby
-        sort = kwargs.sort
-        find = kwargs.find
-        filter = kwargs.filter
-        exclude = kwargs.exclude
-        search = kwargs.search
+
+        (orderby,
+         limitby,
+         groupby,
+         sort,
+         find,
+         filter,
+         exclude,
+         search
+         ) = (
+            kwargs.orderby,
+            kwargs.limitby,
+            kwargs.groupby,
+            kwargs.sort,
+            kwargs.find,
+            kwargs.filter,
+            kwargs.exclude,
+            kwargs.search
+        )
+
         if (orderby is not None):
             '''  orderby         -->     and/or limitby
             '''
-            try:
-                if (isinstance(orderby, str)):
-                    orderby = [item for item in orderby.split(',')] \
-                        if (',' in orderby) \
-                        else [orderby]
-                elif (type(orderby).__name__ in ('JNLField', 'Py4Field')):
-                    orderby = [orderby]
-                records = records.orderby(*orderby) \
-                    if (limitby is None) \
-                    else records.orderby(*orderby, limitby=limitby)
-            except Exception as err:
-                bail(err)
+            if (isinstance(orderby, str)):
+                orderby = [item for item in orderby.split(',')] \
+                    if (',' in orderby) \
+                    else [orderby]
+            elif (type(orderby).__name__ in ('JNLField', 'Py4Field')):
+                orderby = [orderby]
+            records = records.orderby(*orderby) \
+                if (limitby is None) \
+                else records.orderby(*orderby, limitby=limitby)
         elif (limitby is not None):
             '''  limitby         -->     and nothing else...
             '''
-            try:
-                records = records.limitby(limitby)
-            except Exception as err:
-                bail(err)
+            records = records.limitby(limitby)
         if (groupby is not None):
             '''  groupby
             '''
-            try:
-                records = records.groupby(groupby)
-            except Exception as err:
-                bail(err)
+            records = records.groupby(groupby)
         if (exclude is not None):
             '''  exclude
 
@@ -720,24 +767,15 @@ class Select(DLGControl):
                  >>>     print record.client
                  my_client
             '''
-            try:
-                records = records.exclude(exclude)
-            except Exception as err:
-                bail(err)
+            records = records.exclude(exclude)
         if (filter is not None):
             '''  filter
             '''
-            try:
-                records = records.filter(filter)
-            except Exception as err:
-                bail(err)
+            records = records.filter(filter)
         if (find is not None):
             '''  find
             '''
-            try:
-                records = records.find(find)
-            except Exception as err:
-                bail(err)
+            records = records.find(find)
         if (sort is not None):
             '''  sort
 
@@ -754,11 +792,7 @@ class Select(DLGControl):
                         Catmart_client
                         Charotte_client
         '''
-            try:
-                records = records.sort(sort)
-            except Exception as err:
-                bail(err)
-
+            records = records.sort(sort)
         if (search is not None):
             for record in records:
                 if (record.depotFile is not None):
@@ -892,9 +926,8 @@ class Select(DLGControl):
                 else:
                     tablename = query.left.tablename
             except:
-                if (hasattr(self, 'constraint')):
-                    if (self.constraint is not None):
-                        tablename = self.constraint.left.tablename
+                if (self.constraint is not None):
+                    tablename = self.constraint.left.tablename
         ''' records
         '''
         if (records is None):
@@ -974,7 +1007,7 @@ class Select(DLGControl):
 
         distinctrecords = Storage()
         aggregators = (
-                'left',
+
                 'groupby',
                 'having',
                 'sortby',
@@ -994,71 +1027,75 @@ class Select(DLGControl):
             elif (distinct is False):
                 distinct = None
 
+        ''' set / define joiners & params
+        '''
         (
             oJoin,
             jointype,
+            flat,
             exclude_matches
         ) = \
             (
                 None,
-                'inner',
-                False
+                None,
+                kwargs.flat or False,
+                kwargs.exclude_matches or False
             )
+
         ''' Are we joining records ? 
             What kind of joi (inner /left)?
             Should we exclude matching fields ?
         '''
-        if (kwargs.join is not None):
-            oJoin = kwargs.pop('join')
+        if (kwargs.merge_records is not None):
+            (
+                oJoin,
+                jointype,
+                flat
+            ) = \
+                (
+                    kwargs.merge_records,
+                    'inner',
+                    True
+                )
+        elif (kwargs.join is not None):
+            (
+                oJoin,
+                jointype,
+                flat
+            ) = \
+                (
+                    kwargs.join,
+                    'inner',
+                    flat
+                )
         elif (kwargs.left is not None):
-            oJoin = kwargs.pop('left')
-            jointype = 'left'
-        if (kwargs.exclude_matches is not None):
-            exclude_matches = kwargs.pop('exclude_matches')
+            (
+                oJoin,
+                jointype,
+                flat
+            ) = \
+                (
+                    kwargs.left,
+                    'outer',
+                    flat
+                )
+
+        kwargs.delete(
+            *[
+                'flat',
+                'exclude_matches',
+                'join',
+                'left',
+                'merge'
+            ]
+        )
+
         if AND(
                 (oJoin is None),
-                (hasattr(self, 'constraint'))
+                (self.constraint is not None)
         ):
-            constraint = self.constraint
-            if (constraint is not None):
-                oJoin = constraint.left._table.on(constraint)
+            oJoin = self.constraint.right._table.on(self.constraint)
 
-        """
-        #constraint = None
-        #constraint_type = None
-        constraint_recordset = None
-        constraint_fieldnames = None
-        merged_fieldnames = None
-        constraint_exclude_filednames = [
-            'idx',
-            'db_action',
-            'table_revision',
-            'table_name',
-            'access',
-            'accessDate',
-            'update',
-            'updateDate',
-            'status',
-            'code'
-        ]
-        if (kwargs.join is not None):
-            constraint_recordset = kwargs.pop('join')
-            constraint_type = 'join'
-
-        if (constraint_recordset is not None):
-            constraint = constraint_recordset.constraint
-            constraint_left = constraint.left
-            constraint_right = constraint.right
-            constraint_op = constraint.op
-            constraint_field = constraint_left
-            constraint_records = constraint_recordset.select()
-            constraintgroups = constraint_records.groupby(constraint_field, orderby='idx', groupdict=True)
-            constraint_tabledata = constraint_recordset.constraint_tabledata
-            constraint_fieldnames = constraint_tabledata.fieldnames.clean(*constraint_exclude_filednames)
-
-            for (key, value) in constraintgroups.items():
-                self.memoize_constraint_table(key, value.last())
-        """
         outrecords = DLGRecords(Lst(), cols, self.objp4)
         insertrecord = outrecords.insert
         ''' make a list of fields that are datetime specific so 
@@ -1198,13 +1235,24 @@ class Select(DLGControl):
         ''' Time to join/merge records 
         '''
         if (oJoin is not None):
-            if (jointype == 'inner'):
-                outrecords = oJoin(outrecords).join()
-            else:
-                outrecords = oJoin(outrecords).left(exclude_matches=exclude_matches)
-            #outrecords = oJoin(outrecords).join() \
-            #    if (jointype == 'inner') \
-            #    else oJoin(outrecords).left(exclude_matches=exclude_matches)
+            (
+                joiner,
+                joinargs
+            ) = \
+                (
+                    oJoin(outrecords).join,
+                    {'flat': flat}
+                ) \
+                    if (jointype == 'inner') \
+                    else \
+                    (
+                        oJoin(outrecords).left,
+                        {
+                            'exclude_matches': exclude_matches,
+                            'flat': flat
+                        }
+                    )
+            outrecords = joiner(**joinargs)
 
         if (close_session is True):
             self.close()

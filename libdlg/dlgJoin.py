@@ -1,4 +1,5 @@
 from libdlg.dlgStore import Storage, Lst, StorageIndex
+from libjnl.jnlSqltypes import is_fieldType, is_recordsType, is_recordType
 from libjnl.jnlFile import JNLFile
 from libdlg.dlgRecordset import DLGRecordSet
 from libdlg.dlgRecords import DLGRecords
@@ -107,7 +108,7 @@ class DLGJoin(object):
         self.constraint = constraint
         self.records = None
         self.left_records = None
-        self.exclude_filednames = [
+        self.exclude_fieldnames = [
             'idx',
             'db_action',
             'table_revision',
@@ -119,17 +120,14 @@ class DLGJoin(object):
             'status',
             'code'
         ]
-        self.cField = self.constraint.left.fieldname
-        self.cRecordset = None
+        self.cField = self.constraint.left
         self.cGroupRecords = None
         self.cMemo = {}
 
     def __call__(self, records=None):
-        self.left_records = records \
-            if (records is not None) \
-            else self.guess_records()
-        self.cRecordset = self.define_recordset()
-        self.cGroupRecords = self.group_records()
+        self.left_records = records
+        cRecordset = self.define_recordset()
+        self.cGroupRecords = self.select_and_group_records(cRecordset)
         return self
 
     def memoize_records(self, key, record=None):
@@ -140,15 +138,6 @@ class DLGJoin(object):
             if (record is not None):
                 memo = self.cMemo[key] = record
         return memo
-
-    def guess_records(self):
-        records = (
-            JNLFile(self.objp4.journal, self.objp4.reader)
-        ) if (is_P4Jnl(self.objp4) is True) \
-            else getattr(self.left_records, '__call__')(*self.left_records.options) \
-            if (type(self.left_records).__name__ == 'Py4Run') \
-            else self.objp4()#self.constraint.right._table)#DLGRecords(Lst(), Lst(), self.objp4)
-        return records
 
     def define_recordset(self):
         cQuery = self.constraint.right._table
@@ -174,19 +163,18 @@ class DLGJoin(object):
             build a dedicated recordset then pass it on to
             Select.select via `oRecordSet`
         '''
-        records = self.records or self.guess_records()
+        records = []
+        if (is_P4Jnl(self.objp4) is True):
+            records = (
+                JNLFile(self.objp4.journal, reader=self.objp4.reader)
+            )
+        elif (type(self.left_records).__name__ == 'Py4Run'):
+            records = getattr(self.left_records, '__call__')(*self.left_records.options)
         cRecordset = DLGRecordSet(self.objp4, records, **cTabledata)
-        [setattr(cRecordset, cKey, cValue) for (cKey, cValue) in {
-            'constraint': self.constraint,
-            'tabledata': Storage(cTabledata)
-        }.items()]
         return cRecordset
 
-    def select_cRecords(self):
-        return self.cRecordset.select()
-
-    def group_records(self):
-        cRecords = self.select_cRecords()
+    def select_and_group_records(self, recset):
+        cRecords = recset.select()
         cGroupRecords = cRecords.groupby(
             self.cField,
             orderby='idx',
@@ -194,30 +182,139 @@ class DLGJoin(object):
         )
         return cGroupRecords
 
-    def join(self):
+    ''' merge_records - join - left
+    
+        merge_records: 
+            A non-exceptional merging of 2 records, where matches from the right side overwrite those on the left.
+            
+            
+            eg.
+            >>> recs = jnl(jnl.rev).select(merge=jnl.change.on(jnl.rev.change == jnl.change.change))
+            
+            which is equivalent to:
+            
+            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(jnl.rev.change == jnl.change.change), flat=True)
+            
+            >>> recs.first()
+            
+            
+        join (inner): 
+            A merging of 2 records containing both records. When accessing joined record's
+            sub-record, the tablename must be included (I.e.: rec.rev.depotFile & rec.change.user).
+            The record is skipped where inner fields are non-matching). 
+            
+            eg.
+            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(jnl.rev.change == jnl.change.change)) 
+            >>> recs.first()
+            <DLGRecord {'change': <DLGRecord {'access': '',
+                                              'change': '142',
+                                              'client': 'lxcharlotte.pycharm',
+                                              'date': '2021/11/25',
+                                              'db_action': 'pv',
+                                              'descKey': '142',
+                                              'description': 'renamin g for case consistency',
+                                              'identify': '',
+                                              'idx': 1,
+                                              'importer': '',
+                                              'root': '',
+                                              'status': '0',
+                                              'table_name': 'db.change',
+                                              'table_revision': '3',
+                                              'user': 'mart'}>,
+                        'rev': <DLGRecord {'action': '8',
+                                           'change': '142',
+                                           'date': '2021/11/25',
+                                           'db_action': 'pv',
+                                           'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+                                           'depotRev': '1',
+                                           'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+                                           'idx': 1,
+                                           'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+                                           'lbrIsLazy': '1',
+                                           'lbrRev': '1.121',
+                                           'lbrType': '0',
+                                           'modTime': '1630482775',
+                                           'size': '18420',
+                                           'table_name': 'db.rev',
+                                           'table_revision': '9',
+                                           'traitLot': '0',
+                                           'type': '0'}>
+                        }>
+                        
+            >>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
+            Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `mart`            
+            
+        
+        left (outer):
+        
+    '''
+
+    def merge_records(self, flat=True):
+        out = self.join(flat=flat)
+        return out
+
+    def join(self, flat=False):
         #cKeys = self.cMemo.keys()
         mRecords = DLGRecords(records=[], cols=[], objp4=self.objp4)
         records = self.left_records
+        (
+            lefttable,
+            righttable
+        ) = \
+            (
+                self.constraint.left._table,
+                self.constraint.right._table
+            )
         for record in records:
             fieldvalue = record[self.cField.fieldname]
             crecord_right = self.cGroupRecords[fieldvalue]
-            crecord_right.delete(*self.exclude_filednames)
             if (crecord_right is not None):
+                if (is_recordsType(crecord_right) is True):
+                    crecord_right = crecord_right.last()
+                crecord_right.delete(*self.exclude_fieldnames)
                 #crecord_right = self.memoize_records(str(fieldvalue))
-                record.merge(crecord_right)
-                mRecords.insert(record)
+                if (flat is True):
+                    record.merge(crecord_right)
+                else:
+                    record = DLGRecord(
+                        {
+                            lefttable.tablename: record,
+                            righttable.tablename: crecord_right
+                        }
+                    )
+                mRecords.append(record)
         return mRecords
 
-    def left(self, exclude_matches=False):
+    def left(self, exclude_matches=False, flat=False):
         mRecords = DLGRecords(records=[], cols=[], objp4=self.objp4)
         records = self.left_records
+        (
+            lefttable,
+            righttable
+        ) = \
+            (
+                self.constraint.left._table,
+                self.constraint.right._table
+            )
         for record in records:
             fieldvalue = record[self.cField.fieldname]
             crecord_right = self.cGroupRecords[fieldvalue]
-            crecord_right.delete(*self.exclude_filednames)
+            crecord_right.delete(*self.exclude_fieldnames)
             if ( crecord_right is not None):
-                record.merge(crecord_right)
-            mRecords.insert(record)
+                if (is_recordsType(crecord_right) is True):
+                    crecord_right = crecord_right.last()
+                #if (exclude_matches is True):
+                #   ...
+                if (flat is True):
+                    record.merge(crecord_right)
+                else:
+                    record = DLGRecord(
+                        {
+                            lefttable.tablename: record,
+                            righttable.tablename: crecord_right
+                        }
+                    )
+            mRecords.append(record)
         return mRecords
 
 

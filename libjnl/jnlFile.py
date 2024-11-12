@@ -9,6 +9,7 @@ import csv
 import dask.dataframe as df
 import pandas as pd
 #import parquet
+from libdlg.dlgUtilities import bail
 
 def xrange(x):
     return iter(range(x))
@@ -117,7 +118,7 @@ class JNLFile(object):
             }
             self.reader = readers[reader]
         except Exception as err:
-            self.bail(err, True)
+            bail(err, True)
 
     def copy(self):
         return copy(self)

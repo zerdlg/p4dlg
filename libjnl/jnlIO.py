@@ -627,13 +627,13 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         )
 
         if (len(jnlQueries) == 0):
-            if (is_tableType(query) is True):                     # A single query is defined, its just a _table.
-                if (constraint is None):                          # No constraints in this run
-                    return oRecordSet                             # Bypass DLGRecordSet.__call__ altogether!
-                return oRecordSet(                                # A single query is defined, its really a constraint
+            if (is_tableType(query) is True):        # A single query is defined, its just a _table.
+                if (constraint is None):             # No constraints in this run
+                    return oRecordSet                # Bypass DLGRecordSet.__call__ altogether!
+                return oRecordSet(                   # A single query is defined, its really a constraint
                     constraint=constraint
                 )
-        return oRecordSet(*jnlQueries)                            # jnlQueries > 0, pass them onto DLGRecordSet.__call__
+        return oRecordSet(*jnlQueries)               # jnlQueries > 0, pass them onto DLGRecordSet.__call__
 
     def getfieldmaps(self, tablename):
         ''' mapping of all table names  -> {lower_case_fieldname: actual_fieldname}

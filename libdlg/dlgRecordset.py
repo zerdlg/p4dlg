@@ -438,7 +438,9 @@ class DLGRecordSet(object):
             elif (isinstance(records, JNLFile) is True):
                 return enumerate(records.reader(), start=1)
             elif (ispath(records)):
-                """ NOT YET IMPLEMENTED """
+                ''' NOT YET IMPLEMENTED
+                    TODO: this. 
+                '''
             elif (type(records).__name__ == 'Py4Run'):
                 if (hasattr(records, 'options')):
                     records = getattr(records, '__call__')(*records.options)
@@ -838,7 +840,9 @@ class DLGRecordSet(object):
                 Lst(args),
                 Storage(kwargs)
             )
-        ''' TODO: Implement '''
+        ''' NOT YET IMPLEMENTED
+            TODO: this. 
+        '''
 
     def update(self, **update_fields):
         records = self.select(update_fields=update_fields)
@@ -960,11 +964,7 @@ class DLGRecordSet(object):
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
-        tabledata = Storage(
-            tablename=tablename,
-            fieldnames=fieldnames,
-            fieldsmap=fieldsmap,
-        )
+        tabledata = objp4.memoizetable(tablename)
 
         oSelect = Select(
             objp4,
@@ -975,7 +975,10 @@ class DLGRecordSet(object):
         )
 
         if (self.constraint is not None):
-            kwargs.update(join=self.constraint.right._table.on(self.constraint))
+            kwargs.update(
+                join=self.constraint.right._table.on(self.constraint),
+                flat=kwargs.flat or False
+            )
         outrecords = oSelect.select(
             *fieldnames,
             close_session=close_session,
