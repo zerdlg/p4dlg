@@ -1,13 +1,17 @@
-from libdlg.dlgStore import Storage, Lst, StorageIndex
-from libjnl.jnlSqltypes import is_fieldType, is_recordsType, is_recordType
+from libdlg.dlgQuery_and_operators import (
+    AND,
+    OR
+)
+from libjnl.jnlSqltypes import is_recordsType
 from libjnl.jnlFile import JNLFile
 from libdlg.dlgRecordset import DLGRecordSet
 from libdlg.dlgRecords import DLGRecords
+from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgUtilities import (
     is_Py4,
     is_P4Jnl
 )
-from libdlg.dlgRecord import DLGRecord
+
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSelect.py $] [$Change: 479 $] [$Revision: #56 $]
      [$DateTime: 2024/09/20 07:42:22 $]
@@ -18,85 +22,107 @@ __all__ = ['DLGJoin']
 
 class DLGJoin(object):
     '''
-        USAGE:
+        USAGE & details:
 
-        * No need to access this class directly. Best to access via _table.on
+                                merge_records - join - left
 
-            >>> jnl.change.on(jnl.rev.change == jnl.change.change)
+        merge_records:
+            A non-exceptional merging of 2 records into one (like braiding), where
+            matches from the right side overwrite those on the left.
 
-        >>> recs = jnl(jnl.rev).select(join=jnl.change.on(jnl.rev.change == jnl.change.change))
+            Equivalen to join + flat=True
 
-        * alternatively, this is equivalent:
-        >>> recs = jnl(jnl.rev.change == jnl.change.change).select()
+            eg.
+            >>> constraint = (jnl.rev.change == jnl.change.change)
+            >>> recs = jnl(jnl.rev).select(merge_records=jnl.change.on(constraint))
 
-        >>> recs
-        <DLGRecords (17610)>
+                which is equivalent to using join + flat=True
+                >>> recs = jnl(jnl.rev).select(join=jnl.change.on(constraint), flat=True)
 
-        >>> recs(0)
-        <DLGRecord {'action': '8',
-         'change': '142',
-         'client': 'lxcharlotte.pycharm',
-         'date': '2021/11/25',
-         'db_action': 'pv',
-         'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
-         'depotRev': '1',
-         'descKey': '142',
-         'description': 'renaming for case consistency',
-         'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
-         'identify': '',
-         'idx': 1,
-         'importer': '',
-         'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
-         'lbrIsLazy': '1',
-         'lbrRev': '1.121',
-         'lbrType': '0',
-         'modTime': '1630482775',
-         'root': '//depot/pycharmprojects/sQuery/lib/*',
-         'size': '18420',
-         'table_name': 'db.rev',
-         'table_revision': '9',
-         'traitLot': '0',
-         'type': '0',
-         'user': 'bigbird'}>
+            >>> recs.first()
+            <DLGRecord {'action': '8',
+                        'change': '142',
+                        'client': 'bigbird.pycharm',
+                        'date': '2021/11/25',
+                        'db_action': 'pv',
+                        'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+                        'depotRev': '1',
+                        'descKey': '142',
+                        'description': 'renaming for case consistency',
+                        'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+                        'identify': '',
+                        'idx': 1,
+                        'importer': '',
+                        'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+                        'lbrIsLazy': '1',
+                        'lbrRev': '1.121',
+                        'lbrType': '0',
+                        'modTime': '1630482775',
+                        'root': '//depot/pycharmprojects/sQuery/lib/*',
+                        'size': '18420',
+                        'table_name': 'db.rev',
+                        'table_revision': '9',
+                        'traitLot': '0',
+                        'type': '0',
+                        'user': 'bigbird'}>
 
-         The WorkFLows:
+        join (inner):
+            A merging of 2 records into one. however, the tablename must be included in the syntax (I.e.:
+            rec.rev.depotFile & rec.change.user) since a join's default behaviour (flat=False) is to
+            contain both records.
 
-             join (innerjoin)
+            Note that records are skipped where inner fields are non-matching.
 
-            1.  lefttable = jnl.rev
-                righttable = jnl.change
-                query = (lefttable.change == righttable.change)
-                ...
-                    oRecordset = objp4(constraint)
-                    constraint = query
-                    query = constraint.left     --> (type JNLTable) --> do not append to jnlQueries
-                    ...
-                    oRecordSet = DLGRecordset(objp4, oJNLFile, **tabledata)
-                    * query is a JNLTable, so do not pass as query
-                    return oRecordset(constraint=constraint)
-                    ...
+            eg.
+            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(constraint)
 
-                    oRecordset.select()
-                        oSelect = DLGSelect()
-                        if (constraint is not None):
-                            kwargs.update(**{'join': jnl.change.on(constraint)})
-                        records = oSelect.select(*fieldnames, **kwwargs)
-                        return joined records
+                * alternatively, this syntax is equivalent:
+                >>> recs = jnl(constraint).select()
 
-            2.  lefttable = jnl.rev
-                constraint = (jnl.rev.change == jnl.change.change)
-                records = jnl(lefttable).select(constraint)
+            >>> recs.first()
+            <DLGRecord {'change': <DLGRecord {'access': '',
+                                              'change': '142',
+                                              'client': 'bigbird.pycharm',
+                                              'date': '2021/11/25',
+                                              'db_action': 'pv',
+                                              'descKey': '142',
+                                              'description': 'renaming for case consistency',
+                                              'identify': '',
+                                              'idx': 1,
+                                              'importer': '',
+                                              'root': '',
+                                              'status': '0',
+                                              'table_name': 'db.change',
+                                              'table_revision': '3',
+                                              'user': 'bigbird'}>,
+                        'rev': <DLGRecord {'action': '8',
+                                           'change': '142',
+                                           'date': '2021/11/25',
+                                           'db_action': 'pv',
+                                           'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+                                           'depotRev': '1',
+                                           'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+                                           'idx': 1,
+                                           'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+                                           'lbrIsLazy': '1',
+                                           'lbrRev': '1.121',
+                                           'lbrType': '0',
+                                           'modTime': '1630482775',
+                                           'size': '18420',
+                                           'table_name': 'db.rev',
+                                           'table_revision': '9',
+                                           'traitLot': '0',
+                                           'type': '0'}>
+                        }>
 
+            >>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
+            Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `bigbird`
 
-            left (left outerjoin)
+        left (outer):
+            like join but records with non-matching fields are included in overall outrecords.
 
-                lefttable = jnl.rev
-                righttable = jnl.change
-                constraint = (jnl.rev.change == jnl.change.change)
-                records = objp4().select(
-                            lefttable.ALL, righttable.ALL,
-                            left = righttable.on(constraint)
-                            )
+            eg.
+            >>> recs = jnl(jnl.rev).select(left=jnl.change.on(constraint)
     '''
 
     def __init__(
@@ -182,79 +208,15 @@ class DLGJoin(object):
         )
         return cGroupRecords
 
-    ''' merge_records - join - left
-    
-        merge_records: 
-            A non-exceptional merging of 2 records, where matches from the right side overwrite those on the left.
-            
-            
-            eg.
-            >>> recs = jnl(jnl.rev).select(merge=jnl.change.on(jnl.rev.change == jnl.change.change))
-            
-            which is equivalent to:
-            
-            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(jnl.rev.change == jnl.change.change), flat=True)
-            
-            >>> recs.first()
-            
-            
-        join (inner): 
-            A merging of 2 records containing both records. When accessing joined record's
-            sub-record, the tablename must be included (I.e.: rec.rev.depotFile & rec.change.user).
-            The record is skipped where inner fields are non-matching). 
-            
-            eg.
-            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(jnl.rev.change == jnl.change.change)) 
-            >>> recs.first()
-            <DLGRecord {'change': <DLGRecord {'access': '',
-                                              'change': '142',
-                                              'client': 'lxcharlotte.pycharm',
-                                              'date': '2021/11/25',
-                                              'db_action': 'pv',
-                                              'descKey': '142',
-                                              'description': 'renamin g for case consistency',
-                                              'identify': '',
-                                              'idx': 1,
-                                              'importer': '',
-                                              'root': '',
-                                              'status': '0',
-                                              'table_name': 'db.change',
-                                              'table_revision': '3',
-                                              'user': 'mart'}>,
-                        'rev': <DLGRecord {'action': '8',
-                                           'change': '142',
-                                           'date': '2021/11/25',
-                                           'db_action': 'pv',
-                                           'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
-                                           'depotRev': '1',
-                                           'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
-                                           'idx': 1,
-                                           'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
-                                           'lbrIsLazy': '1',
-                                           'lbrRev': '1.121',
-                                           'lbrType': '0',
-                                           'modTime': '1630482775',
-                                           'size': '18420',
-                                           'table_name': 'db.rev',
-                                           'table_revision': '9',
-                                           'traitLot': '0',
-                                           'type': '0'}>
-                        }>
-                        
-            >>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
-            Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `mart`            
-            
-        
-        left (outer):
-        
-    '''
+    def is_matching(self, left, right):
+        fsum = sum([OR(1, 0) for field in left.getkeys()
+                    if (field in right.getkeys())])
+        if (fsum > 0):
+           return True
+        return False
 
-    def merge_records(self, flat=True):
-        out = self.join(flat=flat)
-        return out
-
-    def join(self, flat=False):
-        #cKeys = self.cMemo.keys()
+    def join_record(self, jointype=None, flat=False):
+        # cKeys = self.cMemo.keys()
         mRecords = DLGRecords(records=[], cols=[], objp4=self.objp4)
         records = self.left_records
         (
@@ -272,7 +234,7 @@ class DLGJoin(object):
                 if (is_recordsType(crecord_right) is True):
                     crecord_right = crecord_right.last()
                 crecord_right.delete(*self.exclude_fieldnames)
-                #crecord_right = self.memoize_records(str(fieldvalue))
+                # crecord_right = self.memoize_records(str(fieldvalue))
                 if (flat is True):
                     record.merge(crecord_right)
                 else:
@@ -282,41 +244,17 @@ class DLGJoin(object):
                             righttable.tablename: crecord_right
                         }
                     )
+                if (jointype == 'inner'):
+                    mRecords.append(record)
+            if (jointype == 'outer'):
                 mRecords.append(record)
         return mRecords
 
-    def left(self, exclude_matches=False, flat=False):
-        mRecords = DLGRecords(records=[], cols=[], objp4=self.objp4)
-        records = self.left_records
-        (
-            lefttable,
-            righttable
-        ) = \
-            (
-                self.constraint.left._table,
-                self.constraint.right._table
-            )
-        for record in records:
-            fieldvalue = record[self.cField.fieldname]
-            crecord_right = self.cGroupRecords[fieldvalue]
-            crecord_right.delete(*self.exclude_fieldnames)
-            if ( crecord_right is not None):
-                if (is_recordsType(crecord_right) is True):
-                    crecord_right = crecord_right.last()
-                #if (exclude_matches is True):
-                #   ...
-                if (flat is True):
-                    record.merge(crecord_right)
-                else:
-                    record = DLGRecord(
-                        {
-                            lefttable.tablename: record,
-                            righttable.tablename: crecord_right
-                        }
-                    )
-            mRecords.append(record)
-        return mRecords
+    def join(self, flat=False):
+        return self.join_record(jointype='inner', flat=flat)
 
+    def left(self, flat=False):
+        return self.join_record(jointype='outer',  flat=flat)
 
     
 

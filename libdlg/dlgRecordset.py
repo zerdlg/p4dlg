@@ -993,7 +993,7 @@ class DLGRecordSet(object):
             self,
             field=None,
             distinct=None,
-            ** kwargs
+            **kwargs
     ):
         kwargs = Storage(kwargs)
         cols = self.cols

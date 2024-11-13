@@ -500,40 +500,6 @@ class JNLTable(object):
 
     def on(self, constraint):
         return DLGJoin(self.objp4, constraint)
-    """
-    ''' Define the right side as the other0 query (constraint_query)
-    '''
-    constraint_query = constraint.right._table
-    constraint_tablename = constraint_query.tablename
-    constraint_tabledata = self.objp4.memoizetable(constraint_tablename)
-    [constraint_tabledata.update(**{kitem: constraint.objp4[kitem]}) for kitem in (
-        'recordchunks',
-        'schemadir',
-        'oSchemaType',
-        'logger',
-        'maxrows'
-    )]
-    constraint_tabledata.update(
-        **{
-            'tablename': constraint_tablename,
-            'constraint': constraint,
-            'tabletype': type(constraint.objp4)
-        }
-    )
-    ''' There are constraints for linking 2 table (SQL JOIN).
-        build a dedicated recordset then pass it on to
-        Select.select via `oRecordSet`
-    '''
-    journal = constraint.objp4.journal
-    reader = constraint.objp4.reader
-    oJNLFile = JNLFile(journal, reader=reader)
-    constraint_recordset = DLGRecordSet(self.objp4, oJNLFile, **constraint_tabledata)
-    [setattr(constraint_recordset, cKey, cValue) for (cKey, cValue) in {
-        'constraint': constraint,
-        'constraint_tabledata': Storage(constraint_tabledata)
-    }.items()]
-    return constraint_recordset
-    """
 
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"

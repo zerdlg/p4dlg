@@ -650,39 +650,42 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         )
 
     def memoizetable(self, tablename):
-        try:
-            tabledata = self.tablememo[tablename]
-        except KeyError:
-            (
-                fieldnames,
-                fieldsmap,
-                fieldtypesmap
-            ) = \
-                (
-                    self.getfieldmaps(tablename)
-            )
-            tabledata = self.tablememo[tablename] = Storage(
-                                {
-                                    'fieldsmap': fieldsmap,
-                                    'fieldtypesmap': fieldtypesmap,
-                                    'fieldnames': fieldnames,
-                                    'logger': self.logger,
-                                }
-            )
-            '''  table attributes & specify keying fields
-            '''
-            tableschema = self.oSchema.p4model[tablename]
-            attributes = tableschema.getkeys()
-            attributes.remove('tablename')
-            for tableattribute in attributes:
-                if (tableattribute != 'fields'):
-                    value = self.oSchema.p4model[tablename][tableattribute]
-                    if (tableattribute == 'keying'):
-                        value = value.split(',')
-                    elif (tableattribute == 'name'):
-                        tabledata.merge({'_rname': value})
-                    tabledata.merge({tableattribute: value})
-            self.loginfo(f'jnltable defined: {tablename}')
+        tabledata = Storage()
+        if (tablename is not None):
+            try:
+                tabledata = self.tablememo[tablename]
+            except KeyError:
+                if (tablename is not None):
+                    (
+                        fieldnames,
+                        fieldsmap,
+                        fieldtypesmap
+                    ) = \
+                        (
+                            self.getfieldmaps(tablename)
+                    )
+                    tabledata = self.tablememo[tablename] = Storage(
+                                        {
+                                            'fieldsmap': fieldsmap,
+                                            'fieldtypesmap': fieldtypesmap,
+                                            'fieldnames': fieldnames,
+                                            'logger': self.logger,
+                                        }
+                    )
+                    '''  table attributes & specify keying fields
+                    '''
+                    tableschema = self.oSchema.p4model[tablename]
+                    attributes = tableschema.getkeys()
+                    attributes.remove('tablename')
+                    for tableattribute in attributes:
+                        if (tableattribute != 'fields'):
+                            value = self.oSchema.p4model[tablename][tableattribute]
+                            if (tableattribute == 'keying'):
+                                value = value.split(',')
+                            elif (tableattribute == 'name'):
+                                tabledata.merge({'_rname': value})
+                            tabledata.merge({tableattribute: value})
+                    self.loginfo(f'jnltable defined: {tablename}')
         return tabledata
 
     def dropTable(self, tablename):

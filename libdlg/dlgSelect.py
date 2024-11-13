@@ -1033,60 +1033,34 @@ class Select(DLGControl):
             oJoin,
             jointype,
             flat,
-            exclude_matches
         ) = \
             (
                 None,
                 None,
                 kwargs.flat or False,
-                kwargs.exclude_matches or False
             )
 
         ''' Are we joining records ? 
             What kind of joi (inner /left)?
-            Should we exclude matching fields ?
+            Should we flatten records ?
         '''
-        if (kwargs.merge_records is not None):
-            (
-                oJoin,
-                jointype,
-                flat
-            ) = \
-                (
-                    kwargs.merge_records,
-                    'inner',
-                    True
-                )
-        elif (kwargs.join is not None):
-            (
-                oJoin,
-                jointype,
-                flat
-            ) = \
-                (
-                    kwargs.join,
-                    'inner',
-                    flat
-                )
-        elif (kwargs.left is not None):
-            (
-                oJoin,
-                jointype,
-                flat
-            ) = \
-                (
-                    kwargs.left,
-                    'outer',
-                    flat
-                )
-
+        if OR(
+                (kwargs.merge_records is not None),
+                (kwargs.join is not None),
+                (kwargs.left is not None)
+        ):
+            merge_or_join = (kwargs.merge_records or kwargs.join)
+            (oJoin, jointype) = (merge_or_join, 'inner') \
+                if (merge_or_join is not None) \
+                else (kwargs.left, 'outer')
+            if (kwargs.merge_records is not None):
+                flat = True
         kwargs.delete(
             *[
                 'flat',
-                'exclude_matches',
                 'join',
                 'left',
-                'merge'
+                'merge_records'
             ]
         )
 
@@ -1102,7 +1076,7 @@ class Select(DLGControl):
             that we can express Unix time to an ISO format
         '''
         datetime_fields = self.get_records_datetime_fields(tablename)
-        recordsiter = self.get_recordsIterator(records)#, tables=['rev', 'change'])
+        recordsiter = self.get_recordsIterator(records)
         while (eor is False):
             table_mismatch = False
             try:
@@ -1247,10 +1221,7 @@ class Select(DLGControl):
                     else \
                     (
                         oJoin(outrecords).left,
-                        {
-                            'exclude_matches': exclude_matches,
-                            'flat': flat
-                        }
+                        {'flat': flat}
                     )
             outrecords = joiner(**joinargs)
 
