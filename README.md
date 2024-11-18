@@ -1,41 +1,22 @@
 # p4dlg 
-## A set of *abstractions* that use SQL to access and interact with your Perforce instance and its resources.
+#### A set of *abstractions* that use SQL to access and interact with your Perforce instance and its resources.
 
-### You can query your metadata.
-```Python
-In [12]: target_files = jnl(jnl.rev.change == 142).select()
+### Abstractions:
++ P4Jnl (Interact with your metadata, without Perforce client or admin programs)
++ Py4RCS (Interact with your versioned files) - under construction
++ Py4 (Interact with your server using SQL)
 
-In [13]: target_files
-Out[13]: <DLGRecords (2)>
+### Intsallation:
++ drop p4dlg on your system somewhere.
++ qtconsole
++ I generally install Anaconda for 3rd party dependencies
 
-In [14]: target_files.first()
-Out[14]: 
-<DLGRecord {'action': '8',
- 'change': '142',
- 'date': '2021/11/25',
- 'db_action': 'pv',
- 'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
- 'depotRev': '1',
- 'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
- 'idx': 1,
- 'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
- 'lbrIsLazy': '1',
- 'lbrRev': '1.121',
- 'lbrType': '0',
- 'modTime': '1630482775',
- 'size': '18420',
- 'table_name': 'db.rev',
- 'table_revision': '9',
- 'traitLot': '0',
- 'type': '0'}>
-```
+### In a nutshell...
+All abstractions basically work the same way.
+1. reate a new connection (or load a previously created connection) as per the target abstraction requirements.
+2. Start using.
 
-## Samples &n Examples
-Please see working samples & example in /p4q/libsample.
-
-### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction covered in this readme.
-
-## How do we use *p4dlg*?
+### How & where do we use *p4dlg*?
 Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Just type the following cmdline to start it up!
 
 ```Python
@@ -44,28 +25,9 @@ Though *p4dlg* can be imported and used in script or broader programs, it can al
 
 ![run_shell](https://github.com/user-attachments/assets/14825c81-ada0-48d4-a0e6-834f9b8090c1)
 
-* Please look in the /p4dlg/libsample directory for a more examples & samples.
-
-# Connectors
-## P4Jnl
-### Access all your metadata without being hindered by proprietary hurdles and without any perforce client or admin program. It is our data after all.
-
-### basics
-A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the journal data to an ongoing file (until truncated). Conversely, checkpoints and journals (or fragments thereof) can be used to rebuild your database or modified to update existing records (checkpoint surgery). In other words, they can be used to insert, update, delete & query records.
-
-### A sample journal fragment.
+### Create a new or load an existing connection to a Perforce Journal (or checkpoint).
 ```Python
-@pv@ 7 @db.user@ @bigbird@ @bigbird@@pycharmclient@ @@ 1624456923 1624456923 @bigbird@ @@ 2 @@ 0 0 0 0 0 0
-@pv@ 6 @db.domain@ @localclient@ 99 @raspberrypi@ @/home/pi@ @@ @@ @mart@ 1615718544 1618412757 0 @Created by bigbird.\n@
-@pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 2 131072 1 13 1618413823 1618413704 47D355EA47D55FAEC8C92A2ABDA980BC 40271 0 0 @//depot/codesamples/squery/squery.py@ @1.13@ 131072 
-@pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 1 131072 0 11 1615560173 1614326814 B72B933FC28A76969DB23DA8A219091A 46151 0 0 @//depot/codesamples/squery/squery.py@ @1.11@ 131072
-```
-
-It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some kind of transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is nice to have. Luckily, that know-how is baked-in to p4dlg, for any server/schema release.
-
-### Create or load an existing connection.
-```Python
-# Use `jnlconnect` to manage connections.
+# Use `jnlconnect` to manage connections to journals and checkpoints.
 # methods:    create - load - update - unload - destroy - purge - show
 # `jnlconnect` attributes: create    create and store a connection to a journal
 #                          load      load an existing connector
@@ -92,11 +54,119 @@ In [17]: jnlconnect.create('jnl',
                            }
                        )
 
-# the connectors are persistent & p4dlg keeps track to make them available for reuse. The can be loaded at any time.
+# the connectors are persistent & p4dlg keeps track to make them available for reuse. Once created, they can be loaded at any time.
 In [18]: jnlcon.load('jnl')
 Reference (jnl) loaded
 Out[18]: <P4Jnl ./resc/journals/journal.8>
 ```
+
+### Create a new or load an existing connection to a Perforce Server instance .
+```Python
+# Use `p4connect` to manage connections to a Perforce Server Instance.
+# methods:    create - load - update - unload - destroy - purge - show
+# `p4connect` attributes:  create    create and store a connection to a Server instance
+#                          load      load an existing connector
+#                          update    update a connector's values
+#                          unload    unload a connectior from the current scope
+#                          destroy   destroy an existing connector
+#                          purge     combines unload/destroy
+#                          show      display the the data that defined the object
+#                          
+# Create a connection to a Server instance with p4connect.create
+In [17]: p4connect.create('p4',                            # a name for your connection
+                        **{
+                           oSchema=oSchema,                # a perforce schema (don't worry
+                                                           # about this, they are already
+                                                           # included in the package)              
+                           user='bigbird',                 # a p4 user to access P4D
+                           port='anastasia.local:1777',    # the port to a p4d instance
+                           client='my_client'              # the clientspec that defines your workspace
+    )
+                           }
+                       )
+# As above, once created you can easily reload it
+In [18]: p4connect.load('p4')
+Reference (oP4) loaded & connected to anastasia.local:1777
+<Py4 anastasia.local:1777 >
+```
+
+### SQL features
+
+
+### Query syntax
+```Python
+#                     table     op    value
+#                      |        |      |
+In [19]: qry = (jnl.domain.type == 'client')
+#                |           |
+#             connector    column
+```
+
+### Building a query.
+```Python
+In [20]: qry = (jnl.domain.type == 'client')     # A simple query.
+In [21]: qry
+Out[21]: 
+<DLGQuery {'inversion': False,                   # A query is a reference to class `DLGQuery`.
+ 'left': <JNLField type>,
+ 'objp4': <P4Jnl ./resc/journals/journal.8>,     
+ 'op': <function EQ at 0x104d32700>,
+ 'right': 'client'}>
+```
+
+### Usage and Examples
+
+#### P4Jnl
+```Python
+In [12]: my_change = jnl(jnl.rev.change == 142).select()
+
+In [13]: my_change
+Out[13]: <DLGRecords (2)>
+
+In [14]: target_files.first()
+Out[14]: 
+<DLGRecord {'action': '8',
+ 'change': '142',
+ 'date': '2021/11/25',
+ 'db_action': 'pv',
+ 'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+ 'depotRev': '1',
+ 'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+ 'idx': 1,
+ 'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+ 'lbrIsLazy': '1',
+ 'lbrRev': '1.121',
+ 'lbrType': '0',
+ 'modTime': '1630482775',
+ 'size': '18420',
+ 'table_name': 'db.rev',
+ 'table_revision': '9',
+ 'traitLot': '0',
+ 'type': '0'}>
+```
+
+#### Other samples & examples
++ Please see working samples & example in /p4q/libsample.
+
+### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction covered in this readme.
+
+
+* Please look in the /p4dlg/libsample directory for a more examples & samples.
+
+
+### basics
+A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the journal data to an ongoing file (until truncated). Conversely, checkpoints and journals (or fragments thereof) can be used to rebuild your database or modified to update existing records (checkpoint surgery). In other words, they can be used to insert, update, delete & query records.
+
+### A sample journal fragment.
+```Python
+@pv@ 7 @db.user@ @bigbird@ @bigbird@@pycharmclient@ @@ 1624456923 1624456923 @bigbird@ @@ 2 @@ 0 0 0 0 0 0
+@pv@ 6 @db.domain@ @localclient@ 99 @raspberrypi@ @/home/pi@ @@ @@ @mart@ 1615718544 1618412757 0 @Created by bigbird.\n@
+@pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 2 131072 1 13 1618413823 1618413704 47D355EA47D55FAEC8C92A2ABDA980BC 40271 0 0 @//depot/codesamples/squery/squery.py@ @1.13@ 131072 
+@pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 1 131072 0 11 1615560173 1614326814 B72B933FC28A76969DB23DA8A219091A 46151 0 0 @//depot/codesamples/squery/squery.py@ @1.11@ 131072
+```
+
+It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some kind of transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is nice to have. Luckily, that know-how is baked-in to p4dlg, for any server/schema release.
+
 
 ### Query syntax
 ```Python
