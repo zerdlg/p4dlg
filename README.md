@@ -123,16 +123,29 @@ Out[21]:
  'right': 'client'}>
 ```
 
-### Usage and Examples
 
-#### P4Jnl
+### Connector + query = recordset
 ```Python
-In [12]: my_change = jnl(jnl.rev.change == 142).select()
+In [22]: recordste = jnl(qry)                    # Connection objects are callable, take queries and expose
+                                                 # useful attributes such as  `select`, `fetch`, update, etc.
+In [23]: RECORDSET
+Out[23]: <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>)>
 
-In [13]: my_change
+In [24]: clients = recordset.select()            # equivalent to `SELECT * FROM domain WHERE type = client`
+In [25]: clients
+Out[25]: <DLGRecords (188)>                      # The target journal defines 188 `clientspec` records.
+```
+
+
+### Usage and Examples
+####  Example 1. Selecting records (P4Jnl)
+```Python
+In [12]: my_files = jnl(jnl.rev.change == 142).select()
+
+In [13]: my_files
 Out[13]: <DLGRecords (2)>
 
-In [14]: target_files.first()
+In [14]: my_files.first()
 Out[14]: 
 <DLGRecord {'action': '8',
  'change': '142',
@@ -154,71 +167,30 @@ Out[14]:
  'type': '0'}>
 ```
 
-#### Other samples & examples
-+ Please see working samples & example in /p4q/libsample.
-
-### All abstractions, whatever they support, adhere to the same syntax, conventions and functionality. The following examples can be applied, conceptually, to any abstraction covered in this readme.
-
-
-* Please look in the /p4dlg/libsample directory for a more examples & samples.
-
-
-### basics
-A checkpoint is a snapshot, a textual representation of your Perforce DB. As records are created, the server outputs the journal data to an ongoing file (until truncated). Conversely, checkpoints and journals (or fragments thereof) can be used to rebuild your database or modified to update existing records (checkpoint surgery). In other words, they can be used to insert, update, delete & query records.
-
-### A sample journal fragment.
+####  Example 2. Selecting records (Py4)
 ```Python
-@pv@ 7 @db.user@ @bigbird@ @bigbird@@pycharmclient@ @@ 1624456923 1624456923 @bigbird@ @@ 2 @@ 0 0 0 0 0 0
-@pv@ 6 @db.domain@ @localclient@ 99 @raspberrypi@ @/home/pi@ @@ @@ @mart@ 1615718544 1618412757 0 @Created by bigbird.\n@
-@pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 2 131072 1 13 1618413823 1618413704 47D355EA47D55FAEC8C92A2ABDA980BC 40271 0 0 @//depot/codesamples/squery/squery.py@ @1.13@ 131072 
-@pv@ 9 @db.rev@ @//depot/codesamples/squery/squery.py@ 1 131072 0 11 1615560173 1614326814 B72B933FC28A76969DB23DA8A219091A 46151 0 0 @//depot/codesamples/squery/squery.py@ @1.11@ 131072
+In [15]: my_files = p4(p4.files.change == 510).select()
+
+In [16]: my_files
+Out[16]: <DLGRecords (46)>
+
+In [17]: my_files(0)
+Out[17]:
+<DLGRecord {'action': 'edit',
+ 'change': '510',
+ 'depotFile': '//dev/p4dlg/libdlg/dlgExtract.py',
+ 'idx': 129,
+ 'rev': '2',
+ 'time': '1731949279',
+ 'type': 'text'}> 
 ```
 
-It kind of looks like a .CSV file, but without column headers. P4D does not discriminate, each line is a record of some kind of transaction, regardless of table, in order and as it occures. Therefore a proficient knowledge of the p4 schema is nice to have. Luckily, that know-how is baked-in to p4dlg, for any server/schema release.
-
-
-### Query syntax
+#### Selecting records
 ```Python
-#                     table     op    value
-#                      |        |      |
-In [19]: qry = (jnl.domain.type == 'client')
-#                |           |
-#             connector    column
-```
-
-### Building a query.
-```Python
-In [20]: qry = (jnl.domain.type == 'client')     # A simple query.
-In [21]: qry
-Out[21]: 
-<DLGQuery {'inversion': False,                   # A query is a reference to class `DLGQuery`.
- 'left': <JNLField type>,
- 'objp4': <P4Jnl ./resc/journals/journal.8>,     
- 'op': <function EQ at 0x104d32700>,
- 'right': 'client'}>
-```
-
-Passing in a query to the connector's __call__ method, forces it to return a set of records, *DLGRecordSet*.
-The set of records are not the same as the selected records. It is basically a generator with useful methods
-and attributes.
-### Connector + query = recordset
-```Python
-In [22]: recordste = jnl(qry)                    # Connection objects are callable, take queries and expose
-                                                 # useful attributes such as  `select`, `fetch`, update, etc.
-In [23]: RECORDSET
-Out[23]: <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>)>
-
-In [24]: clients = recordset.select()            # equivalent to `SELECT * FROM domain WHERE type = client`
-In [25]: clients
-Out[25]: <DLGRecords (188)>                      # The target journal defines 188 `clientspec` records.
-```
-
-## Selecting records / syntax
-### Typing the thing as a one liner, say in an interactive QT Console, flows from the end of your finger tips.
-```Python
-In [26]: clients = jnl(jnl.domain.type == 'client').select()
+In [26]: jnl(jnl.domain.type == 'client').select()
 Out[26]: <DLGRecords (188)>
 ```
+
 ### Break it down to its syntactical parts.
 ```
 In [27]: client_recordset = jnl(jnl.domain.type == 'client')
@@ -392,6 +364,9 @@ Client:▷computer_p4dlg
  ▷⋅⋅⋅//dev/p4dlg/... //computer_p4dlg/... 
 ```
 
+
+#### Other samples & examples
++ Please see working samples & example in /p4q/libsample.
 
 ## RCS <under_construction>
 ## P4DB <under_construction>
