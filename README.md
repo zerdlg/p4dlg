@@ -90,10 +90,10 @@ Reference (oP4) loaded & connected to anastasia.local:1777
 <Py4 anastasia.local:1777 >
 ```
 
-### SQL features
-
+## SQL features
 
 ### Query syntax
+#### P4Jnl
 ```Python
 #                     table     op    value
 #                      |        |      |
@@ -101,6 +101,15 @@ In [19]: qry = (jnl.domain.type == 'client')
 #                |           |
 #             connector    column
 ```
+#### Py4
+```Python
+#                     table       op    value
+#                      |          |      |
+In [19]: qry = (p4.clients.client == 'client')
+#                |           |
+#             connector    column
+```
+
 
 ### Building a query.
 ```Python
