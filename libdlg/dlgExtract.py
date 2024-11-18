@@ -13,24 +13,32 @@ from libdlg.dlgUtilities import IsMatch
      [$Author: mart $]
 '''
 
-''' TODO: Needs lots of work!
+''' TODO: Needs LOTS of work!
 '''
 
 __all__ = [
-            'tar',
-            'untar',
-            'tar_root',
-            'Extractor',
-            'Compressor',
-            'uncompress_extract'
-           ]
+    'tar',
+    'untar',
+    'tar_root',
+    'Extract',
+    'Compress',
+    'decompress_extract'
+]
 
 '''  compress/decompress & tar/extract tarfile       
 '''
 
-def fopen(filename, mode='rb', lock=False):
+def fopen(
+        filename,
+        mode='rb',
+        lock=False
+):
     try:
-        return fileopen(filename, mode=mode, lock=lock)
+        return fileopen(
+            filename,
+            mode=mode,
+            lock=lock
+        )
     except Exception as err:
         bail(err)
 
@@ -45,30 +53,51 @@ def tar(file, dir, expression='^.+$'):
         tar.close()
 
 def unzip(filename):
-    oGzip = fopen(filename, mode='wb', lock=False)
+    oGzip = fopen(
+        filename,
+        mode='wb',
+        lock=False
+    )
     return oGzip
 
 def untar(filename, path):
-    return Extractor()(filename, path)
-def tar_root(fpath):
-    return Extractor().tar_root(fpath)
+    return Extract()(filename, path)
 
-class Extractor(object):
+def tar_root(fpath):
+    return Extract().tar_root(fpath)
+
+class Extract(object):
     def __init__(self, *args):
-        pass
+        (
+            self.filename,
+            self.path,
+            self.members
+        ) = \
+            (
+                None,
+                None,
+                None
+            )
 
     def __call__(self, filename=None, path='.', members=None):
-        (self.filename, self.path, self.members) = (filename, path, members)
+        (
+            self.filename,
+            self.path,
+            self.members
+        ) = \
+            (
+                filename,
+                path,
+                members
+            )
         return self
 
-    def get_dirnames(self, _file=None):
-        tfile = _file or self.filename
+    def get_dirnames(self, filename=None):
+        tfile = filename or self.filename
         if (os.path.isfile(tfile)):
             archive = tarfile.open(tfile, mode='r')
             try:
                 return archive.getnames()
-            except Exception as err:
-                bail(err)
             finally:
                 archive.close()
         return []
@@ -84,8 +113,6 @@ class Extractor(object):
         tar = tarfile.TarFile(tfile, 'r')
         try:
             return tar.extract(member, self.path)
-        except Exception as err:
-            bail(err)
         finally:
             tar.close()
 
@@ -94,8 +121,6 @@ class Extractor(object):
         tar = tarfile.TarFile(tfile, 'r')
         try:
             return tar.extractfile(member)
-        except Exception as err:
-            bail(err)
         finally:
             tar.close()
 
@@ -104,22 +129,19 @@ class Extractor(object):
         tar = tarfile.TarFile(tfile, 'r')
         try:
             return tar.extractall(self.path, self.members)
-        except Exception as err:
-            bail(err)
         finally:
             tar.close()
 
-        #oFile = lopen(tfile)
-        #try:
-        #    oFile.extractall(self.path, self.members)
-        #except Exception as err:
-        #    bail(err)
-        #finally:
-        #    oFile.close()
-
-class Compressor(object):
+class Compress(object):
     def __init__(self, *args):
-        pass
+        (
+            self.infile,
+            self.infile_noext
+        ) = \
+            (
+                None,
+                None
+            )
 
     def __call__(self, fname):
         self.inFile = fname
@@ -127,15 +149,14 @@ class Compressor(object):
         return self
 
     def get_noext_name(self, name=None):
-        if (name is not None):
-            try:
-                archbits = Lst(os.path.split(name))
-                archpath = archbits(0)
-                archname = Lst(os.path.splitext(archbits(1)))(0)
-                inFile_noext = os.path.join(*[archpath, archname])
-                return inFile_noext
-            except Exception as err:
-                bail(err)
+        try:
+            archbits = Lst(os.path.split(name))
+            archpath = archbits(0)
+            archname = Lst(os.path.splitext(archbits(1)))(0)
+            inFile_noext = os.path.join(*[archpath, archname])
+            return inFile_noext
+        except:
+            return name
 
     def compressfile(self, outfile=None):
         compress_outfile = outfile or self.inFile_noext
@@ -156,15 +177,17 @@ class Compressor(object):
         finally:
             [obj.close() for obj in (objInFile, objOutFile)]
 
-def uncompress_extract(
+def decompress_extract(
         arch,
         destpath='.',
         clean=True,
         lock=False
 ):
     def to_decomped_name(afile):
-        return re.sub('.tgz', '.tar', afile) if (afile.endswith('.tgz')) \
-            else afile.rstrip('.gz') if ((afile.endswith('.gz'))) \
+        return re.sub('.tgz', '.tar', afile) \
+            if (afile.endswith('.tgz')) \
+            else afile.rstrip('.gz') \
+            if ((afile.endswith('.gz'))) \
             else afile
 
     def gzip_is_empty(afile):
@@ -174,8 +197,6 @@ def uncompress_extract(
             return False \
                 if (len(content) > 0) \
                 else False
-        except Exception as err:
-            return False
         finally:
             oFile.close()
 
@@ -200,24 +221,34 @@ def uncompress_extract(
                 print(err)
 
 
-    if ((os.path.exists(arch) is False) or (gzip_is_empty(arch) is True)):
+    if (os.path.exists(arch) is False) or (gzip_is_empty(arch) is True):
         print(f'no such compressed file or has 0 length: {arch}')
     else:
-        extract_path = os.path.abspath(os.path.join(*[destpath, os.path.dirname(arch),]))
+        extract_path = os.path.abspath(
+            os.path.join(
+                *[
+                    destpath,
+                    os.path.dirname(arch),
+                ]
+            )
+        )
 
-        (oCompress, oExtract) = (Compressor(), Extractor())
+        (
+            oCompress,
+            oExtract
+        ) = \
+            (
+                Compress(),
+                Extract()
+            )
 
-        '''  things should work like this:
+        '''  the thing should work like this:
     
-                if atype is .gz     -->  type is (1) Compressor & (2) None        -> gzfile     (./file.gz)
-                if atype is .tar    -->  type is (1) Extractor  & (2) None        -> tarfile    (./file.tar)
-                if atype is .tar.gz -->  type is (1) Compressor & (2) Extractor   -> targzfile  (./file.targz)
-                if atype is .tgz    -->  type is (1) Extractor  & (2) Extractor   -> gziptar    (./file.tgz)
+                if atype is .gz     -->  type is (1) Compress & (2) None        -> gzfile     (./file.gz)
+                if atype is .tar    -->  type is (1) Extract  & (2) None        -> tarfile    (./file.tar)
+                if atype is .tar.gz -->  type is (1) Compress & (2) Extract     -> targzfile  (./file.targz)
+                if atype is .tgz    -->  type is (1) Extract  & (2) Extract     -> gziptar    (./file.tgz)
         '''
-
-        a = re.match(r'^.*[^\.tar]\.gz$', arch)
-        b = re.match(r'^.*\.tar$|.*.tgz$', arch)
-        c = re.match(r'^.*\.tar.gz$|', arch)
         archivetype = {Lst(IsMatch(r'^.*[^\.tar]\.gz$')(arch))(1): Lst([oCompress, ]),
                        Lst(IsMatch(r'^.*\.tar$|.*.tgz$')(arch))(1): Lst([oExtract, ]),
                        Lst(IsMatch(r'^.*\.tar.gz$|')(arch))(1): Lst([oCompress, oExtract, ])}[True]
@@ -225,16 +256,16 @@ def uncompress_extract(
         rname = to_decomped_name(arch)
         '''  decompress or extract, but not both!            -> archive is filename.tgz or filename.gz             
         '''
-        if (type(archivetype(0)).__name__ == 'Compressor'):
+        if (type(archivetype(0)).__name__ == 'Compress'):
             decompressObj(archivetype(0), arch, rname)
             cleanfile(arch)
-        elif (type(archivetype(0)).__name__ == 'Extractor'):
+        elif (type(archivetype(0)).__name__ == 'Extract'):
             extractObj(archivetype(0), rname, extract_path)
             cleanfile(rname)
 
         '''  archive is decompressed and dropped a tarball!  -> archive is filename.tar.gz or filename.targz       
         '''
-        if (type(archivetype(1)).__name__ == 'Extractor'):
+        if (type(archivetype(1)).__name__ == 'Extract'):
             extractObj(archivetype(1), rname, extract_path)
             cleanfile(rname)
 
@@ -255,13 +286,13 @@ def test():
     '''  uncompress and extract a tar.gz file
     '''
     f = '/Users/gc/depot/AudioFormatOgg.h.gz'
-    #uncompress_extract('./archive_samples/sample_depot.tar.gz', clean=True, lock=False)
-    uncompress_extract(f, clean=True, lock=False)
+    #decompress_extract('./archive_samples/sample_depot.tar.gz', clean=True, lock=False)
+    decompress_extract(f, clean=True, lock=False)
 
     '''  uncompress a .zip file
     '''
-    compressed_file = './archive_samples/gareth.zip'
-    oCompress = Compressor()(compressed_file)
+    #compressed_file = './archive_samples/gareth.zip'
+    #oCompress = Compress()(compressed_file)
 
 if __name__ == '__main__':
     test()

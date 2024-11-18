@@ -2,50 +2,7 @@ import re
 from io import StringIO
 
 from libdlg import Lst, bail
-from libdlg.dlgError import *
-
-''' The librcs package owes much of its functionality to James Strickland. 
-    Originaly released in March 1999 and updated in November 2011.
-'''
-''' Introduction texts taken from selected modules from said converter written by James.
-
-    ... cvs2p4.py
-    
-    CVS to Perforce converter.
-    All authors, dates, revisions, and branching relationships are preserved.
-    Labels are output to files which can be used to create labels with cvstop4makelabels.py
-    (see the latter for more details and the reasons why).
-
-    The converter works in two stages. In the first stage, the list of revisions
-    and labels/branches is determined by reading each RCS file. The list of
-    revisions is then sorted by date:time, and drives the second stage, which
-    is the generation of the corresponding Perforce metadata.
-    
-    See cvstop4.config for configuration options. Prior to running the
-    script you will need to at least specify where the CVS files are located
-    and where you would like the Perforce data stored.
-    
-            Written by James Strickland June 2011
-            Relies on my rcs.py library.
-            
-    ... rcs.py
-    
-    Module to read RCS files, as defined by the grammar given in rcsfile(5).
-    This is a totally self-contained module.  If run from the command line
-    it will print out the metadata for any RCS files you specify.
-
-    TODO:
-    - add support for a whole bunch of useful utilities such as
-      explode, collect, merge, insert
-
-    James Strickland
-    Perforce Software
-    March 1999
-
-    May 2011: Updated and expanded to include the ability to create, modify and
-    write RCS files.
-'''
-
+from libdlg.dlgError import CreateRevisionError, MissingRevision, InternalRCSError
 
 '''  [$File: //dev/p4dlg/librcs/__init__.py $] [$Change: 472 $] [$Revision: #6 $]
      [$DateTime: 2024/09/03 03:46:02 $]
@@ -126,7 +83,7 @@ def readlines(s):
     except Exception as err:
         bail(err)
 
-class ParseRCSError(RCSError):
+class ParseRCSError(RCSbError):
     def __init__(
             self,
             RCSobject,

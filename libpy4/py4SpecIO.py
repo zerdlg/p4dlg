@@ -233,7 +233,6 @@ class SpecIO(object):
         '''
         [outrecord.delete(key) for key in outrecord.copy().keys() \
          if key.lower() in ('access', 'update', 'code')]
-
         ''' run the spec command and return it's output
         '''
         try:

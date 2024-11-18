@@ -373,11 +373,11 @@ class Py4Table(object):
                     >>> clientrecord = objp4(qry).fetch()
                     >>> pprint(clientrecord)
                     {'Client': 'gc.pycharm',
-                     'Description': 'Created by mart.\n',
+                     'Description': 'Created by gc.\n',
                      'Host': 'computer.local',
                      'LineEnd': 'local',
                      'Options': 'noallwrite noclobber nocompress unlocked nomodtime normdir',
-                     'Owner': 'mart',
+                     'Owner': 'gc',
                      'Root': '/Users/gc/pycharmprojects/sQuery',
                      'SubmitOptions': 'submitunchanged',
                      'View': ['//depotmart2/... //pc.pycharm/depotmart2/...',

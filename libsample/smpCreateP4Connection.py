@@ -17,7 +17,7 @@ def create_p4connect_p4qshell(name, version):
     oShell = ServeLib()()                               # reference to class DLGShell
     oSchema = oShell.schema(version)                    # deserialize a p4 schema of this release
     p4user = {
-            'user': 'mart',                             # the user that will connect to p4d
+            'user': 'gc',                               # the user that will connect to p4d
             'port': 'anastasia.local:1777',
             'client': 'computer_p4q',
             'oSchema': oSchema
@@ -32,7 +32,7 @@ def create_p4connect_Py4(version):
     objSchema = SchemaXML(schemadir)                    # a reference to class SchemaXML
     oSchema = objSchema(schemaversion)                  # the schema object
     p4args = {                                          # the p4 user
-        'user': 'mart',
+        'user': 'gc',
         'port': 'anastasia.local:1777',
         'client': 'computer_p4q',
         'oSchema': oSchema

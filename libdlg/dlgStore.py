@@ -740,21 +740,3 @@ class StorageIndex(Storage):
         ]
         self = newstore
         return self
-
-    """
-    def insert(self, item, idx='last'):
-        nkey = -1
-        if (len(self) == 0):
-            nkey = 0
-        elif (idx in ('last', -1)):
-            nkey = (self.getkeys().last() + 1)
-        elif (idx in ('first', 0)):
-            [self.rename(i, i + 1) for i in self.getkeys().reversed()]
-            nkey = 0
-        elif (isinstance(idx, int)) & (idx != -1):
-            [self.rename(i, i + 1) for i in self.getkeys().reversed() if (i >= idx)]
-            nkey = idx
-        if (nkey >= 0):
-            self.merge({nkey: item})
-        return self
-    """

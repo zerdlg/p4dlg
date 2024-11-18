@@ -633,13 +633,13 @@ class Flatten(Storage):
 
         I.e.:
 
-           >>> output={'bla0': 'mart',
-                       'bla1': 'mia',
+           >>> output={'bla0': 'gc',
+                       'bla1': 'bigbird',
                        'bla2': 'charlotte',
                        'bla3': 'cara',
                        'fieldtest': 'abc',
                        'view0': '//depot/... //test_main/...',
-                       'view1': '//depot/mart/... //test_main/mart/...',
+                       'view1': '//depot/gc/... //test_main/gc/...',
                        'view2': '//depot/charlotte/... //test_main/charlotte/...'}
 
            >>> oAggr = Flatten(**output)
@@ -648,30 +648,30 @@ class Flatten(Storage):
 
             >>> oAggr.reduce()
 
-           {'bla': ['mart', 'mia', 'charlotte', 'cara'],
+           {'bla': ['gc', 'mia', 'charlotte', 'cara'],
             'fieldtest': 'abc',
             'view': ['//depot/... //test_main/...',
-                     '//depot/mart/... //test_main/mart/...',
+                     '//depot/gc/... //test_main/gc/...',
                      '//depot/chloe/... //test_main/chloe/...']}
 
         flatten (return to numbered keys):
 
             >>> oAggr.expand()
 
-           {'bla0': 'mart',
+           {'bla0': 'gc',
             'bla1': 'mia',
             'bla2': 'charlotte',
             'bla3': 'cara',
             'fieldtest': 'abc',
             'view0': '//depot/... //test_main/...',
-            'view1': '//depot/mart/... //test_main/mart/...',
+            'view1': '//depot/gc/... //test_main/gc/...',
             'view2': '//depot/charlotte/... //test_main/charlotte/...'}
 
         * can toggle between reduce/flatten at your pleasure.
 
         USAGE:
 
-            d = {'a':'mart', 'b':'charlotte'}
+            d = {'a':'gc', 'b':'charlotte'}
 
             atest = Flatten(**d)
             btest = atest.mergekeys(**{'a':'minou','c':'gareth'})
@@ -679,19 +679,19 @@ class Flatten(Storage):
             btest = Flatten(**d).mergekeys(**{'a':'minou','c':'gareth'})
 
             btest
-            Out[3]: <Flatten({'a0': 'mart', 'a1': 'minou', 'b': 'charlotte', 'c': 'gareth'})>
+            Out[3]: <Flatten({'a0': 'gc', 'a1': 'minou', 'b': 'charlotte', 'c': 'gareth'})>
 
             best.keys()
             Out[4 ['a0', 'a1', 'b', 'c0', 'c1']
 
             btest.reduce()
-            Out[5]: <Flatten({'a': ['minou', 'mart'], 'b': 'charlotte', 'c': 'gareth'})>
+            Out[5]: <Flatten({'a': ['minou', 'gc'], 'b': 'charlotte', 'c': 'gareth'})>
 
             btest.keys()
             Out[6] ['a', 'b', 'c']
 
             btest.flatten()
-            Out[7]: <Flatten({'a0': 'minou', 'a1': 'mart', 'b': 'charlotte', 'c': 'gareth'})>
+            Out[7]: <Flatten({'a0': 'minou', 'a1': 'gc', 'b': 'charlotte', 'c': 'gareth'})>
 
             btest.keys()
             Out[8] ['a0', 'a1', 'b', 'c0', 'c1']
@@ -1364,11 +1364,11 @@ def storageIndexToList(_storeidx, default='idx'):
     '''  reduces the StorageIndex to a list of record-like items - creates
             an id field with the keys....
 
-            >>> storeidx=StorageIndex({0:{'a': 'mart'},
+            >>> storeidx=StorageIndex({0:{'a': 'gc'},
                                        1:{'b': 'charlotte'},
                                        2:{'c': 'normand'}})
             >>> storeidx.reduceToList()
-            [[{'id': 0}, {'a': 'mart'}],
+            [[{'id': 0}, {'a': 'gc'}],
             [{'id': 1}, {'b': 'charlotte'}],
             [{'id': 2}, {'c': 'normand'}]]
     '''

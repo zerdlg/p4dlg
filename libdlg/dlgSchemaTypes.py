@@ -56,7 +56,7 @@ class SchemaType(object):
         return Lst(recordtypes)
 
     def recordtype_byname(self, recordtypename):
-        ''' >>> oSchemaType.get_record_byname('Domain')
+        ''' >>> oSchemaType.recordtype_byname('Domain')
         Out[7]:
         [{'name': 'name', 'type': 'Domain', 'desc': 'Domain name'},
          {'name': 'type', 'type': 'DomainType', 'desc': 'Type of domain'},
@@ -508,3 +508,41 @@ class SchemaType(object):
         return True \
             if (dflag is not None) \
             else False
+
+    def mask_value2nanme(self, oField, value):
+        ''' TODO: this '''
+
+    def flagname_byvalue(self, oField, value):
+        ''' Eg.
+
+            from jnl.rev.action, we have these flag values.
+
+            [{'value': '0', 'desc': 'add; user adds a file'},
+             {'value': '1', 'desc': 'edit; user edits a file'},
+             {'value': '2', 'desc': 'delete; user deletes a file'},
+             {'value': '3', 'desc': 'branch; add via integration'},
+             {'value': '4', 'desc': 'integ; edit via integration'},
+             {'value': '5', 'desc': 'import; add via remote depot'},
+             {'value': '6', 'desc': 'purge; purged revision, no longer available'},
+             {'value': '7', 'desc': 'movefrom; move from another filename'},
+             {'value': '8', 'desc': 'moveto; move to another filename'},
+             {'value': '9', 'desc': 'archive; stored in archive depot'}]
+
+             >>> jnl.oSchemaType.lag_value2name(jnl.rev.action, '8')
+
+        '''
+        value = str(value)
+        values = self.values_bydatatype(oField.type)
+        desc = next(filter(lambda rec: rec.value == value, values)).desc
+        name = Lst(desc.split(';'))(0)
+        return name
+
+    def flagvaleu_byname(self, oField, flag):
+        ''' Eg.
+
+            >>> jnl.oSchemaType.flagvalue_byname(jnl.rev.action, 'movefrom')
+            '7'
+        '''
+        values = self.values_bydatatype(oField.type)
+        value = next(filter(lambda rec: rec.desc.startswith(flag), values)).value
+        return value

@@ -32,6 +32,7 @@ __all__ = ['DLGRecordSet']
                       or a list of lists --> in this case record[0] MUST be the column names
 
                     * if source is a file, the file can be a CSV file or a p4journal (a checkpoint)
+                    
                     * same goes for file objects
 
                         although... a CSV "Reader()" is also welcome, the proper dialect must be set!
@@ -91,9 +92,6 @@ class DLGRecordSet(object):
     )
     __bool__ = lambda self: True
     __copy__ = lambda self: self
-    #__str__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
-    #__repr__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
-
     __repr__ = lambda self: f'<DLGRecordSet ({type(self.recordset)}) >'
     __str__ = __repr__
 
@@ -277,13 +275,13 @@ class DLGRecordSet(object):
             +-----------------+------------------------------------------------+----------------------+
             | Query Type      | Query Statement                                | Requires tablename   |
             +=================+================================================+======================+
-            | recQuery        | query = lambda record: record.User=='mart'     |     <tablename>      |
+            | recQuery        | query = lambda record: record.User=='gc'       |     <tablename>      |
             +-----------------+------------------------------------------------+----------------------+
-            | funcQuery       | query = lambda record: EQ(record.User, 'mart') |     <tablename>      |
+            | funcQuery       | query = lambda record: EQ(record.User, 'gc')   |     <tablename>      |
             +-----------------+------------------------------------------------+----------------------+
-            | strQuery        | query = "change.User=mart"                     |      *optional       |
+            | strQuery        | query = "change.User=gc"                       |      *optional       |
             +-----------------+------------------------------------------------+----------------------+
-            | attQuery        | query = oP4.change.User == 'mart'              |      *optional       | 
+            | attQuery        | query = oP4.change.User == 'gc'                |      *optional       | 
             +-----------------+------------------------------------------------+----------------------+
         '''
         compute = tabledata.compute or []

@@ -211,9 +211,9 @@ class DLGJoin(object):
     def is_matching(self, left, right):
         fsum = sum([OR(1, 0) for field in left.getkeys()
                     if (field in right.getkeys())])
-        if (fsum > 0):
-           return True
-        return False
+        return True \
+            if (fsum > 0) \
+            else False
 
     def join_record(self, jointype=None, flat=False):
         # cKeys = self.cMemo.keys()
@@ -250,12 +250,20 @@ class DLGJoin(object):
                 mRecords.append(record)
         return mRecords
 
+    def merge_records(self, flat=True):
+        return self.join_record(
+            jointype='inner',
+            flat=flat
+        )
+
     def join(self, flat=False):
-        return self.join_record(jointype='inner', flat=flat)
+        return self.join_record(
+            jointype='inner',
+            flat=flat
+        )
 
     def left(self, flat=False):
-        return self.join_record(jointype='outer',  flat=flat)
-
-    
-
-
+        return self.join_record(
+            jointype='outer',
+            flat=flat
+        )

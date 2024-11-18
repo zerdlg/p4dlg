@@ -20,7 +20,7 @@ __all__ = ['Search']
 ''' USAGE:
 
     >>> oSearch = Search()                                          # reference to class Search
-    >>> source = '/home/mart/client_workspace/files/filename'       # path to a file
+    >>> source = '/home/gc/client_workspace/files/filename'         # path to a file
     >>> terms = ['hobbit']                                          # the search terms
     >>> search_results = oSearch(source, *terms)                    # Search is callable and take 2 args: source, terms
     >>> pprint(search_results)                                      # the following or dictionaries of results

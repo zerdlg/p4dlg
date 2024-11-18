@@ -36,7 +36,7 @@ __all__ = [
            'NOT', 'AND', 'OR', 'XOR',
            'EQ', 'NE', 'GE', 'GT', 'LE', 'LT',
            'CONTAINS', 'ENDSWITH', 'STARTSWITH',
-           'ADD', 'SUB', 'MUL', 'MOD', 'ON',
+           'ADD', 'SUB', 'MUL', 'MOD',
            'CASE', 'CASEELSE', 'DIFF', 'MATCH', 'SEARCH',
            'LOWER', 'UPPER', 'JOIN', 'LEFT',
            'PRIMARYKEY', 'COALESCE', 'COALESCEZERO',
@@ -481,10 +481,6 @@ def COALESCEZERO(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsCOALESCEZERO(**kwargs)(*args)
 
-def ON(*args, **kwargs):
-    #return clsNOTIMPLEMENTED(**kwargs)(*args)
-    return clsON(**kwargs)(*args)
-
 def JOIN(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsJOIN(**kwargs)(*args)
@@ -529,12 +525,6 @@ def EXTRACT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsEXTRACT(**kwargs)(*args)
 
-
-def AGGREGATE(*args, **kwargs):
-    return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsAGGREGATE(**kwargs)(*args)
-
-
 def SUBSTRING(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsSUBSTRING(**kwargs)(*args)
@@ -542,7 +532,6 @@ def SUBSTRING(*args, **kwargs):
 def BETWEEN(*args, **kwargs):
     #return clsBETWEEN(**kwargs)(*args)
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-
 
 class QClass(object):
     expcache = {}
@@ -671,32 +660,6 @@ class QClass(object):
                 else op
             if (all_ops_table(opname) is not None):
                 built = {'op': op, 'left': left, 'right': right}
-                """
-            if (opname in (EQ, 'EQ', '=')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (NE, 'NE', '!=')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (NOT, 'NOT', 'not')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (GT, 'GT', '>')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (GE, 'GE', '>=')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (LT, 'LT', '<')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (LE, 'LE', '<=')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (CONTAINS, 'CONTAINS', '#')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (STARTSWITH, 'STARTSWITH', '#^')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (ENDSWITH, 'ENDSWITH', '#$')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (MATCH, 'MATCH', '#^$')):
-                built = {'op': op, 'left': left, 'right': right}
-            elif (opname in (SEARCH, 'SEARCH', '#?')):
-                built = {'op': op, 'left': left, 'right': right}
-                """
             elif not (left or right):
                 built = {'op': op}
             else:
@@ -854,8 +817,6 @@ class QClass(object):
                     else ~record[fieldname] \
                     if (op.startswith('~')) \
                     else False
-
-                    #if ((op.startswith('NOT'))
             except ValueError:
                 return False
 
@@ -1095,7 +1056,6 @@ class clsOR(QClass):
                 right,
                 op or OR
             ), name='OR', err=err)
-
 
 class clsXOR(QClass):
     def __call__(self, *exps):
@@ -1643,53 +1603,6 @@ class clsBELONGS(QClass):
                 right,
                 op or BELONGS
             ), name='BELONGS', err=err)
-
-class clsON(QClass):
-    def __call__(self, *exps):
-        exps = Lst(exps)
-        (left, right) = (exps(0), exps(1))
-        try:
-            if (is_tableType(left) is True):
-                qres = DLGExpression(left.objp4, ON, left, right)
-            elif (type(left).__name__ == 'Storage'):
-                qres = Storage({'op': ON, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'DLGQuery'):
-                qres = DLGQuery(left.objp4, ON, left, right)
-            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
-                qres = DLGExpression(left.objp4, ON, left, right)
-            elif (
-                    (isinstance(left, (bool, int)))
-                    & (isinstance(right, (bool, int)))
-            ):
-                qres = reduce(lambda left, right: (re.match(f"^{right}", left) is not None),
-                              self.getSequence(*exps))
-            elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                if ((tablename, fieldname) == (None, None)):
-                    qres = reduce(lambda left, right: (re.match(f"^{right}.*$", left) is not None),
-                                  self.getSequence(*exps))
-                else:
-                    qres = Storage({'op': STARTSWITH,
-                                    'left': {
-                                                'tablename': tablename,
-                                                'fieldname': fieldname
-                                            },
-                                   'right': value
-                                    }
-                                   )
-            else:
-                qres = self.build_query(
-                                        left,
-                                        right,
-                                        STARTSWITH
-                )
-            return qres
-        except Exception as err:
-            op_error(lambda left, right, op: (
-                left,
-                right,
-                op or STARTSWITH
-            ), name='STARTSWITH', err=err)
 
 ''' In case it comes up... but it could 
     cause more confusion than anything else.
@@ -2753,10 +2666,6 @@ class clsCOALESCEZERO(QClass):
         exps = Lst(exps)
 
 class clsEXTRACT(QClass):
-    def __call__(self, *exps):
-        exps = Lst(exps)
-
-class clsAGGREGATE(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 

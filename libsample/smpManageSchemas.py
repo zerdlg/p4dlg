@@ -17,7 +17,6 @@ def testmisc(schemaObj):
     ''' remote p4 schemas & locally stored schemas
     '''
     remote_releases = schemaObj.listreleases_remote()
-    print
     pprint(remote_releases)
     latestlocalversion = schemaObj.latestrelease_local()
     print(f'\nlatest local release version: {latestlocalversion}\n')

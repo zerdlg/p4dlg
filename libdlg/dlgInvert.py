@@ -48,7 +48,7 @@ def invert(qry):
                 for lr in (left, right):
                     if (is_qType_or_field(lr) is True):
                         lr = invert(lr)
-                        ''' Crap! what did I wan t to do next...?
+                        ''' Crap! what did I want to do next...?
                         '''
         return qry
     except Exception as err:

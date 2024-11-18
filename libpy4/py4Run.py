@@ -89,7 +89,7 @@ class Py4Run(object):
                         --force=True,
                         **{
                             'Client':'my_client',
-                            'Root': '/home/mart/projects'
+                            'Root': '/home/gc/projects'
                             }
                         )
                 '''

@@ -134,7 +134,7 @@ def main():
     likely_release = max(compatible_releases)
     print(f"Compatible releases: {compatible_releases}")
     print(f'likely releases: {likely_release}')
-    ''' after al said and done, consider running >>> ./p4d -r {P4DROOT} -J journal -xu
+    ''' after all said and done, consider running >>> ./p4d -r {P4DROOT} -J journal -xu
     '''
 
 # if __name__=='__main__':main()

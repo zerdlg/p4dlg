@@ -32,7 +32,7 @@ class Retype(object):
         objSchema = SchemaXML(schemadir)
         oSchema = objSchema(schemaversion)
         p4args = {
-                    'user': kwargs.user or 'mart',
+                    'user': kwargs.user or 'gc',
                     'port': kwargs.port or 'anastasia.local:1777',
                     'client': kwargs.client or 'computer_p4q',
                     'oSchema': oSchema

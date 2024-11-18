@@ -109,7 +109,7 @@ def p4d_backup(**opts):
     ):
         ''' scp from a remote server to a directory on a remote server 
 
-            eg.    %> scp -r pi@anastasia.local:~/p4dinst mart@computer.local:~/anastasia_p4dinst_backup
+            eg.    %> scp -r pi@anastasia.local:~/p4dinst gc@computer.local:~/anastasia_p4dinst_backup
         '''
         srcargs = [
             remote_src_user,
@@ -136,7 +136,7 @@ def p4d_backup(**opts):
     elif (not None in (local_src_dir, remote_dst_dir)):
         ''' scp from local directory to a local directory 
 
-            eg.    %> scp -r ~/p4dinst mart@computer.local:~/anastasia_p4dinst_backup
+            eg.    %> scp -r ~/p4dinst gc@computer.local:~/anastasia_p4dinst_backup
         '''
         (scrargs, dstargs) = (
             [local_src_dir], [

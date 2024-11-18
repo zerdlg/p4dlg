@@ -147,11 +147,21 @@ class DLGShell(object):
         )
 
         self.ignoredvars = []
-        self.var_projectdir = projectdir
-        self.var_journaldir = journaldir 
-        self.var_schemadir = schemadir
-        self.var_dbdir = dbdir
-        self.var_varsdir = varsdir
+        (
+            self.var_projectdir,
+            self.var_journaldir,
+            self.var_schemadir,
+            self.var_dbdir,
+            self.var_varsdir
+        ) = \
+            (
+                projectdir,
+                journaldir,
+                schemadir,
+                dbdir,
+                varsdir
+            )
+
         self.var_excludelibdirs = [
                                     self.var_schemadir,
                                     self.var_varsdir
@@ -164,7 +174,6 @@ class DLGShell(object):
                                     self.var_journaldir,
                                     self.var_dbdir
         ]
-
         [createdir(vardir) for vardir in self.var_dirs_to_create]
         [
             self.varsdata[vkey].merge(
@@ -263,10 +272,20 @@ class DLGShell(object):
 
     ''' set & unset session Vars (will not persist beyond the session's life span)
     '''
-    def cmd_unsetvar(self, configname, *args, **kwargs):
+    def cmd_unsetvar(
+            self,
+            configname,
+            *args,
+            **kwargs
+    ):
         self.clsVars(self, configname).unset(*args, **kwargs)
 
-    def cmd_setvar(self, configname, *args, **kwargs):
+    def cmd_setvar(
+            self,
+            configname,
+            *args,
+            **kwargs
+    ):
         self.clsVars(self, configname).set(*args, **kwargs)
 
     def validatevars(self, *args, **kwargs):
@@ -546,6 +565,7 @@ class DLGShell(object):
            * clear the screen
            * gracefully close the qtconsole
            * restart the qtconsole
+           * etc.
     '''
 
     def cmd_clear(self, keep_input=True, numlines=50):
@@ -610,6 +630,7 @@ class DLGShell(object):
             self.obj.qtWidget.request_restart_kernel()
 
         # def stacktracer(self): return Pdb
+
         def close(self):
             self.obj.qtWidget.kernel_client.stop_channels()
             self.obj.qtWidget.kernel_manager.shutdown_kernel()
@@ -688,7 +709,7 @@ class Serve(DLGShell):
         self.initshell(**opts)
 
 def _query(**opts):
-    '''     BROKEN :(   TODO: fix
+    '''     BROKEN :(   TODO: fix this.
 
             #>>> python dlg.py query -j ./journals/journal2 -q domain.type=99 -v r16.2
 

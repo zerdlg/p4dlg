@@ -45,25 +45,24 @@ class VARSObject(object):
             provides persistence of key / value pairs of arbitrary
             data from one session to the next  as well.
 
-
             this is annoying @ a terminal:
             >>> self.myvar
 
-            this is not annoying @ a terminal:
+            this is not annoying:
             >>> myvar
 
             I.e.:
 
             1. class bla(object):
                 def __init__(*args,**kwargs):
-                    self.var_myvar={'a':'mart','b':'fred'}
+                    self.var_myvar={'a':'gc','b':'fred'}
 
                 ...
 
                 def some_method(*args,**kwargs):
                    self.var_my_other_var=('a','b','c')
 
-            2. >>> cvars('myvar',{'a':'mart','b':'fred'})
+            2. >>> cvars('myvar',{'a':'gc','b':'fred'})
                >>> cvars(**{'my_other_var':('a','b','c')})
 
             in either case (1 or 2), an instance recoops previously set vars.
@@ -92,7 +91,7 @@ class VARSObject(object):
             Since it can store arbitrary data, its a nice & easy
             place to store all kinds of stuff, like user credentials
 
-            >>> cvars(Storage({'p4user':{'usermart':{'user':'mart' \
+            >>> cvars(Storage({'p4user':{'usermart':{'user':'gc' \
                                                     ,'password':'mypassword' \
                                                     ,'port':'localhost:1666' \
                                                     ,'client':'martclient'}}})
@@ -109,7 +108,7 @@ class VARSObject(object):
                     userargs = self.cvars('p4user')[args[0]]
                     pprint(userargs)
 
-            {'user':'mart',
+            {'user':'gc',
             'password':'mypassword',
             'port':'localhost:1666',
             'client':'martclient'}
@@ -202,7 +201,7 @@ class VARSObject(object):
             if (isinstance(args(0), str)):
                 '''      args(0) - retrieves its value
 
-                            >>> cvars('mart')
+                            >>> cvars('gc)
                             'cat'
                 '''
                 return self.getarg(args.pop(0), **kwargs)
@@ -286,7 +285,11 @@ class VARSObject(object):
         if (len(Lst(args)) > 0):
             kwargs.merge(
                 {
-                    arg: None for arg in args if (arg in (self.varsobject, self.varspickle))
+                    arg: None for arg in args if (arg in (
+                    self.varsobject,
+                    self.varspickle
+                )
+                                                  )
                 }
             )
         return self.update_add_remove(**kwargs)

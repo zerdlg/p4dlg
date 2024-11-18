@@ -360,15 +360,15 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
             >>> out = records.sortby(oJnl.domain.accessDate)
             >>> out.as_grid()
-            +-----+-----------+----------------+------------+-----------------+------+--------------+-----------------------------+--------+--------+-------+------------+------------+---------+------------------+--------+----------+-----------+
-            | idx | db_action | table_revision | table_name | name            | type | extra        | mount                       | mount2 | mount3 | owner | updateDate | accessDate | options | description      | stream | serverid | partition |
-            +-----+-----------+----------------+------------+-----------------+------+--------------+-----------------------------+--------+--------+-------+------------+------------+---------+------------------+--------+----------+-----------+
-            | 1   | pv        | 6              | db.domain  | anyschema       | 99   |              | /Users/mart/anyschema_2db   |        |        | mart  | 2021/03/12 | 2021/03/12 | 4096    | Created by mart. |        |          | 0         |
-            | 6   | pv        | 6              | db.domain  | p4client        | 99   | gareth.local | /Users/mart/p4src           |        |        | mart  | 2021/03/12 | 2021/03/13 | 4096    | Created by mart. |        |          | 0         |
-            | 2   | pv        | 6              | db.domain  | client.protodev | 99   |              | /Users/mart/protodev        |        |        | mart  | 2021/04/14 | 2021/04/14 | 0       | Created by mart. |        |          | 0         |
-            | 4   | pv        | 6              | db.domain  | localclient     | 99   | raspberrypi  | /home/pi                    |        |        | mart  | 2021/03/14 | 2021/04/14 | 0       | Created by mart. |        |          | 0         |
-            | 5   | pv        | 6              | db.domain  | martclient      | 99   | gareth.local | /Users/mart                 |        |        | mart  | 2021/03/12 | 2021/07/20 | 4096    | Created by mart. |        |          | 0         |
-            | 7   | pv        | 6              | db.domain  | pycharmclient   | 99   | gareth.local | /Users/mart/PycharmProjects |        |        | mart  | 2021/06/17 | 2021/08/05 | 2       | Created by mart. |        |          | 0         |
+            +-----+-----------+----------------+------------+-----------------+------+--------------+---------------------------+--------+--------+-------+------------+------------+---------+----------------+--------+----------+-----------+
+            | idx | db_action | table_revision | table_name | name            | type | extra        | mount                     | mount2 | mount3 | owner | updateDate | accessDate | options | description    | stream | serverid | partition |
+            +-----+-----------+----------------+------------+-----------------+------+--------------+---------------------------+--------+--------+-------+------------+------------+---------+----------------+--------+----------+-----------+
+            | 1   | pv        | 6              | db.domain  | anyschema       | 99   |              | /Users/gc/anyschema_2db   |        |        | gc    | 2021/03/12 | 2021/03/12 | 4096    | Created by gc. |        |          | 0         |
+            | 6   | pv        | 6              | db.domain  | p4client        | 99   | gareth.local | /Users/gc/p4src           |        |        | gc    | 2021/03/12 | 2021/03/13 | 4096    | Created by gc. |        |          | 0         |
+            | 2   | pv        | 6              | db.domain  | client.protodev | 99   |              | /Users/gc/protodev        |        |        | gc    | 2021/04/14 | 2021/04/14 | 0       | Created by gc. |        |          | 0         |
+            | 4   | pv        | 6              | db.domain  | localclient     | 99   | raspberrypi  | /home/pi                  |        |        | gc    | 2021/03/14 | 2021/04/14 | 0       | Created by gc. |        |          | 0         |
+            | 5   | pv        | 6              | db.domain  | bigbirdclient   | 99   | gareth.local | /Users/gc                 |        |        | gc    | 2021/03/12 | 2021/07/20 | 4096    | Created by gc. |        |          | 0         |
+            | 7   | pv        | 6              | db.domain  | pycharmclient   | 99   | gareth.local | /Users/gc/PycharmProjects |        |        | gc    | 2021/06/17 | 2021/08/05 | 2       | Created by gc. |        |          | 0         |
             +-----+-----------+----------------+------------+-----------------+------+--------------+-----------------------------+--------+--------+-------+------------+------------+---------+------------------+--------+----------+-----------+
         '''
         if (records is None):
@@ -468,14 +468,14 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                          {'charlotte': {'id': 51,
                                         'type': '99',
                                         'name': 'charlotte',
-                                        'mount': '/Users/mart/Downloads/libotr-4.1.0',
-                                        'owner': 'mart',
+                                        'mount': '/Users/gc/Downloads/libotr-4.1.0',
+                                        'owner': 'gc',
                                         'options': '0'},
                          'charlotte-2': {'id': 148052,
                                          'type': '99',
                                          'name': 'charlotte-2',
-                                         'mount': '/Users/mart',
-                                         'owner': 'mart',
+                                         'mount': '/Users/gc',
+                                         'owner': 'gc',
                                          'options': '0'},
                          ...}
         '''

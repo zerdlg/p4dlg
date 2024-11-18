@@ -18,9 +18,8 @@ __all__ = ['Py4Model']
 
 ''' the p4 schema / model
 
-    * Though the p4 schema does describe journal records, keep in mind that
-      its description names the fields (in order) starting with field 3 (field[2])
-      of each record.
+    *   
+        Note, the schema record descriptions omit the first 3 fields.
 
       eg.
                  table version

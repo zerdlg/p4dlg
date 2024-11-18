@@ -587,7 +587,7 @@ class DataTable(Ascii):
         >>> PT = PrettyTable
         >>> opt2 = PT(['key', 'value'])
         >>> opt2.add_row(['charlotte', 2.0])
-        >>> opt2.add_row(['mart', 1])
+        >>> opt2.add_row(['gc', 1])
         >>> opt2.title = 'TEST'
         
         >>> rows = [{'cat': 'gareth', 'dog': 'charlotte', 'kangaroo': 'jerry', 'test': opt2},
@@ -606,7 +606,7 @@ class DataTable(Ascii):
         |        |           |          | |    key    | value | |
         |        |           |          | +-----------+-------+ |
         |        |           |          | | charlotte |  2.0  | |
-        |        |           |          | |    mart   |   1   | |
+        |        |           |          | |    gc     |   1   | |
         |        |           |          | +-----------+-------+ |
         | minou  | normand   | albert   | +-------------------+ |
         |        |           |          | |        TEST       | |
@@ -614,7 +614,7 @@ class DataTable(Ascii):
         |        |           |          | |    key    | value | |
         |        |           |          | +-----------+-------+ |
         |        |           |          | | charlotte |  2.0  | |
-        |        |           |          | |    mart   |   1   | |
+        |        |           |          | |    gc     |   1   | |
         |        |           |          | +-----------+-------+ |
         +--------+-----------+----------+-----------------------+
         '''

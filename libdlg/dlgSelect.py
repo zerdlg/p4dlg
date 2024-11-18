@@ -1118,7 +1118,7 @@ class Select(DLGControl):
                 if (table_mismatch is False):
                     ''' The P4DB supports keyed tables, and field `id` 
                         is already in use on some of the tables. Using 
-                        name `idx` instead. Add it cols if needed.
+                        name `idx` instead. Add it to cols if needed.
                     '''
                     if AND(
                             ('idx' in cols),

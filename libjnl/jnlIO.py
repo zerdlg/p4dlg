@@ -114,7 +114,7 @@ __all__ = [
 ]
 
 ''' Notes:
-        myQuery = (oJnl.change.user == 'mart')
+        myQuery = (oJnl.change.user == 'gc')
 
             is transformed into
 
@@ -122,14 +122,14 @@ __all__ = [
                   "fieldname": "user"},
          "op":'EQ",
          "objp4": <libconnect.conJnl.ObjJnl at 0x13e61b010>, 
-         "right": "mart"})
+         "right": "gc"})
        
             or
        
         <DLGQuery {'left': <JNLField user>,
                   'objp4': <P4Jnl /Users/gc/anastasia/dev/p4dlg/resc/journals/journal.8>,
                   'op': <function EQ at 0x10387cd60>,
-                  'right': 'mart'}>
+                  'right': 'gc'}>
 
         
         The journal object (oJnl)
@@ -144,9 +144,9 @@ __all__ = [
 
         The following queries are equivalent:
 
-            >>> query1 = (lambda rec: rec.user == 'mart')
-            >>> query2 = (oJnl.change.user == 'mart')
-            >>> query = "change.user=mart"                     
+            >>> query1 = (lambda rec: rec.user == 'gc')
+            >>> query2 = (oJnl.change.user == 'gc')
+            >>> query = "change.user=gc"                     
 '''
 class P4Jnl(object):
     __str__ = __repr__ = lambda self: f"<P4Jnl {self.journal}>"
@@ -436,7 +436,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
              'name': 'fredclient',
              'type': '99',                                  <-- the domain's type
              'extra': 'charlotte.local',
-             'mount': '/Users/mart/Perforce/fredclient',
+             'mount': '/Users/gc/Perforce/fredclient',
              'mount2': '',
              'mount3': '',
              'owner': 'fred',
