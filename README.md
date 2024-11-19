@@ -1,23 +1,18 @@
-# p4dlg 
-#### A set of *abstractions* that use SQL to access and interact with your Perforce instance and its resources.
+# ``p4dlg                                              ``
+#### A set of *abstractions* that use SQL to access your Perforce instances and their resources. In other words, **p4dlg** enables you to think SQL while interacting with Perforce. 
 
 ### Abstractions:
 + P4Jnl (Interact with your metadata, without Perforce client or admin programs)
-+ Py4RCS (Interact with your versioned files) - under construction
-+ Py4 (Interact with your server using SQL)
++ Py4RCS (Interact with your versioned files, without Perforce client or admin programs) - under construction
++ Py4 (Interact with p4d using SQL)
 
 ### Intsallation:
 + drop p4dlg on your system somewhere.
-+ qtconsole
-+ I generally install Anaconda for 3rd party dependencies
-
-### In a nutshell...
-All abstractions basically work the same way.
-1. reate a new connection (or load a previously created connection) as per the target abstraction requirements.
-2. Start using.
++ requires IPython / qtconsole
++ I generally install Anaconda as my defualt distribution - if you don't and p4dlg complains about missing dependencies, please do let me know.
 
 ### How & where do we use *p4dlg*?
-Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Just type the following cmdline to start it up!
+``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Just type the following cmdline to start it up!``
 
 ```Python
 %> python dlg.py shell
@@ -94,19 +89,21 @@ Reference (oP4) loaded & connected to anastasia.local:1777
 
 ### Query syntax
 #### P4Jnl
-```Python
+ ```Python
 #                     table     op    value
-#                      |        |      |
+#                      ^        ^      ^
 In [19]: qry = (jnl.domain.type == 'client')
-#                |           |
+#                v           v
 #             connector    column
 ```
+
+
 #### Py4
 ```Python
 #                     table       op    value
-#                      |          |      |
+#                      ^          ^      ^
 In [19]: qry = (p4.clients.client == 'client')
-#                |           |
+#                v           v
 #             connector    column
 ```
 
