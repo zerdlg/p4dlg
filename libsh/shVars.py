@@ -34,140 +34,113 @@ __all__ = ('VARSObject', 'clsVars')
 class VARSObject(object):
     '''  TODO:
 
-                add support for l4z compression of values,
-                and, why not the entire sqVars pickle!
-
-                support password encryption (and auth class?)
-
             why do we have VARSObject???
 
-            a light-weight & efficient storage system that
-            provides persistence of key / value pairs of arbitrary
-            data from one session to the next  as well.
-
-            this is annoying @ a terminal:
-            >>> self.myvar
-
-            this is not annoying:
-            >>> myvar
-
-            I.e.:
-
-            1. class bla(object):
-                def __init__(*args,**kwargs):
-                    self.var_myvar={'a':'gc','b':'fred'}
-
-                ...
-
-                def some_method(*args,**kwargs):
-                   self.var_my_other_var=('a','b','c')
-
-            2. >>> cvars('myvar',{'a':'gc','b':'fred'})
-               >>> cvars(**{'my_other_var':('a','b','c')})
-
-            in either case (1 or 2), an instance recoops previously set vars.
-
-            I.e.
-
-            session 1:
-
-            >>> cvars('bla',['a','b','c',])
-
-            session 2:
-
-            >>> cvars('bla')
-            ['a','b','c',]
-
-            >>> cvars(bla='some_string')
-
-            >>> close()
-
-            session 3:
-
-            >>> cvars('bla')
-            'some_string'
+            a light-weight storage system that provides persistence of key/value pairs of arbitrary
+            data from one session to the next.
 
 
-            Since it can store arbitrary data, its a nice & easy
-            place to store all kinds of stuff, like user credentials
 
-            >>> cvars(Storage({'p4user':{'usermart':{'user':'gc' \
-                                                    ,'password':'mypassword' \
-                                                    ,'port':'localhost:1666' \
-                                                    ,'client':'martclient'}}})
+            hard coded variables within DLGShell (class attributes)
 
-            *** cvars() - a callable, return a Storage, therefore this works:
-            >>> cvars('p4user').usermart.port
-            'localhost:1666'
+                DLGShell assumes that a variables that start with one of the defined prefixes (within its own
+                scop) must be of type Vars (or clsVars). As such, the following rulles will apply.
 
-            passing it along...
+                hard coded variables (I.e. has a prefix like, self.var_editor = 'blabla'), persist as long as
+                they remain hard coded. Though we can't make them disapear (because they are hard coded),
+                we can however upate their value. These updated values will persist so long as they are not
+                reverted (by given them a None value) in which case, they revert to their initial value (these
+                can not be set to None!).
 
-            >>> data = some_p4func('usermart')
+                eg.
 
-            ... def some_p4func(*args)
-                    userargs = self.cvars('p4user')[args[0]]
-                    pprint(userargs)
+                create a hard coded variable in the DLGShell class:
 
-            {'user':'gc',
-            'password':'mypassword',
-            'port':'localhost:1666',
-            'client':'martclient'}
+                def __init__(*args, **kwargs):
+                    ... (
+                    var_myNewVariable = 'Ernie'
 
-            a little more info on VARSObject and some usage notes:
+                ... In session ...
+                >>> configvars('myNewVariable')
+                'ernie'
 
-            return values:
-            values store arbitrary data, and is given back fully evaluated
+                if this variable gets updated at any point (by any means), it will be force to adopt the new
+                value as its default value...
 
-            if no args & no kwargs, then return an objectified dict
-            of all key/value pairs
+                >>>  configvars('myNewVariable', 'bert')
+                >>> configvars('myNewVariable')
+                'bert'
 
-                >>> cvars()  or  cvars.get()
-                {'some_key' : some_value,
-                 'other_key' : <Storage {'a' :{'b' :{'cat' :'miow', 'dog': woof}},
-                                             ,{'goat_names_and_age':[{'sally :2,
-                                                                     ,'jerry' :5
-                                                                     ,'gisebelle' :7}]}}>,
-                ,'user_session_mart' : <sessionObject {'bla' :'blablabla',... }}>
-                ,'these_variables_persist' :True}
+                the variable's value will remain as such, from one session to the next (until we attempt to
+                delete it by giving it a None value).
 
-            a single arg, a single string no less, (with or without kwargs), returns
-            the arg's value
+                >>> configvars('myNewVariable', None)
+                >>> configvars('myNewVariable')
+                'ernie'
 
-                >>> cvars('some_var')  or  >>> cvar.get('some_var')
+            Vars (or clsVars) variables created on the fly (in the shell or in script) will also persist from
+            one session to the next so long as they are not given a None value, in which case they will simply
+            disapear.
 
+                >>> configvars('myOtherVariable', 'bob')
+                >>> configvars('myOtherVariable')
+                'bob'
 
-            create/modify/delete
-
-            when args is a pair (where the first must be a string), then the
-            request is to create or to modify an existing key's value (an arbitrary
-            type)
-
-                >>> cvars('some_var', 5000)  or  >>> cvars.set('some_var', 5000)
-
-                * 'set' is used for both 'create' and 'update'
-
-            same as above, except that a None value means 'delete'
-
-                >>> cvars('some_var', None)  or  >>> cvars.unset('some_var')
-
-                *Note: in >>> cvars.unset('some_var'), an explicit None
-                       value is optional
+                >>> configvars('myOtherValue', None)
+                >>> configvars('myOtherVariabler')
+                <user begets nothing (None) - variable no longer exists>
 
 
-            kwargs serve only to create/update/delete, therefore
-            there is no return value
+            General rules:
 
-                >>> cvars(**{'some_var' :5000})    or  cvars.set(**{'some_var' :5000})
+            Syntax: its pretty slack... the following are equivalent:
 
-                * obviously, keywords can be passed in as:
+            >>> configvars('editor', 'VIM')
+            >>> configvars({'editor', 'VIM'})
+            >>> configvars(**{'editor', 'VIM'})
+            >>> configvars(editor='VIM')
 
-                    >>> cvars(key = 'value', otherkey = [1,2,3])
+            we can create/update/delete variables en mass!
+            >>> configvars(cat='gareth', snake='lucy', wolf='bernard')
 
 
-            a few more details can be had in-line
+            I find doing something like this is convenient since the shell instance does get passed around
+            thereby exposing any and all Vars objects (I.e. configvars, p4vars, jnlvars, qtvars, etc.)
 
-            anyways, you get the gist...
+
+            another thing... I added these things so I wouldn't have to continuously type the attributes
+            owner
+
+                this is annoying @ a terminal:
+                >>> self.myvar
+
+                this is not annoying:
+                >>> myvar
+
+            A Workflow example:
+                session 1:
+                >>> cvars('bla',['a','b','c',])
+                >>> close()
+
+                session 2:
+                >>> cvars('bla')
+                ['a','b','c',]
+
+                >>> cvars(bla='some_string')
+                >>> close()
+
+                session 3:
+                >>> cvars('bla')
+                'some_string'
+                >>> close()
+
+                session 4:
+                >>> cvars('bla', None)
+                >>> cvars('bla')
+                ['a', 'b', 'c',]
+
     '''
+
     def getarg(self, key):
         return self.varsobject[key].varvalue \
             if (key in self.varsobject) \
@@ -179,32 +152,24 @@ class VARSObject(object):
 
     def __getitem__(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
-        '''
-                    an efficient storageindex() to better handle
-                    args -->
-                            >>> args=Lst(args).storageindex().reversed()
-                            {0 :{'var':'value_1'}
-                            ,1 :{'other_var':['a','b','c']},
-                            ,... }
-        '''
         if ((len(args) + len(kwargs)) == 0):
             '''
                     no args, no kwargs, only one thing to do...
-                    collect all exposed sqVars and return to caller
-                    as a dict
+                    return the entire thing to the caller.
 
                         >>> cvars()
-                        [...]
+                        {...}
             '''
             return self.getargs_all()
+
         if (len(args) == 1):
             if (isinstance(args(0), str)):
-                '''      args(0) - retrieves its value
-
-                            >>> cvars('gc)
-                            'cat'
+                '''     retrieve its value
+                        >>> cvars('gc')
+                        'cat'
                 '''
                 return self.getarg(args.pop(0), **kwargs)
+
             elif (isinstance(args(0), list)):
                 '''
                 args(0) is a List, for now we should allow:
@@ -212,16 +177,17 @@ class VARSObject(object):
                 >>> cvars([None,])                     --> remove *all* sqVars, dynamic args are permanently deleted
                                                             & static args are moved from the current session only
 
-                >>> cvars(['var1', 'var2', var3',])    --> request for the listed var values,
-                                                            return as dict for quicker access
+                >>> cvars(['var1', 'var2', var3',])    --> request for the listed var values (return as dict??) 
 
-                >>> cvars([])                          --> empty list, skip / or empty the sqVars thing ???? hum...
+                >>> cvars([])                          --> empty list, skip / or empty the Vars thing ???? hum...
                 '''
                 return self.getargs_fromlist(Lst(args.pop(0)), **kwargs)
             elif (isinstance(args(0), dict)):
                 kwargs = args.pop(0)
-        if (len(args) == 2):
+
+        elif (len(args) == 2):
             kwargs[args(0)] = args(1)
+
         if (len(kwargs) > 0):
             return self.update_add_remove(**kwargs)
         elif (len(args) > 0):
@@ -423,38 +389,7 @@ class VARSObject(object):
                 caller's full inventory to static sqVars
         '''
         self.varspickle = self.load_varspickle()
-        '''      varsdata[<varsconfig>].sqVars     --> this is what iShell determined to
-                                                        be static variables belonging to
-                                                        *this* sqVars object... carefully,
-                                                        lets load them, merge-in pickled
-                                                        sqVars of the same name (value and/or
-                                                        type should be different when pickled),
-                                                        as well as sqVars that have been created
-                                                        in a previous session
 
-                    I.e.:
-                            var_myvariable          --> the prefixname
-
-                            myvariable              --> the varname
-
-                            'some_value'            --> the varvalue
-
-                                                        this is arbitrary, we should support
-                                                        values of just about any type, with
-                                                        special consideration for 'slug' types
-
-                            <type 'int'>
-                                or
-                            <type 'int'>.__name__   --> the vartype
-
-                             * this is a typical row, a Storage reference (a dict with
-                               object-like attributes (and some well defined & handy set
-                               of methods available to them:
-
-                            {<varname> :{'vartype' :<vartype>,
-                                         'varvalue' :<varvalue>,
-                                         ,prefixname :<prefixname>}}
-        '''
         for (prefixname, _value) in kw_vars.items():
             (
                 varname,
@@ -499,6 +434,7 @@ class VARSObject(object):
             '''
         self.merge_varspickle()
         return self.varsobject
+
     def merge_varspickle(self):
         pickledkeys = self.varspickle.getkeys()
         objectkeys = self.varsobject.getkeys()
@@ -564,12 +500,12 @@ class clsVars:
             )
 
     def __call__(self, *args, **kwargs):
-        retconfigvalue = self.obj.varsdata[self.varsname].objvars(*args, **kwargs)
-        if (isinstance(retconfigvalue, dict)):
-            _prefix_ = self.obj.varsdata[self.varsname].prefix
-            _vars_ = self.obj.varsdata[self.varsname].sqVars
-            for varname in retconfigvalue:
-                configvalue = retconfigvalue[varname]
+        record = self.obj.varsdata[self.varsname].objvars(*args, **kwargs)
+        if (isinstance(record, dict)):
+            prefix = self.obj.varsdata[self.varsname].prefix
+            Vars = self.obj.varsdata[self.varsname].Vars
+            for varname in record:
+                configvalue = record[varname]
                 if (hasattr(configvalue, 'action')):
                     if (configvalue.action == 'set'):
                         self.obj.clsVars(
@@ -578,9 +514,9 @@ class clsVars:
                                         varname,
                                         configvalue.varvalue,
                                         configvalue.vartype,
-                                        _prefix_
+                                        prefix
                         )
-                        _vars_.merge(
+                        Vars.merge(
                             {
                                 varname: {
                                     'varvalue': configvalue.varvalue,
@@ -590,10 +526,10 @@ class clsVars:
                             }
                         )
                     elif (configvalue.action == 'unset'):
-                        self.obj.clsVars(self, self.varsname).unset(varname, _prefix_)
-                        [_vars_.delete(name) for name in (varname, \
-                            configvalue.prefixname) if (name in _vars_)]
-        return retconfigvalue
+                        self.obj.clsVars(self, self.varsname).unset(varname, prefix)
+                        [Vars.delete(name) for name in (varname, \
+                            configvalue.prefixname) if (name in Vars)]
+        return record
 
     def getprefix(self, name, prefix=None):
         return prefix \

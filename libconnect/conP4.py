@@ -2,6 +2,7 @@ import os
 import re
 from subprocess import PIPE, Popen
 import unittest
+from pprint import pprint
 
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgFileIO import is_writable, make_writable
@@ -37,67 +38,118 @@ class ObjP4(object):
         {'oP4': {'client': 'gc.pycharm',
           'p4droot': '/Users/gc/p4dinst/2015.2',
           'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-          'user': 'mart',
+          'user': 'gc',
           'oSchema': oSchema}}
 
         oSchema = schema('r16.2')
         {'oP4': {'client': 'computer_p4q',
                  'port': 'anastasia.local:1777',
-                 'user': 'mart',
+                 'user': 'gc',
                  'oSchema': oSchema}}
 
-    TODO: add something to login / logout/ create .p4config, .p4ignore, .p4tickets, etc...
-          add something for `p4 passwd`
     """
 
+    helpstr = """
+        Manage connections to journals and checkpoints.
+
+        `p4connect` attributes:  create    create and store a connection to a journal
+                                            - requires the connection name
+                                            
+                                 load      load an existing connector
+                                            - requires the connection name
+                                            
+                                 update    update a connector's values
+                                            - requires the connection name & the key/value pairs to update
+                                            
+                                 unload    unload a connectior from the current scope
+                                            - requires the connection name
+                                            
+                                 destroy   destroy an existing connector
+                                            - requires the connection name
+                                            
+                                 purge     combines unload/destroy
+                                            - requires the connection name
+                                            
+                                 show      display the data that defined the object
+                                            - requires the connection name
+                                            
+                                 help      display help about p4connect 
+
+        Create a connection to a journal with jnlconnect.create
+        parameters: args[0]  -> name,
+                    keyword  -> journal = journal_path
+                    keyword  -> version = release of the p4d instance
+                                          that created the journal
+                    keyword  -> oSchema = the schema that that defines the p4db
+
+                    Note that keywords `version` & `oSchema` are mutually exclusive.
+                    Pass in one or the orther.
+                    * a bit more on schemas further down. 
+
+        eg.
+
+        -- requires a name, a journal file & a reference to a schema object (or a p4 release number)
+            >>> user = 'bigbird'
+            >>> port = 'anastasia.local:1777'
+            >>> client = 'my_client'
+            >>> oSchema = schema('r16.2')
+
+        -- create
+            >>> p4connect.create('p4', 
+                    **{
+                        'oSchema': oSchema
+                        'user': user,
+                        'port': port,
+                        'client': client
+                        }
+                )
+            >>> p4
+            <Py4 anastasia.local:1777 >
+
+        -- load
+            >>> p4connect.load('oJnl')
+            >>> oJnl
+            <P4Jnl ./resc/journals/journal2>
+
+        -- update
+            >>> p4connect.update('oJnl', **{'jounral': '../../resc/journals/checkpoint.24'})
+            >>> oJNl
+            <P4Jnl ./resc/journals/journal.24>
+
+        -- unload
+            >>> p4connect.unload('oJnl')
+            >>> oJnl
+            None
+
+        -- destroy
+            >>> p4connect.unload('oJnl')
+
+        -- purge
+            >>> p4connect.purge('oJnl')
+
+        -- show
+            * with name argument
+
+            >>> p4connect.show('oJnl')
+            {'journal': './resc/journals/journal.24',
+             'oSchema': <libdlg.dlgSchema.SchemaXML at 0x10773da50>}
+
+            * without name argument ( equivalent to p4connect.help() )
+
+            >>> p4connect.show()
+            ... returns this help string
+
+        -- help
+            >>> p4connect.help()
+            ... returns this help string
+
+        -- get list of stored jnlconnect objects
+            >>> p4connect.stored
+            [oJnl, other_jnlobject, freds_jnlobject,]
+            """
+
     def help(self):
-        hlpstr = """\
-        Create and manage a connector to a Perforce instance.
-        
-        Note that the reference already exists and is exposed as `p4con` or `p4connect` when running in the shell.
-        
-        >>> oSchema = SchemaXML()(version='r16.2')  # a reference to class SchemaXML
-        >>> p4con.create(
-                    'my_connection',                # the name of the connector
-                    oSchema,                        
-                    user='mart',                    # a p4 user to access P4D
-                    port='anastasia.local:1777',    # the port to a p4d instance
-                    client='my_client'              # the clientspec that defines your workspace
-            )
-        
-        Once create, it is stored locally. You can simply load it directly from the shell.
-        
-        >>> p4con.load('my_connection')
-        Reference (oP4) loaded & connected to anastasia.local:1777
-        <Py4 anastasia.local:1777 >
-        
-        methods:
-            
-            create  -   requires:
-                                * a name for the connector
-                                
-                                * either a predefined reference to class Py4 or a 
-                                release version to an existing XML schema document.
-                                
-                                * keywords:
-                                            user    -   a perforce user
-                                            port    -   the port for the p4d instance
-                                            client  -   the name of a client that defines the workspace
-                    
-            load    -   load an existing connector
-                        requires the name of a connector
-            
-            unload  -   unload a running connector
-                        requires the name of a connector
-            
-            update  -   update the connector attributes
-                        requires the name of a connector as key/value pairs containing the updated value 
-            
-            purge   -   remove the stored data related to the named connector
-                        requires the name of a connector 
-                         
-        """
-        print(hlpstr)
+        return self.helpstr
 
     def __init__(self, shellObj, loglevel='INFO'):
         self.shellObj = shellObj
@@ -106,8 +158,13 @@ class ObjP4(object):
         self.varsdef = self.shellObj.cmd_p4vars
         self.setstored()
 
-    def show(self, name):
-        return self.varsdef(name)
+    def help(self):
+        return self.helpstr
+
+    def show(self, name=None):
+        if (name is not None):
+            return self.varsdef(name)
+        return self.helpstr
 
     def fixkeys(self, **kwargs):
         def fixkey(key):
@@ -280,11 +337,31 @@ class ObjP4(object):
                 if (is_writable(filename) is False):
                     make_writable(filename)
                 self.varsdef(name, None)
-                if hasattr(globals(), name):
-                    globals().__delattr__(name)
+                try:
+                    #if (name in globals()):
+                    #    globals().pop(name)
+                    #self.shellObj.__delattr__(name)
+                    print(globals()['fred'])
+                    print(locals()['fred'])
+                except KeyError:
+                    pass
                 self.setstored()
                 print(f'Reference ({name}) destroyed')
             except Exception as err:
                 bail(
                     f'Exception:\n{err}'
                 )
+
+    def purge(self, name):
+        filename = self.shellObj.varsdata.p4vars.path
+        self.unload(name)
+        self.destroy(name)
+        if (is_writable(filename) is False):
+            make_writable(filename)
+        self.varsdef(name, None)
+        try:
+            globals().__delattr__(name)
+        except:
+            pass
+        self.setstored()
+        print(f'Reference ({name}) destroyed')

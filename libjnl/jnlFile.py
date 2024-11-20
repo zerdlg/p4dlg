@@ -6,8 +6,8 @@ from _csv import Error, register_dialect, QUOTE_MINIMAL, field_size_limit
 from _csv import Dialect as _Dialect
 import csv
 
-import dask.dataframe as df
-import pandas as pd
+#import dask.dataframe as df
+#import pandas as pd
 #import parquet
 from libdlg.dlgUtilities import bail
 
@@ -112,7 +112,7 @@ class JNLFile(object):
             self.dialect = dialect
             readers = {
                        'csv': self.csvread,
-                       'pandas': self.pdread,
+                       #'pandas': self.pdread,
                        #'pasrquet': self.parquetread,
                        # 'dask': self.daskread
             }
@@ -150,12 +150,8 @@ class JNLFile(object):
         writer = csvwriter(oFile, dialect=self.dialect)
         return writer
 
-    def daskread(self, filename=None):
-        oFile = self.oFile_read(filename)
-        return df.read_csv(oFile, dialect=self.dialect)
-
     ''' pandas dataframe reader & writer
-    '''
+    
     def pdread(self, filename=None, **kwargs):
         oFile = self.oFile_read(filename)
         return pd.read_csv(
@@ -168,7 +164,7 @@ class JNLFile(object):
            #iterator=True,
            #index_col=False
         )
-
+    
     def pd_to_parquet(self, infile=None, outfile=None):
         infile = infile or self.journalfile
         outfile = self.oFile_write(outfile)
@@ -183,18 +179,26 @@ class JNLFile(object):
         writer = pd.read_csv(oFile, dialect=self.dialect)
         # writer.to_csv(rows)
         return writer
+    '''
 
     ''' parquet reader & writer
-    '''
-    #def parquetread(self, filename=None):
-    #    oFile = self.oFile_read(filename)
-    #    return parquet.reader(oFile)
+    
+    def parquetread(self, filename=None):
+        oFile = self.oFile_read(filename)
+        return parquet.reader(oFile)
 
-    #def parquetwrite(self, filename=None):
-    #    oFile = self.oFile_write(filename)
-    #    writer = parquet.csv.writer(oFile, dialect=self.dialect)
-    #    # writer.writerow(row) or writer.writerows(rows)
-    #    return writer
+    def parquetwrite(self, filename=None):
+        oFile = self.oFile_write(filename)
+        writer = parquet.csv.writer(oFile, dialect=self.dialect)
+        # writer.writerow(row) or writer.writerows(rows)
+        return writer
+    '''
+
+    ''' dask
+    def daskread(self, filename=None):
+        oFile = self.oFile_read(filename)
+        return df.read_csv(oFile, dialect=self.dialect)
+    '''
 
 """
 jfile = '../../resc/journals/journal.8'

@@ -183,6 +183,8 @@ class DLGShell(object):
             ) for vkey in self.varsdata.keys()
         ]
 
+        self.var_test = 'charlotte'
+
         self.shellcmds = objectify({
                                     'cmdcls': {
                                                 'prefix': 'cmdcls',

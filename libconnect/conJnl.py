@@ -10,40 +10,99 @@ from libdlg.dlgFileIO import is_writable, make_writable
      [$Author: mart $]
 '''
 
-'''    Journal stuff & usage:
-
-                methods:    create - load - - update - unload - destroy - purge 
-
-                # requires a journal file & a reference to a schema object (or a p4 release number)
-                >>> journal = '../../resc/journals/journal2'
-                >>> oSchema = schema('r15.2')
-
-                # the class reference
-                >>> jnl = Jnl(self)
-
-                #create
-                >>> jnl.create('oJnl',journal=journal,oSchema=oSchema)
-                >>> oJnl
-                <jnlIO.P4Jnl at 0x11dfab990>
-
-                #load
-                >>> jnl.load('oJnl')
-                >>> oJnl
-                <jnlIO.P4Jnl at 0x11dfab990>
-
-                #unload
-                >>> jnl.unload('oJnl')
-                >>> oJnl
-                None
-
-                # get list of stored jnl objects
-                >>> jnl.stored()
-                [oJnl, other_jnlobject, freds_jnlobject,]
-'''
-
 __all__ = ['ObjJnl']
 
 class ObjJnl(DLGControl):
+    helpstr = """
+        Manage connections to journals and checkpoints.
+
+        `jnlconnect` attributes: create    create and store a connection to a journal
+                                                - requires the connection name
+
+                                 load      load an existing connector
+                                            - requires the connection name
+
+                                 update    update a connector's values
+                                            - requires the connection name & the key/value pairs to update
+
+                                 unload    unload a connectior from the current scope
+                                            - requires the connection name
+
+                                 destroy   destroy an existing connector
+                                            - requires the connection name
+
+                                 purge     combines unload/destroy
+                                            - requires the connection name
+
+                                 show      display the data that defined the object
+                                            - requires the connection name
+
+                                 help      display help about p4connect 
+
+        Create a connection to a journal with jnlconnect.create
+        parameters: args[0]  -> name,
+                    keyword  -> journal = journal_path
+                    keyword  -> version = release of the p4d instance
+                                          that created the journal
+                    keyword  -> oSchema = the schema that that defines the p4db
+
+                    Note that keywords `version` & `oSchema` are mutually exclusive.
+                    Pass in one or the orther.
+                    * a bit more on schemas further down. 
+
+        eg.
+
+        -- requires a name, a journal file & a reference to a schema object (or a p4 release number)
+            >>> journal = '../../resc/journals/journal2'
+            >>> oSchema = schema('r16.2')
+
+        -- create
+            >>> jnlconnect.create('oJnl', journal=journal, oSchema=oSchema)
+            >>> oJnl
+            <P4Jnl ./resc/journals/journal2>
+
+        -- load
+            >>> jnlconnect.load('oJnl')
+            >>> oJnl
+            <P4Jnl ./resc/journals/journal2>
+
+        -- update
+            >>> jnlconnect.update('oJnl', **{'jounral': '../../resc/journals/checkpoint.24'})
+            >>> oJNl
+            <P4Jnl ./resc/journals/journal.24>
+
+        -- unload
+            >>> jnlconnect.unload('oJnl')
+            >>> oJnl
+            None
+
+        -- destroy
+            >>> jnlconnect.unload('oJnl')
+
+        -- purge
+            >>> jnlconnect.purge('oJnl')
+
+        -- show
+            * with name argument
+
+            >>> jnlconnect.show('oJnl')
+            {'journal': './resc/journals/journal.24',
+             'oSchema': <libdlg.dlgSchema.SchemaXML at 0x10773da50>}
+
+            * without name argument ( equivalent to jnlconnect.help() )
+
+            >>> jnlconnect.show()
+            ... returns this help string
+
+        -- help
+            >>> jnlconnect.help()
+            ... returns this help string
+
+        -- get list of stored jnl objects
+            >>> jnlconnect.stored
+            [oJnl, other_jnlobject, freds_jnlobject,]
+            """
+
     def __init__(self, shellObj, loglevel='INFO'):
         self.shellObj = shellObj
         self.loglevel = loglevel.upper()
@@ -55,8 +114,10 @@ class ObjJnl(DLGControl):
         self.stored = Lst(key for key in self.varsdef().keys() \
                           if (key != '__session_loaded_on__'))
 
-    def show(self, name):
-        return self.varsdef(name)
+    def show(self, name=None):
+        if (name is not None):
+            return self.varsdef(name)
+        return self.help()
 
     def __call__(self, loglevel=None):
         self.loglevel = loglevel.upper() or self.loglevel
@@ -111,10 +172,6 @@ class ObjJnl(DLGControl):
         self.setstored()
         return self
 
-    def reload(self, name):
-        ret = self.load(name)
-        print(f'Reference ({name}) reloaded')
-
     def unload(self, name):
         try:
             [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
@@ -135,3 +192,6 @@ class ObjJnl(DLGControl):
         except:pass
         self.setstored()
         print(f'Reference ({name}) destroyed')
+
+    def help(self):
+        return self.helpstr
