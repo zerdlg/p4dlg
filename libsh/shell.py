@@ -53,6 +53,7 @@ from os.path import dirname
 import schemaxml
 from resc import journals, db
 
+default_xmlschema_version = 'r16.2'
 schemadir = dirname(schemaxml.__file__)
 journaldir = dirname(journals.__file__)
 projectdir = dirname(schemadir)
@@ -123,7 +124,7 @@ class DLGShell(object):
         return self
 
     def cmd_initialize_jnlENV(self):
-        oInit = JnlInitialize(schemadir)()
+        oInit = JnlInitialize(schemadir, default_xmlschema_version)
         print("JNL INITIALIZE - Done.")
         return oInit
 
@@ -254,23 +255,20 @@ class DLGShell(object):
         ktxtwords = ('File', 'Change', 'Revision', 'DateTime', 'Author')
         return '\n'.join([f'\t[${w}  $]' for w in ktxtwords])
 
-    def memoize_schema(self, version=None):
+    def memoize_schema(self, version=default_xmlschema_version):
         '''  force version format as release name (r16.2) so
              we don't end up with a memo with duplicate-like
              keys  (r16.2 = 2016.2)
         '''
-        if (version is not None):
-            version = to_releasename(version)
-            try:
-                schemamem = self.schemaMemo[version]
-            except KeyError:
-                if (schemadir is None):
-                    bail(f'schemadir is None - cannot retrieve xmlschema version {version}')
-                oSchema = SchemaXML(schemadir=schemadir)(version=version)
-                schemamem = self.schemaMemo[version] = oSchema
-            return schemamem
-        else:
-            return self.schemaMemo
+        version = to_releasename(version)
+        try:
+            schemamem = self.schemaMemo[version]
+        except KeyError:
+            if (schemadir is None):
+                bail(f'schemadir is None - cannot retrieve xmlschema version {version}')
+            oSchema = SchemaXML(version=version)
+            schemamem = self.schemaMemo[version] = oSchema
+        return schemamem
 
     ''' set & unset session Vars (will not persist beyond the session's life span)
     '''

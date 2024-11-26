@@ -191,7 +191,7 @@ class Ascii(object):
             value = pformat(value)
         if AND(
                 (self.dataoptions.truncate_width is True),
-                (isinstance(value, str)),
+                (isinstance(value, str) is True),
             ):
             if (len(value) > self.dataoptions.max_width):
                 return f'{value[0:self.dataoptions.max_width]}...'
@@ -226,15 +226,15 @@ class msgbox(object):
 class DataGrid(Ascii):
     def __init__(
             self,
-            rows,
+            rows,   # list of records
             **options
     ):
         options = Storage(options)
         super(DataGrid, self).__init__(**options)
         self.exclude_fields = ()
-        if (isinstance(rows, list)):
+        if (isinstance(rows, list) is True):
             rows = objectify(rows)
-        elif (isinstance(rows, Storage)):
+        elif (isinstance(rows, Storage) is True):
             for key in rows.keys():
                 (
                     groupname,
@@ -255,6 +255,9 @@ class DataGrid(Ascii):
         self.rows = rows
 
     def __call__(self, *fields, **kwargs):
+        ''' the fields args represents those to be selected on return,
+            let's call them selected_Fields
+        '''
         self.build_datagrid(*fields, **kwargs)
         return self.datagrid
 
@@ -267,43 +270,28 @@ class DataGrid(Ascii):
                 Lst(fields),
                 Storage(kwargs)
             )
-        ''' field definition:
 
-            - if none are specified, then default
-                * default
-                    1) if rows(0) is a list,then those items are the
-                       fieldnames (rows(0) will be popped)
-                    2) if rows(0) is a row (Storage,dict) then rows(0).getkeys()
-                       are the fieldnames (rows(0) is not popped)
-            - can be a list of args
-            - can be kwargs.fields (key 'fields' will be popped)
-            - if specified, then ony those specified fieldnames will make up the returned rows (best
-              effort to respect the order in which they were provided)
-
-            * once defined, cast fields list to StorageIndex()
-        '''
-        if (noneempty(fields) is True):
+        if (len(fields) == 0):
             if (noneempty(kwargs.fields) is False):
                 fields = Lst(kwargs.pop('fields'))
-            if (type(self.rows).__name__ == 'DLGRecords'):
+            elif (type(self.rows).__name__ == 'DLGRecords'):
                 fields = self.rows.cols
             elif (isinstance(self.rows(0), dict)):
                 fields = Storage(self.rows(0)).getkeys()
             elif AND(
-                    (isinstance(self.rows(0), list)),
-                    (isinstance(self.rows(1), dict))
+                    (isinstance(self.rows(0), list) is True),
+                    (isinstance(self.rows(1), dict) is True)
             ):
                 fields = Lst(self.rows.pop(0))
             elif (isinstance(self.rows(0), dict)):
                 fields = self.rows(0).getkeys()
 
+        self.fields = fields.storageindex(reversed=True)
         self.fieldsmap = Storage(
             zip(
                 [field.lower() for field in fields], fields
             )
         )
-        self.fields = fields.storageindex(reversed=True)
-        self.cols = [self.fields[fld]for fld in self.fields]
 
     def defineDataGrid(self):
         fieldnames = self.fields.getvalues() \
@@ -324,10 +312,21 @@ class DataGrid(Ascii):
                 row = Storage(row).getvalues()
             if (requires_rowidx is True):
                 row.insert(0, nidx)
+
+            frow = Lst()
+            for fn in self.fields.keys():
+                sfield = self.fields[fn]
+                value = row[fn]
+                frow.append(value)
+            row = frow
+
+
             if (self.dataoptions.maxrows is not None):
-                if (nidx < self.dataoptions.maxrows):
+                if (nidx <= self.dataoptions.maxrows):
                     self.addrow(row)
                     rowcounter += 1
+                else:
+                    break
             else:
                 self.addrow(row)
 
@@ -352,8 +351,7 @@ class DataGrid(Ascii):
         self.datagrid.add_row(row)
 
     def addrows(self, rows):
-        for row in rows:
-            self.addrow(row)
+        [self.addrow(row) for row in rows]
 
     def addcolum(
             self,
@@ -423,15 +421,14 @@ class DataTable(Ascii):
         self.oDateTime = DLGDateTime()
         self.record = objectify(record) \
             if (
-            isinstance(
-                record,
-                (
-                    dict,
-                    Storage,
-                    Lst,
-                    list
-                )
-            )
+            isinstance(record,
+                       (
+                           dict,
+                           Storage,
+                           Lst,
+                           list
+                       )
+                       )
         ) \
             else record
 
@@ -442,7 +439,10 @@ class DataTable(Ascii):
         ]
         super(DataTable, self).__init__(**options)
         self.title = options.title or 'Record'
-        self.excludekeys = options.exclude or ['update_record', 'delete_record']
+        self.excludekeys = options.exclude or [
+            'update_record',
+            'delete_record'
+        ]
 
     def __call__(self, *fields, **kwargs):
         self.build_datatable(*fields, **kwargs)
@@ -459,7 +459,7 @@ class DataTable(Ascii):
             )
         self.dataoptions_copy = self.dataoptions.copy()
         self.dataoptions.merge(kwargs)
-        ''' forcing respect of field order
+        ''' forcing field order
         '''
         if (type(self.record) is not StorageIndex):
             self.record = Lst(
@@ -483,7 +483,7 @@ class DataTable(Ascii):
                 if (fields(0) == 'idx') \
                 else 0
             fields.insert(typeidx, 'type')
-        ''' datatable --> the table object
+        ''' the datatable object
         '''
         self.datatable = PT(field_names=fields, **self.dataoptions)
         self.datatable.title = self.dataoptions.title or 'TABLE'
@@ -681,11 +681,8 @@ class DataTable(Ascii):
                     ('unset' in self.record.keys())
             ):
                 return
-
         self.datatable.add_row(row)
 
-    def notable(self, msg="no table for you!"):
-        msgbox('no-table')(msg)
 
     def get_string(self):
         return self.datatable.get_string()

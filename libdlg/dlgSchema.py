@@ -65,6 +65,8 @@ def versionxml_filename_re(version):
     return f'^schema_{regex}\.xml$'
 
 def get_schemadir():
+    ''' For now, this is their local location
+    '''
     from os.path import dirname
     import schemaxml
     return dirname(schemaxml.__file__)
@@ -283,22 +285,33 @@ class SchemaXML(object):
     def __init__(
             self,
             schemadir=None,
-            objp4 = None
+            version=None
     ):
+        ''' local
+        '''
+        self.schemadir = schemadir or get_schemadir()
+        self.version = self.latestrelease_local() \
+            if (version in ('latest', None)) \
+            else version
+        ''' remote
+        '''
         self.currentSchemaURL = 'https://www.perforce.com/perforce/doc.current/schema/index.xml'
         self.leftURL = 'https://ftp.perforce.com/perforce'
         self.rightURL = 'doc/schema/index.xml'
-        self.schemadir = schemadir or get_schemadir()
-        self.objp4 = objp4
-
-    def __call__(self, version=None):
-        if (version in ('latest', None)):
-            version = self.latestrelease_local()
-        self.version = version
-        self.p4schema = self.loadxmlschema_local(version).p4schema
+        ''' schema & model
+        '''
+        self.p4schema = self.loadxmlschema_local(self.version).p4schema
         oModel = Py4Model(self.p4schema)
         self.p4model = oModel.modelize_schema()
-        return self
+
+    #def __call__(self, version=None):
+    #    if (version in ('latest', None)):
+    #        version = self.latestrelease_local()
+    #    self.version = version
+    #    self.p4schema = self.loadxmlschema_local(version).p4schema
+    #    oModel = Py4Model(self.p4schema)
+    #    self.p4model = oModel.modelize_schema()
+    #    return self
 
     ''' list schema files, both local and remote from 'ftp://ftp.perforce.com/perforce/'
     '''

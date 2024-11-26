@@ -146,7 +146,7 @@ __all__ = [
            'to_bytes', 'to_native', 'to_unicode', 'serializable', 'dttypes', 'reg_objdict',
            'reg_default', 'datefields',
     #
-           'sanitizename',
+           'sanitizename', 'is_Py4Exception',
     #
            'is_Py4', 'is_P4Jnl', 'is_NOSource', 'fieldType', 'tableType'
 ]
@@ -428,6 +428,27 @@ SQLType = objectify(
 objecttypes = SQLType.objects
 tabletypes = SQLType.tables
 fieldtypes = SQLType.fields
+
+def is_Py4Exception(*args, **kwargs):
+    (args, record) = (Lst(args), Storage(kwargs))
+    if (
+            (len(record) == 0)
+            & (isinstance(args(0), list) is True)
+    ):
+        record = Storage(args(0))
+
+    exceptkeys = ['code', 'data', 'generic', 'severity']
+    intersect = record.getkeys().intersect(exceptkeys)
+
+    if (
+            (len(intersect) == len(exceptkeys))
+            & (kwargs.code == 'error')
+    ):
+        return True
+    return False
+
+def is_P4JnlException(*args, **kwargs):
+    pass
 
 def is_Py4(p4obj):
     return True \

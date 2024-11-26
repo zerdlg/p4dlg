@@ -27,10 +27,8 @@ class Retype(object):
 
     def __init__(self, *args, version='16.2', **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
-        schemadir = dirname(schemaxml.__file__)
         schemaversion = to_releasename(version)
-        objSchema = SchemaXML(schemadir)
-        oSchema = objSchema(schemaversion)
+        oSchema = SchemaXML(schemaversion)
         p4args = {
                     'user': kwargs.user or 'gc',
                     'port': kwargs.port or 'anastasia.local:1777',

@@ -5,6 +5,7 @@ from types import *
 from subprocess import Popen, PIPE, STDOUT
 from pprint import pformat
 
+from libdlg.dlgError import *
 from libpy4.py4Options import Py4Options
 from libpy4.py4Run import Py4Run
 from libpy4.py4Sqltypes import Py4Table, Py4Field
@@ -40,6 +41,10 @@ from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgInvert import invert
 from libhelp.hlpCmds import DLGHelp
 from libdlg.dlgSchemaTypes import SchemaType
+from libdlg import SchemaXML
+import schemaxml
+from os.path import dirname
+schemadir = dirname(schemaxml.__file__)
 
 (
     mloads,
@@ -172,8 +177,26 @@ class Py4(object):
                 Lst()
             )
         self.usage_items = []
-        self.oSchema = kwargs.oSchema or 'unset'
-        self.release = kwargs.release or 'unset'
+
+        release = kwargs.release
+        version = kwargs.version
+        oSchema = kwargs.oSchema
+        if (oSchema is None):
+            for vername in ('version', 'relaese'):
+                if (kwargs[vername] is not None):
+                    oSchema = SchemaXML(schemadir, kwargs[vername])
+
+        (
+            self.oSchema,
+            self.version,
+            self.release
+        ) = \
+            (
+                oSchema,
+                version,
+                release
+            )
+
         self.user_defined_globals = Lst()
         [kwargs.delete(kw) for kw in self.define_p4globals(**kwargs)]
         self.tablenames = self.commands = Lst()
@@ -320,11 +343,16 @@ class Py4(object):
             constraint,
         ) \
             = (
-            kwargs.tablename or self.tablename,
+            kwargs.tablename,#or self.tablename if (hasattr(self, 'tablename')) else None,
             None,
             Storage(),
             None,
         )
+
+        if (tablename is None):
+            try:
+                tablename = self.tablename
+            except: pass
 
         (
             p4Queries,
@@ -467,12 +495,6 @@ class Py4(object):
                         credentialglobals = [**kwargs]  <-- those passed in on instantiation, these persist
                         supglobals = []                 <-- dropped
         '''
-        if AND(
-                ('-F' in globaloptions),
-                ('-G' in self.p4globals)
-        ):
-            self.p4globals.pop(self.p4globals.index('-G'))
-            self.loginfo('using -F global option, removing -G global option')
         ''' add any global options to supglobals for temporary use
         '''
         self.supglobals += globaloptions
@@ -577,258 +599,6 @@ class Py4(object):
                 constraint=constraint
             )
         return oRecordSet(*p4Queries, **kwargs)
-
-    def __call__OLD(self, query=None, *options, **kwargs):
-        if AND(
-                (len(options) + len(kwargs) == 0),
-                (query is None)
-        ):
-            return self
-        kwargs = Storage(kwargs)
-        (
-            tablename,
-            lastarg,
-            tabledata,
-            constaint,
-        ) \
-            = (
-            kwargs.tablename,
-            None,
-            Storage(),
-            None,
-        )
-        (queries, options) = (Lst(), Lst(options))
-        if (isinstance(query, Py4Table)):
-            tablename = query.tablename
-            tabledata = tabledata.merge(query.__dict__).delete('objp4')
-        elif OR(
-                (noneempty(query) is False),
-                (type(query).__name__ in (
-                        'DLGExpression',
-                        'DLGQuery',
-                        'Py4Table',
-                        'Py4Field',
-                        'str'
-                        )
-                )
-        ):
-            ''' How ever it comes in, query must be a list.
-            '''
-            qries = Lst()
-            if (isinstance(query, str)):
-                qries.append(objectify(Lst(queryStringToStorage(q) for q in query.split())))
-            elif (is_tableType(query)):
-                qries.append(query)
-            elif (isinstance(query, (list, Lst, tuple))):
-                qries = objectify(Lst(query))
-            elif OR(
-                    (isinstance(query, dict)),
-                    (type(query) is LambdaType)
-            ):
-                qries.append(objectify(query))
-            elif (is_query_or_expressionType(query) is True):
-                qries.append(query)
-            for qry in qries:
-                inversion = False
-                if (isinstance(qry, dict) is True):
-                    if (not 'inversion' in qry):
-                        qry.inversion = inversion
-                    qry = DLGQuery(
-                        self,
-                        qry.op,
-                        qry.left,
-                        qry.right,
-                        qry.inversion
-                    )
-                qry = invert(qry)
-                if (tablename is None):
-                    ''' grab the tablename and go!
-                    '''
-                    (
-                        q,                  # the query, though it might have been altered
-                        left,               # the left side of the query (or of the left side of 2 queries)
-                        right,              # the right side of the query (or of the right side of 2 queries)
-                        op,                 # the operator
-                        tablename,          # the name of the target table
-                        lastarg,            # the lastarg (AKA a field)
-                        inversion,          # bool -> if True, invert the query's result
-                        specifier,          # revision specifier can be `#`, `@`
-                        specifier_value,    # the file's rev or changelist number
-                        tabledata           # useful data about this table
-                    ) \
-                        = self.breakdown_query(qry)
-                queries.append(qry)
-        if (noneempty(tabledata) is True):
-            tabledata = self.memoizetable(tablename)
-        (
-            options,
-            globaloptions,
-            cmdoptions
-        ) = \
-            (
-            Lst(options),                   # neither globaloptions, neither cmdoptions
-            kwargs.globaloptions or Lst(),  # an alternate place to stash a few p4 globals
-            kwargs.cmdoptions or Lst(),     # xtra cmd options
-        )
-        ''' Have we picked up any queries?
-        '''
-        if (len(queries) > 0):
-            if (tablename is None):
-                bail(
-                    'tablename may not be None!\n'
-                )
-            if (not tablename in self.tablememo.keys()):
-                self.memoizetable(tablename)
-            ''' lastarg (| filename | specname)
-            '''
-            if (lastarg is None):
-                for item in (
-                        'filename',
-                        'specname',
-                        'lastarg'
-                ):
-                    if (kwargs[item] is not None):
-                        lastarg = kwargs[item]
-                        break
-                if (lastarg is None):
-                    lastarg = self.define_lastarg(tablename, query=queries)
-            if isinstance(lastarg, str):
-                options.append(lastarg)
-        ''' No queries, a straight up p4 cmd (with or without options)
-
-                e.g.
-                >>> oP4.files('-a', '//depot/my_projects/project/...lin64...')
-
-            __call__ accepts any p4 global argument.
-
-            P4 Syntax:
-                >>> p4 [global options] command [cmd options] [arg/lastarg ...]
-
-                executable                                                    command
-                    |                           `                               |
-                >>> p4 -u mart -P martspassword -p localhost:1666 -c clientname files //depot/...
-                       |                                                      |         |
-                       |_________________global arguments >___________________|       arg/lastarg
-
-            Generally, global args are passed in and defined when we instantiate 
-            a reference to class Py4. I.e.:
-
-                >>> objp4 = Py4(*args, **{'user': 'mart',
-                                          'password': 'martspassword',
-                                          'port': 'localhost:1666',
-                                          'client': 'defaultclient'})
-
-            Globals persist so long as the class reference exists (regardless of any 
-            environmental interference).
-
-            P4 Globals as args to __call__:
-            they persist only for the life of this cmd, after which they will be dropped.
-
-                I.e.    tablename = None                <-- name of the current cmd call
-                        is_spec = False                 <-- True, cmd is a spec
-                        closed = True                   <-- True until cmd has completed execution
-                        p4globals = ['p4', '-G']        <-- hard coded
-                        credentialglobals = [**kwargs]  <-- those passed in on instantiation, these persist
-                        supglobals = []                 <-- dropped
-        '''
-        if AND(
-                ('-F' in globaloptions),
-                ('-G' in self.p4globals)
-        ):
-            self.p4globals.pop(self.p4globals.index('-G'))
-            self.loginfo('using -F global option, removing -G global option')
-        ''' add any global options to supglobals for temporary use
-        '''
-        self.supglobals += globaloptions
-        self.p4args += options
-        ''' just in case p4args has a lastarg arg AND in the wrong position, 
-            force it the last position.
-        '''
-        if AND(
-                (lastarg is not None),
-                (isinstance(lastarg, str) is True)
-        ):
-            if (lastarg in self.p4args):
-                self.p4args.pop(self.p4args.index(lastarg))
-                self.p4args.append(lastarg)
-            elif (lastarg not in self.p4args):
-                self.p4args.append(lastarg)
-        ''' these keywords are unrelated to cmd fields, get them out of the way!
-        '''
-        deloptions = (
-            'options',
-            'cmdoptions',
-            'globaloptions',
-            'lastarg'
-        )
-        kwargs.delete(*deloptions)
-        ''' Any kwargs left? they must be valid table (cmd) options! 
-
-            eg. at the cmd line, we would type something like the following should 
-                we want to preview (-n) a retype operation (-t <type>). 
-
-                    e.g.
-                    >>> p4 edit --preview/-n --filetype/-t ktext myfilename
-
-                A p4 command's cmdline options can be either specified in the same 
-                way as we typically would (except here we pass them in as parameters)
-
-                    >>> oP4.edit('-n', '-t', 'ktext' 'myfilename')
-
-                Another way would be to pass the cmd line options as **kwargs for 
-                the __call__ method
-
-                    >>> (oP4(**{'preview': True, 'filetype': 'ktext'}).edit('myfilename')
-
-                    *note: options that don't typically have corresponding values (like
-                           '--preview' or '-n') can be set by providing a boolean value 
-                           to the key.  
-        '''
-
-        ''' user defined configs to apply on queries (piggyback on tabledata):       
-
-            compute                 --> new columns 
-                                        |-> single `;` separated string. eg. colname=value
-                                        |-> or a list of strings. ['colname1=value1, 'colname2=value2,] 
-            maxrows                 --> max # of records to process (default is 1000) 
-        '''
-        tabledata.merge(
-            {
-                'compute': kwargs.compute or '',
-                'maxrows': self.maxrows,
-                'tabletype': Py4,   # set apart from the JNLFile type, given that Py4 has no schema to guide it
-                'tablename': tablename,
-            }
-        )
-        delkwargs = (
-            'compute',
-            'maxrows'
-        )
-        kwargs.delete(*delkwargs)
-        ''' Py4IO's callable returns a set of records (P4QRecordset). 
-        '''
-        if (tablename is None):
-            for (key, value) in kwargs.items():
-                if AND(
-                        (hasattr(self, key)),
-                        (key in ('maxrows', 'compute',))
-                ):
-                    setattr(self, key, value)
-            oRecordSet = DLGRecordSet(self, DLGRecords(), **tabledata)
-            return oRecordSet
-        else:
-            oRun = Py4Run(self, *cmdoptions, **tabledata)
-            if AND(
-                    (len(queries) == 0),
-                    (is_tableType(query))
-            ):
-                return DLGRecordSet(self, oRun, **tabledata)
-            elif (len(queries) > 0):
-                oRecordSet = DLGRecordSet(self, oRun, **tabledata)
-                '''  pass on the queries, it will return a reference to class Recordset!
-                '''
-                return oRecordSet(*queries, **kwargs)
-
 
     ''' 
     +-----------------+------------------------------------------------+
@@ -1021,6 +791,8 @@ class Py4(object):
                     return self.__dict__[tablename]
                 except:
                     tabledata = self.memoizetable(tablename)
+                    if (tabledata.error is not None):
+                        bail(tabledata.error)
                     oRun = Py4Run(self, **tabledata)
                     oCmdTable = Py4Table(
                         self,

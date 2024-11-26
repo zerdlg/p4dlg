@@ -11,12 +11,8 @@ from libsh import shell
 
 ''' USAGE & REQUIREMENTS
 
-    dependencies; qtconsole
-                  prettytable
-                  lz4
-                  dask
-                  pandas
-                  
+    Requirements: qtconsole (I generally install Anaconda for 3rd party dependencies)
+              
     %> python p4dlg.py shell
     
 '''

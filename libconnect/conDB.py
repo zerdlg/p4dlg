@@ -156,15 +156,15 @@ class ObjDB(object):
         if (self.varsdef(name) is None):
             print(f'KeyError:\n No such key "{name}"')
         else:
+            filename = self.shellObj.varsdata.p4vars.path
+            self.unload(name)
+            if (is_writable(filename) is False):
+                make_writable(filename)
+            self.varsdef(name, None)
             try:
-                filename = self.shellObj.varsdata.p4vars.path
-                self.unload(name)
-                if (is_writable(filename) is False):
-                    make_writable(filename)
-                self.varsdef(name, None)
-                if hasattr(globals(), name):
-                    globals().__delattr__(name)
-                self.setstored()
-                print(f'Reference ({name}) destroyed')
-            except Exception as err:
-                print(f'Exception:\n {err}')
+                self.shellObj.kernel.shell.del_var(name)
+                globals().__delattr__(name)
+                self.shellObj.__delattr__(name)
+            except: pass
+            self.setstored()
+            print(f'Reference ({name}) destroyed')

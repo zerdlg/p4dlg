@@ -5,6 +5,11 @@ from libdlg.dlgSchema import SchemaXML
 from libdlg.dlgUtilities import remove
 from libdlg.dlgQuery_and_operators import AND
 
+from os.path import dirname
+import schemaxml
+schemadir = dirname(schemaxml.__file__)
+default_xmlschema_version = 'r16.2'
+
 '''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 457 $] [$Revision: #9 $]
      [$DateTime: 2024/08/02 05:45:11 $]
      [$Author: mart $]
@@ -19,13 +24,14 @@ class JnlInitialize(object):
     '''
 
     def __init__(self,
-                 schemaxmldocs='../../schemaxml',
+                 schemaxmldocs=schemadir,
                  oSchema=None,
                  updateschemas=False,
                  overwrite=False):
 
         self.schemaxmldocs = schemaxmldocs
         self.oSchema = oSchema
+
         if (self.oSchema is None):
             self.oSchema = SchemaXML(schemadir=schemaxmldocs)
         if (updateschemas is True):

@@ -327,41 +327,19 @@ class ObjP4(object):
             except KeyError as err:
                 print(f'KeyError:\n{err}')
 
-    def destroy(self, name):
+    def purge(self, name):
         if (self.varsdef(name) is None):
             print(f'KeyError:\nNo such key "{name}"')
         else:
+            filename = self.shellObj.varsdata.p4vars.path
+            self.unload(name)
+            if (is_writable(filename) is False):
+                make_writable(filename)
+            self.varsdef(name, None)
             try:
-                filename = self.shellObj.varsdata.p4vars.path
-                self.unload(name)
-                if (is_writable(filename) is False):
-                    make_writable(filename)
-                self.varsdef(name, None)
-                try:
-                    #if (name in globals()):
-                    #    globals().pop(name)
-                    #self.shellObj.__delattr__(name)
-                    print(globals()['fred'])
-                    print(locals()['fred'])
-                except KeyError:
-                    pass
-                self.setstored()
-                print(f'Reference ({name}) destroyed')
-            except Exception as err:
-                bail(
-                    f'Exception:\n{err}'
-                )
-
-    def purge(self, name):
-        filename = self.shellObj.varsdata.p4vars.path
-        self.unload(name)
-        self.destroy(name)
-        if (is_writable(filename) is False):
-            make_writable(filename)
-        self.varsdef(name, None)
-        try:
-            globals().__delattr__(name)
-        except:
-            pass
-        self.setstored()
-        print(f'Reference ({name}) destroyed')
+                self.shellObj.kernel.shell.del_var(name)
+                globals().__delattr__(name)
+                self.shellObj.__delattr__(name)
+            except:pass
+            self.setstored()
+            print(f'Reference ({name}) destroyed')

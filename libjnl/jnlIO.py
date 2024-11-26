@@ -1,5 +1,4 @@
 import os
-from os.path import dirname
 from types import *
 import datetime
 from itertools import tee
@@ -25,6 +24,7 @@ from libjnl.jnlFile import JNLFile
 from libjnl.jnlSqltypes import JNLTable, JNLField
 
 import schemaxml
+from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
 
 '''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 477 $] [$Revision: #45 $]
@@ -166,12 +166,13 @@ class P4Jnl(object):
     __rand__ = __and__
     __ror__ = __or__
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, journal, oSchema=None, version=None, **kwargs):
         '''     required args:  args(0) -> journal file or journalReader
                                 args(1) -> a schema object or schemadir and p4dlg will try to
                                            guess the correct version (though yet untested)
         '''
-        (args, kwargs) = (Lst(args), objectify(kwargs))
+        kwargs = objectify(kwargs)
+
         ''' logging stuff
         '''
         self.loglevel = kwargs.loglevel or 'DEBUG'
@@ -203,30 +204,21 @@ class P4Jnl(object):
         #self.logwarning = self.logger.logwarning
         #self.logerror = self.logger.logerror
         #self.logcritical = self.logger.logcritical
+
         ''' Journal and SchemaXML class reference
         '''
-        try:
-            self.journal = args(0)
-            if (self.journal is None):
-                bail(
-                    f"MISSING: Journal file: {self.journal}"
-                )
-            else:
-                self.loginfo(f"Journal file: {self.journal}")
-            self.oSchema = args(1) \
-                if AND(
-                        (args(1) is not None),
-                        (isinstance(args(1), SchemaXML))
-                    ) \
-                        else kwargs.oSchema
-            if (self.oSchema is None):
-                bail(
-                    "could not define an SchemaXML class reference"
-                )
-            else:
-                self.loginfo(f"schema version: : {self.oSchema.version}")
-        except Exception as err:
-            bail(err)
+        if AND((oSchema is None), (version is not None)):
+            oSchema = SchemaXML(schemadir, version)
+        self.journal = journal
+        (
+            self.oSchema,
+            self.version
+        ) = \
+            (
+                oSchema,
+                version
+            )
+
         ''' tablememo houses all and complete table/command definitions
         '''
         self.tablememo = {}
@@ -235,8 +227,8 @@ class P4Jnl(object):
                 * Default: could be 'latest' (doh! if you want to risk anything higher than r16.2)
                 * IMHO, I wouldn't recommend it, so setting the default @r16.2            
         '''
-        self.schemaversion = kwargs.schemaversion or self.oSchema.version #or self.guessVersion() -> I think this is broken
-        self.schemadir = kwargs.schemadir or schemadir
+        self.schemaversion = self.version = version or self.oSchema.version #or self.guessVersion() -> I think this is broken
+        self.schemadir = schemadir
         self.excludetables = Lst()
         ''' A list of tables to exclude.
             
@@ -560,7 +552,8 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 qries = objectify(Lst(query))
 
             for qry in qries:
-                if (is_queryType(qry) is True):
+                #if (is_queryType(qry) is True):
+                if (is_query_or_expressionType(qry) is True):
                     if (tablename is None):
                         ''' grab the tablename and move on!
                         '''

@@ -126,8 +126,7 @@ def update_xmlschema_files(schemaObj):
 
 def test():
     version = 'r20.1'
-    oSchema = SchemaXML()(version)
-
+    oSchema = SchemaXML(version)
     p4schema = oSchema.p4schema
     p4model = oSchema.p4model
 
@@ -142,14 +141,9 @@ def test():
 
 if (__name__ == '__main__'):
     ''' USAGE:
-            >>> schemaObj = SchemaXML()
-            >>> schemaObj = P4Schema()('r16.2')  -> is equivalent as above, but with access to
-                                                    higher level attributes (p4model, oModel, 
-                                                    p4schema), and the release must be specified 
-    
-        Note: best not to pass-in a release version to __call__ if we plan on doing schema management stuff,
+            >>> schemaObj = SchemaXML('r16.2') 
     '''
-    schemaObj = SchemaXML()
+    schemaObj = SchemaXML('r16.2')
     #testmisc(schemaObj)
     #update_xmlschema_files(schemaObj)
 

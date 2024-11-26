@@ -21,7 +21,8 @@ __all__ = [
     'RecordFieldsNotMatchCols',
     'FieldNotInRecord',
     'NoSuchTableError',
-    'NoSuchFieldError'
+    'NoSuchFieldError',
+    'P4ProtectError',
 ]
 def raiseException(exception, msg):
     return exception(msg)
@@ -39,6 +40,14 @@ class InvertError(DLGError): pass
 
 class ExtractError(DLGError): pass
 
+class P4ProtectError(DLGError):
+    def __init__(self, msg):
+        DLGError.__init__(self)
+        self.msg = msg
+
+    def __str__(self):
+        return f"P4ProtectEror: {self.msg}"
+
 class FieldNotInRecord(DLGError):
     def __init__(self, field, fields):
         DLGError.__init__(self)
@@ -55,7 +64,7 @@ class RecordFieldsNotMatchCols(DLGError):
         self.colslength = len(cols)
 
     def __str__(self):
-        return f'Len `cols` ({self.colslength}) does not match len of record fields ({self.fieldslength}) .'
+        return f'`cols` length ({self.colslength}) does not match len of record fields ({self.fieldslength}) .'
 
 class AttributeNotBelongToFieldError(DLGError):
     def __init__(self, fieldname, att):

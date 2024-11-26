@@ -43,7 +43,7 @@ __all__ = [
            'EXTRACT', 'SUBSTRING', 'LIKE', 'ILIKE',
            'SUM', 'ABS',
            'AVG', 'MIN', 'MAX', 'BELONGS', 'IN', 'TRUEDIV', 'COUNT',
-           'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND',
+           'YEAR', 'MONTH', 'DAY',
  \
            'qtypes', 'is_q_or_dicttype', 'is_queryType',
            'is_strType', 'is_dictType', 'is_fieldType',
@@ -438,7 +438,6 @@ def AVG(*args, **kwargs):
 def LOWER(*args, **kwargs):
     return clsLOWER(**kwargs)(*args)
 
-
 def UPPER(*args, **kwargs):
     return clsUPPER(**kwargs)(*args)
 
@@ -468,6 +467,10 @@ def BELONGS(*args, **kwargs):
 
 def IN(*args, **kwargs):
     return clsIN(**kwargs)(*args)
+
+def ON(*args, **kwargs):
+    #return clsNOTIMPLEMENTED(**kwargs)(*args)
+    return clsON(**kwargs)(*args)
 
 def COUNT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
@@ -1603,6 +1606,54 @@ class clsBELONGS(QClass):
                 right,
                 op or BELONGS
             ), name='BELONGS', err=err)
+
+class clsON(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+        (left, right) = (exps(0), exps(1))
+        try:
+            if (is_tableType(left) is True):
+                qres = DLGExpression(left.objp4, ON, left, right)
+            elif (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': ON, 'left': left, 'right': right})
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, ON, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, ON, left, right)
+            elif (
+                    (isinstance(left, (bool, int)))
+                    & (isinstance(right, (bool, int)))
+            ):
+                qres = reduce(lambda left, right: (re.match(f"^{right}", left) is not None),
+                              self.getSequence(*exps))
+            elif (isinstance(left, str) is True):
+                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                if ((tablename, fieldname) == (None, None)):
+                    qres = reduce(lambda left, right: (re.match(f"^{right}.*$", left) is not None),
+                                  self.getSequence(*exps))
+                else:
+                    qres = Storage({'op': STARTSWITH,
+                                    'left': {
+                                                'tablename': tablename,
+                                                'fieldname': fieldname
+                                            },
+                                   'right': value
+                                    }
+                                   )
+            else:
+                qres = self.build_query(
+                                        left,
+                                        right,
+                                        STARTSWITH
+                )
+            return qres
+        except Exception as err:
+            op_error(lambda left, right, op: (
+                left,
+                right,
+                op or STARTSWITH
+            ), name='STARTSWITH', err=err)
+
 
 ''' In case it comes up... but it could 
     cause more confusion than anything else.
@@ -2846,7 +2897,7 @@ class DLGQuery(object):
                     for item in ('fieldname', 'tablename'):
                         if (item is not None):
                             setattr(self, item, left[item])
-                '''
+        '''
 
     def __repr__(self):
         qdict = pformat(
@@ -2964,16 +3015,6 @@ class DLGExpression(object):
 
         if AND((not hasattr(self, 'tablename')), (hasattr(self.left, 'tablename'))):
             self.tablename = left.tablename
-
-        # not needed with JNLL, are attributes to self
-        #(
-        #    self.tablename,
-        #    self.fieldname
-        #) = \
-        #    (
-        #        kwargs.tablename,
-        #        kwargs.fieldname
-        #    )
 
         opname = op.__name__ \
             if (callable(op) is True) \

@@ -5,7 +5,6 @@ from libsh.shell import ServeLib
 from libpy4.py4IO import Py4
 
 from libdlg.dlgSchema import SchemaXML, to_releasename
-import schemaxml
 
 ''' a few ways to connect
 
@@ -27,10 +26,8 @@ def create_p4connect_p4qshell(name, version):
     return ObjP4(oShell, loglevel='INFO').create(name, **p4user)
 
 def create_p4connect_Py4(version):
-    schemadir = dirname(schemaxml.__file__)             # where the schemaxml pickles live
     schemaversion = to_releasename(version)             # format the given p4 release version
-    objSchema = SchemaXML(schemadir)                    # a reference to class SchemaXML
-    oSchema = objSchema(schemaversion)                  # the schema object
+    oSchema = SchemaXML(schemaversion)                    # a reference to class SchemaXML
     p4args = {                                          # the p4 user
         'user': 'gc',
         'port': 'anastasia.local:1777',

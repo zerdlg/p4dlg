@@ -14,8 +14,10 @@ __all__ = ['ObjJnl']
 
 class ObjJnl(DLGControl):
     helpstr = """
-        Manage connections to journals and checkpoints.
-
+Manage connections to journals and checkpoints.
+        
+    Create a connection to a journal with jnlconnect.create.
+        
         `jnlconnect` attributes: create    create and store a connection to a journal
                                                 - requires the connection name
 
@@ -39,7 +41,7 @@ class ObjJnl(DLGControl):
 
                                  help      display help about p4connect 
 
-        Create a connection to a journal with jnlconnect.create
+        
         parameters: args[0]  -> name,
                     keyword  -> journal = journal_path
                     keyword  -> version = release of the p4d instance
@@ -51,11 +53,13 @@ class ObjJnl(DLGControl):
                     * a bit more on schemas further down. 
 
         eg.
-
+        
+        Requirements
         -- requires a name, a journal file & a reference to a schema object (or a p4 release number)
             >>> journal = '../../resc/journals/journal2'
             >>> oSchema = schema('r16.2')
-
+            
+        Methods:
         -- create
             >>> jnlconnect.create('oJnl', journal=journal, oSchema=oSchema)
             >>> oJnl
@@ -78,9 +82,6 @@ class ObjJnl(DLGControl):
 
         -- destroy
             >>> jnlconnect.unload('oJnl')
-
-        -- purge
-            >>> jnlconnect.purge('oJnl')
 
         -- show
             * with name argument
@@ -182,16 +183,21 @@ class ObjJnl(DLGControl):
         print(f'Reference ({name}) unloaded')
 
     def purge(self, name):
-        filename = self.shellObj.varsdata.jnlvars.path
-        self.unload(name)
-        if (is_writable(filename) is False):
-            make_writable(filename)
-        self.varsdef(name, None)
-        try:
-            globals().__delattr__(name)
-        except:pass
-        self.setstored()
-        print(f'Reference ({name}) destroyed')
+        if (self.varsdef(name) is None):
+            print(f'KeyError:\nNo such key "{name}"')
+        else:
+            filename = self.shellObj.varsdata.jnlvars.path
+            self.unload(name)
+            if (is_writable(filename) is False):
+                make_writable(filename)
+            self.varsdef(name, None)
+            try:
+                self.shellObj.kernel.shell.del_var(name)
+                globals().__delattr__(name)
+                self.shellObj.__delattr__(name)
+            except:pass
+            self.setstored()
+            print(f'Reference ({name}) destroyed')
 
     def help(self):
         return self.helpstr

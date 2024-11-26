@@ -9,7 +9,9 @@ from libdlg.dlgFileIO import loadpickle, fileopen
 from libjnl.jnlFile import *
 #from libjnl.jnlInit import JnlInitialize
 from libdlg.dlgSchema import SchemaXML
-
+import schemaxml
+from os.path import dirname
+schemadir = dirname(schemaxml.__file__)
 objectify = Storage.objectify
 
 __all__ = ['GuessRelease']
@@ -22,7 +24,7 @@ __all__ = ['GuessRelease']
 # this is now broken - TODO: investigate and fix!
 
 class GuessRelease(object):
-    def __init__(self, schemaxmldocs='../../schemaxml'):
+    def __init__(self, schemaxmldocs=schemadir):
         schemaxmldocs = os.path.abspath(schemaxmldocs)
         self.schemaxmldocs = schemaxmldocs
         self.oSchema = SchemaXML(schemadir=schemaxmldocs)

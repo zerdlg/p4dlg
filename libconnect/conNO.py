@@ -74,14 +74,19 @@ class ObjNO(object):
         return self.load(name)
 
     def purge(self, name):
-        filename = self.shellObj.varsdata.basevars.path
-        self.unload(name)
-        if (is_writable(filename) is False):
-            make_writable(filename)
-        self.varsdef(name, None)
-        try:
-            globals().__delattr__(name)
-        except:
-            pass
-        self.setstored()
-        print(f'Reference ({name}) destroyed')
+        if (self.varsdef(name) is None):
+            print(f'KeyError:\nNo such key "{name}"')
+        else:
+            filename = self.shellObj.varsdata.basevars.path
+            self.unload(name)
+            if (is_writable(filename) is False):
+                make_writable(filename)
+            self.varsdef(name, None)
+            try:
+                self.shellObj.kernel.shell.del_var(name)
+                globals().__delattr__(name)
+                self.shellObj.__delattr__(name)
+            except:
+                pass
+            self.setstored()
+            print(f'Reference ({name}) destroyed')

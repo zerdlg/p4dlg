@@ -4,7 +4,6 @@ from libdlg.dlgQuery_and_operators import AND
 from libjnl.jnlIO import P4Jnl
 from libdlg import SchemaXML, to_releasename, DLGRecord, DLGRecords
 from libdlg.dlgStore import Storage, Lst
-import schemaxml
 import resc.journals as journals
 
 '''  [$File: //dev/p4dlg/libsample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
@@ -13,7 +12,6 @@ import resc.journals as journals
 '''
 
 __all__ = ['Merge']
-
 
 class  Merge(object):
     ''' USAGE:
@@ -30,10 +28,8 @@ class  Merge(object):
 
     def __init__(self, *args, version="r16.2", **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
-        schemadir = dirname(schemaxml.__file__)
         schemaversion = to_releasename(version)
-        objSchema = SchemaXML(schemadir)
-        oSchema = objSchema(schemaversion)
+        oSchema = SchemaXML(schemaversion)
         journal = args(0)
         ''' Create a reference to class P4Jnl
         '''

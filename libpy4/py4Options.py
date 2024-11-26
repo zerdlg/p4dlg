@@ -453,7 +453,7 @@ class Py4Options(object):
                 * keying
                 * specfield         -> Really just the same as `spectype`, but capitalized.
                 * fieldsdata        -> Everything included in the table above (overkill? maybe).
-                                       At any rate, well worth keeping  around for now ...
+                                       At any rate, well worth keeping around for now ...
         '''
         def getSpecData():
             fdata = Lst(filter(lambda key: key.attribute == 'key', fieldsdata))

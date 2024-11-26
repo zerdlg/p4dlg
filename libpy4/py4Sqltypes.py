@@ -130,7 +130,8 @@ class Py4Table(object):
                         fieldname,
                         tablename=self.tablename,
                         table=self,
-                        objp4=self.objp4
+                        objp4=self.objp4,
+                        _table=self
                     )
                     setattr(self, fieldname, oField)
                     self.fields.append(getattr(self, fieldname))
@@ -450,11 +451,13 @@ class Py4Field(DLGExpression):
                  filter_in=None,
                  filter_out=None,
                  _rname=None,
+                 _table=None,
                  **kwargs
                 ):
         kwargs = Storage(kwargs)
         self.fieldname = fieldname
         self.name = fieldname
+        self._table = _table or objp4[tablename]
 
         self.__dict__ = objectify(self.__dict__)
 

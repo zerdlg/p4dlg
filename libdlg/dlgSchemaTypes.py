@@ -490,6 +490,18 @@ class SchemaType(object):
     def bitmasknames(self):
         return Lst(dtype.name for dtype in self.datatypes_bitmasks())
 
+    def is_flag(self, field):
+        ''' TODO: complete this
+        '''
+        fieldname = field if (isinstance(field, str) is True) else field.fieldname
+        return True if (fieldname in self.flagnames) else False
+
+    def is_bitmask(self, field):
+        ''' TODO: complete this
+        '''
+        fieldname = field if (isinstance(field, str) is True) else field.fieldname
+        return True if (fieldname in self.bitmasknames) else False
+
     def fix_tablename(self, name):
         ''' >>> oSchemaType.fix_tablename('domain')
            'db.domain'
@@ -528,7 +540,7 @@ class SchemaType(object):
              {'value': '8', 'desc': 'moveto; move to another filename'},
              {'value': '9', 'desc': 'archive; stored in archive depot'}]
 
-             >>> jnl.oSchemaType.lag_value2name(jnl.rev.action, '8')
+             >>> jnl.oSchemaType.flag_value2name(jnl.rev.action, '8')
 
         '''
         value = str(value)
@@ -537,7 +549,7 @@ class SchemaType(object):
         name = Lst(desc.split(';'))(0)
         return name
 
-    def flagvaleu_byname(self, oField, flag):
+    def flagvalue_byname(self, oField, flag):
         ''' Eg.
 
             >>> jnl.oSchemaType.flagvalue_byname(jnl.rev.action, 'movefrom')
