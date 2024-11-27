@@ -45,10 +45,6 @@ reg_separator = re.compile(r'[/-]|:|\\|\s|,')
 reg_p4sep = re.compile('/')
 reg_isosep = re.compile('-')
 
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'''     a class to facilitate datetime related stuff                                         '''
-'''                                                                                          '''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 class DLGDateTime(object):
     def __init__(
              self,
@@ -453,7 +449,7 @@ class DLGDateTime(object):
                 return datetime(*args)
             elif (isinstance(dt, (int, float)) is True):
                 return datetime.fromtimestamp(float(dt))
-        elif (len(args > 2)):
+        elif (len(args) > 2):
             return self.guess_dt_from_ints(*args)
 
     def to_p4date(self, *args, **kwargs):

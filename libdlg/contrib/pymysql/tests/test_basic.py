@@ -117,7 +117,7 @@ class TestCursor(base.PyMySQLTestCase):
     # this test case does not work quite right yet, however,
     # we substitute in None for the erroneous field which is
     # compatible with the DB-API 2.0 spec and has not broken
-    # any unit tests for anything we've tried.
+    # any unit ut for anything we've tried.
 
     #def test_description(self):
     #    """ test description attribute """

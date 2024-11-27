@@ -7,7 +7,7 @@ from libdlg.dlgTables import DataGrid
 
 schemadir = dirname(schemaxml.__file__)
 
-''' a few tests & samples on xmlschemas
+''' a few ut & samples on xmlschemas
 '''
 def testmisc(schemaObj):
     version = 'r16.2'
