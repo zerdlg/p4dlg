@@ -2,7 +2,7 @@ from libdlg.dlgQuery_and_operators import (
     AND,
     OR
 )
-from libjnl.jnlSqltypes import is_recordsType
+from libdlg.dlgQuery_and_operators import is_recordsType
 from libjnl.jnlFile import JNLFile
 from libdlg.dlgRecordset import DLGRecordSet
 from libdlg.dlgRecords import DLGRecords
@@ -33,11 +33,11 @@ class DLGJoin(object):
             Equivalen to join + flat=True
 
             eg.
-            >>> constraint = (jnl.rev.change == jnl.change.change)
-            >>> recs = jnl(jnl.rev).select(merge_records=jnl.change.on(constraint))
+            >>> reference = (jnl.rev.change == jnl.change.change)
+            >>> recs = jnl(jnl.rev).select(merge_records=jnl.change.on(reference))
 
                 which is equivalent to using join + flat=True
-                >>> recs = jnl(jnl.rev).select(join=jnl.change.on(constraint), flat=True)
+                >>> recs = jnl(jnl.rev).select(join=jnl.change.on(reference), flat=True)
 
             >>> recs.first()
             <DLGRecord {'action': '8',
@@ -74,10 +74,10 @@ class DLGJoin(object):
             Note that records are skipped where inner fields are non-matching.
 
             eg.
-            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(constraint)
+            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(reference)
 
                 * alternatively, this syntax is equivalent:
-                >>> recs = jnl(constraint).select()
+                >>> recs = jnl(reference).select()
 
             >>> recs.first()
             <DLGRecord {'change': <DLGRecord {'access': '',
@@ -122,16 +122,16 @@ class DLGJoin(object):
             like join but records with non-matching fields are included in overall outrecords.
 
             eg.
-            >>> recs = jnl(jnl.rev).select(left=jnl.change.on(constraint)
+            >>> recs = jnl(jnl.rev).select(left=jnl.change.on(reference)
     '''
 
     def __init__(
             self,
             objp4,
-            constraint,
+            reference,
     ):
         self.objp4 = objp4
-        self.constraint = constraint
+        self.reference = reference
         self.records = None
         self.left_records = None
         self.exclude_fieldnames = [
@@ -146,7 +146,7 @@ class DLGJoin(object):
             'status',
             'code'
         ]
-        self.cField = self.constraint.left
+        self.cField = self.reference.left
         self.cGroupRecords = None
         self.cMemo = {}
 
@@ -166,7 +166,7 @@ class DLGJoin(object):
         return memo
 
     def define_recordset(self):
-        cQuery = self.constraint.right._table
+        cQuery = self.reference.right._table
         cTablename = cQuery.tablename
         cTabledata = self.objp4.memoizetable(cTablename)
         [
@@ -181,7 +181,7 @@ class DLGJoin(object):
         cTabledata.update(
             **{
                 'tablename': cTablename,
-                'constraint': self.constraint,
+                'reference': self.reference,
                 'tabletype': type(self.objp4)
             }
         )
@@ -224,8 +224,8 @@ class DLGJoin(object):
             righttable
         ) = \
             (
-                self.constraint.left._table,
-                self.constraint.right._table
+                self.reference.left._table,
+                self.reference.right._table
             )
         for record in records:
             fieldvalue = record[self.cField.fieldname]

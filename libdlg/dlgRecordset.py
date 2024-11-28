@@ -218,7 +218,6 @@ class DLGRecordSet(object):
             objp4=None,
             records=Lst(),
             query=None,
-            #constraint=None,
             *args,
             **tabledata
     ):
@@ -293,7 +292,7 @@ class DLGRecordSet(object):
         self.querytables = set()
         self.fieldmemo = {}
         self.oTimer = timeit.timeit
-        self.constraint = None
+        self.reference = None
         self.__dict__ = objectify(self.__dict__)
 
     def updateenv(self, **kwargs):
@@ -356,7 +355,7 @@ class DLGRecordSet(object):
             self.query = self.define_queries(*queries, **kwargs) \
                 if (len(queries) > 0) \
                 else Lst()
-        self.constraint = kwargs.constraint
+        self.reference = kwargs.reference
         return self
 
     def defineCols(self, records):
@@ -473,8 +472,7 @@ class DLGRecordSet(object):
             self.records = Lst()
             self.query = None
             self.cols = Lst()
-            self.constraint = None
-            #self.constraint_recordset = None
+            self.reference = None
         finally:
             self.loginfo('DLGRecordSet records & query have been reset')
 
@@ -972,9 +970,9 @@ class DLGRecordSet(object):
             **tabledata
         )
 
-        if (self.constraint is not None):
+        if (self.reference is not None):
             kwargs.update(
-                join=self.constraint.right._table.on(self.constraint),
+                join=self.reference.right._table.on(self.reference),
                 flat=kwargs.flat or False
             )
         outrecords = oSelect.select(

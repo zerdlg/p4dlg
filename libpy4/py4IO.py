@@ -340,7 +340,7 @@ class Py4(object):
             tablename,
             lastarg,
             tabledata,
-            constraint,
+            reference,
         ) \
             = (
             kwargs.tablename,#or self.tablename if (hasattr(self, 'tablename')) else None,
@@ -367,12 +367,12 @@ class Py4(object):
 
         if (query is not None):
             if (isinstance(query, (list, Lst, tuple)) is False):
-                if (query_is_constraint(query) is True):
-                    constraint = query
+                if (query_is_reference(query) is True):
+                    reference = query
                     ''' re-define query as the query's left 
                         side's Table object (_table)
                     '''
-                    query = constraint.left._table
+                    query = reference.left._table
                     tablename = query.tablename
                     tabledata = self.memoizetable(tablename)
                 elif (isinstance(query, Py4Table)):
@@ -586,17 +586,17 @@ class Py4(object):
             **tabledata
         )
         ''' depending on the values we have so far for query, 
-            p4Queries and constraint, return the RecordSet (
+            p4Queries and reference, return the RecordSet (
             swinging by __call__ if need be).  
         '''
         if AND(
                 (len(p4Queries) == 0),
                 (is_tableType(query) is True)
         ):
-            if (constraint is None):
+            if (reference is None):
                 return oRecordSet
             return oRecordSet(
-                constraint=constraint
+                reference=reference
             )
         return oRecordSet(*p4Queries, **kwargs)
 
@@ -904,7 +904,7 @@ class Py4(object):
                 return
             if AND(
                     (usage is not None),
-                    (reg_filename.match(usage) is not None)
+                    (reg_filename.search(usage) is not None)
             ):
                 ''' filearg is required!
 

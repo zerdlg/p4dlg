@@ -4,7 +4,8 @@ import tarfile
 from libdlg.dlgFileIO import (
     fileopen,
     bail,
-    Lst
+    Lst,
+    is_compressed,
 )
 from libdlg.dlgUtilities import IsMatch
 
@@ -20,9 +21,9 @@ __all__ = [
     'tar',
     'untar',
     'tar_root',
-    'Extract',
-    'Compress',
-    'decompress_extract'
+    'DLGExtract',
+    'DLGCompress',
+    'extract_compressed_archive'
 ]
 
 '''  compress/decompress & tar/extract tarfile       
@@ -61,12 +62,12 @@ def unzip(filename):
     return oGzip
 
 def untar(filename, path):
-    return Extract()(filename, path)
+    return DLGExtract()(filename, path)
 
 def tar_root(fpath):
-    return Extract().tar_root(fpath)
+    return DLGExtract().tar_root(fpath)
 
-class Extract(object):
+class DLGExtract(object):
     def __init__(self, *args):
         (
             self.filename,
@@ -132,7 +133,7 @@ class Extract(object):
         finally:
             tar.close()
 
-class Compress(object):
+class DLGCompress(object):
     def __init__(self, *args):
         (
             self.infile,
@@ -174,12 +175,15 @@ class Compress(object):
         try:
             InFileContent = objInFile.read()
             objOutFile.write(InFileContent)
+        except Exception as err:
+            bail(err)
         finally:
             [obj.close() for obj in (objInFile, objOutFile)]
 
-def decompress_extract(
+def extract_compressed_archive(
         arch,
-        destpath='.',
+        destdir='.',
+        outfile=None,
         clean=True,
         lock=False
 ):
@@ -200,17 +204,15 @@ def decompress_extract(
         finally:
             oFile.close()
 
-    def extractObj(obj, tname, extpath):
-        try:
-            obj(tname, path=extpath).extractall()
-        except Exception as err:
-            bail(err)
+    def extract(tname, destpath):
+        dest = destpath or destdir
+        oExtract(tname, path=dest).extractall()
 
-    def decompressObj(obj, archive, tname=None):
-        try:
-            obj(archive).decompress(tname)
-        except Exception as err:
-            bail(err)
+    def decompress(archive, out=None):
+        filename = out or outfile
+        if (filename is None):
+            filename = 'archive'
+        oCompress(archive).decompress(filename)
 
     def cleanfile(fname):
         if (clean is True):
@@ -220,6 +222,12 @@ def decompress_extract(
             except OSError as err:
                 print(err)
 
+    def get_versionfilename(arch):
+        parentdir = os.path.dirname(arch)
+        outfile = re.sub(',d', '', parentdir) \
+            if (re.match(r'^.*,d$', parentdir) is not None) \
+            else None
+        return outfile
 
     if (os.path.exists(arch) is False) or (gzip_is_empty(arch) is True):
         print(f'no such compressed file or has 0 length: {arch}')
@@ -227,7 +235,7 @@ def decompress_extract(
         extract_path = os.path.abspath(
             os.path.join(
                 *[
-                    destpath,
+                    destdir,
                     os.path.dirname(arch),
                 ]
             )
@@ -238,37 +246,60 @@ def decompress_extract(
             oExtract
         ) = \
             (
-                Compress(),
-                Extract()
+                DLGCompress(),
+                DLGExtract()
             )
 
-        '''  the thing should work like this:
+        ''' the thing should work like this:
     
-                if atype is .gz     -->  type is (1) Compress & (2) None        -> gzfile     (./file.gz)
-                if atype is .tar    -->  type is (1) Extract  & (2) None        -> tarfile    (./file.tar)
-                if atype is .tar.gz -->  type is (1) Compress & (2) Extract     -> targzfile  (./file.targz)
-                if atype is .tgz    -->  type is (1) Extract  & (2) Extract     -> gziptar    (./file.tgz)
+            if extension is .gz     -->  DLGCompress                  -> gzfile     (./filename.gz)
+            if extension is .tar    -->  DLGExtract                   -> tarfile    (./filename.tar)
+            if extension is .tar.gz -->  DLGCompress / DLGExtract     -> targzfile  (./filename.tar.gz)
+            if extension is .tgz    -->  DLGExtract  / DLGExtract     -> gziptar    (./filename.tgz)
         '''
-        archivetype = {Lst(IsMatch(r'^.*[^\.tar]\.gz$')(arch))(1): Lst([oCompress, ]),
-                       Lst(IsMatch(r'^.*\.tar$|.*.tgz$')(arch))(1): Lst([oExtract, ]),
-                       Lst(IsMatch(r'^.*\.tar.gz$|')(arch))(1): Lst([oCompress, oExtract, ])}[True]
-
         rname = to_decomped_name(arch)
+        destname = get_versionfilename(arch) or rname
+
+        if (re.search(r'\.tar$', arch) is not None):
+            ''' extract '''
+            decompress(arch, destname)
+            cleanfile(arch)
+
+        elif (re.search(r'\.tar\.gz$', arch) is not None):
+            ''' decompress / extract'''
+            decompress(arch, destname)
+            destname = to_decomped_name(destname)
+            extract(destname, extract_path)
+            cleanfile(arch)
+
+        elif (re.search(r'\.tgz$', arch) is not None):
+            ''' extract / extract '''
+            extract(destname, extract_path)
+
+        elif (re.search(r'\.gz$', arch) is not None):
+            ''' decomp '''
+            decompress(arch, destname)
+        else:
+            if (is_compressed(arch) is True):
+                if (gzip_is_empty(arch) is False):
+                    decompress(arch)
+
+        """
         '''  decompress or extract, but not both!            -> archive is filename.tgz or filename.gz             
         '''
-        if (type(archivetype(0)).__name__ == 'Compress'):
+        if (type(archivetype(0)).__name__ == 'DLGCompress'):
             decompressObj(archivetype(0), arch, rname)
             cleanfile(arch)
-        elif (type(archivetype(0)).__name__ == 'Extract'):
+        elif (type(archivetype(0)).__name__ == 'DLGExtract'):
             extractObj(archivetype(0), rname, extract_path)
             cleanfile(rname)
 
         '''  archive is decompressed and dropped a tarball!  -> archive is filename.tar.gz or filename.targz       
         '''
-        if (type(archivetype(1)).__name__ == 'Extract'):
+        if (type(archivetype(1)).__name__ == 'DLGExtract'):
             extractObj(archivetype(1), rname, extract_path)
             cleanfile(rname)
-
+        """
 def test():
     '''  set thing up for testing
     '''
@@ -287,12 +318,12 @@ def test():
     '''
     f = '/Users/gc/depot/AudioFormatOgg.h.gz'
     #decompress_extract('./archive_samples/sample_depot.tar.gz', clean=True, lock=False)
-    decompress_extract(f, clean=True, lock=False)
+    extract_compressed_archive(f, clean=True, lock=False)
 
     '''  uncompress a .zip file
     '''
     #compressed_file = './archive_samples/gareth.zip'
-    #oCompress = Compress()(compressed_file)
+    #oCompress = DLGCompress()(compressed_file)
 
 if __name__ == '__main__':
     test()

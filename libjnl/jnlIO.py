@@ -520,19 +520,19 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         (queries, qries) = (Lst(), Lst())
         self.maxrows = kwargs.maxrows or 0
         self.compute = kwargs.compute or Lst()
-        constraint = None
+        reference = None
         ''' If query is a JNLTable, DLGQuery or DLGExpression, 
             define both tablename and tabledata. Otherwise,
             make sure it is typed correctly (it should be list)
         '''
         if (query is not None):
             if (isinstance(query, (list, Lst, tuple)) is False):
-                if (query_is_constraint(query) is True):
-                    constraint = query
+                if (query_is_reference(query) is True):
+                    reference = query
                     ''' re-define query as the query's left 
                         side's Table object (_table)
                     '''
-                    query = constraint.left._table
+                    query = reference.left._table
                     tablename = query.tablename
                     tabledata = self.memoizetable(tablename)
                 elif (is_tableType(query) is True):
@@ -621,10 +621,10 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
 
         if (len(jnlQueries) == 0):
             if (is_tableType(query) is True):        # A single query is defined, its just a _table.
-                if (constraint is None):             # No constraints in this run
+                if (reference is None):             # No references in this run
                     return oRecordSet                # Bypass DLGRecordSet.__call__ altogether!
-                return oRecordSet(                   # A single query is defined, its really a constraint
-                    constraint=constraint
+                return oRecordSet(                   # A single query is defined, its really a reference
+                    reference=reference
                 )
         return oRecordSet(*jnlQueries)               # jnlQueries > 0, pass them onto DLGRecordSet.__call__
 

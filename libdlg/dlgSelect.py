@@ -130,18 +130,18 @@ class Select(DLGControl):
             ):
                 self.fieldsmap = self.objp4.tablememo[self.tablename].fieldsmap
 
-        self.constraint = None
+        self.reference = None
         super(Select, self).__init__()
 
-    def memoize_constraint_table(self, key, record=None):
+    def memoize_reference_table(self, key, record=None):
         '''
         '''
         memo = {}
         try:
-            memo = self.constraint_memo[key]
+            memo = self.reference_memo[key]
         except KeyError:
             if (record is not None):
-                memo = self.constraint_memo[key] = record
+                memo = self.reference_memo[key] = record
         return memo
 
     def get_domaintypes(self):
@@ -926,8 +926,8 @@ class Select(DLGControl):
                 else:
                     tablename = query.left.tablename
             except:
-                if (self.constraint is not None):
-                    tablename = self.constraint.left.tablename
+                if (self.reference is not None):
+                    tablename = self.reference.left.tablename
         ''' records
         '''
         if (records is None):
@@ -1066,9 +1066,9 @@ class Select(DLGControl):
 
         if AND(
                 (oJoin is None),
-                (self.constraint is not None)
+                (self.reference is not None)
         ):
-            oJoin = self.constraint.right._table.on(self.constraint)
+            oJoin = self.reference.right._table.on(self.reference)
 
         outrecords = DLGRecords(Lst(), cols, self.objp4)
         insertrecord = outrecords.insert

@@ -1,9 +1,7 @@
-from os.path import dirname
-from libdlg.dlgQuery_and_operators import AND, NOT
+from libdlg.dlgQuery_and_operators import AND
 from libpy4.py4IO import Py4
 from libdlg import SchemaXML, to_releasename
 from libdlg.dlgStore import Storage, Lst
-import schemaxml
 
 '''  [$File: //dev/p4dlg/libsample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
      [$DateTime: 2024/08/23 04:23:28 $]
@@ -28,11 +26,11 @@ class Retype(object):
     def __init__(self, *args, version='16.2', **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
         schemaversion = to_releasename(version)
-        oSchema = SchemaXML(schemaversion)
+        oSchema = SchemaXML(version=schemaversion)
         p4args = {
-                    'user': kwargs.user or 'gc',
+                    'user': kwargs.user or 'mart',
                     'port': kwargs.port or 'anastasia.local:1777',
-                    'client': kwargs.client or 'computer_p4q',
+                    'client': kwargs.client or 'computer_p4dlg',
                     'oSchema': oSchema
         }
         ''' Create a reference to class Py4
@@ -88,25 +86,22 @@ class Retype(object):
 
         '''
         targetfiles = oP4(qry1)._select(oP4.files.depotFile)
-        #targetfiles2 = oP4(qry1).select('depotFile')
         ''' Note: Records are selected with the help `_select' as opposed to 
                   `select` as we would normally do. The difference is in 
                   the values it returns. `select` will return records (DLGRecords
-                  class references) and `sellect' will give us the value of the
-                  field specified as `_select`'s single paramater (a Py4Field object).
+                  class references) and `_select' will give us the value of the
+                  field specified as `_select`'s single parameter.
                   In this case, we get a list of `depotFile`s (`targetfiels`) which 
                   the next query will use to look for `depotFile`s that `belongs` 
                   to that list.
                   
                   Moving on... 
         '''
-
         ''' 3. A second query, the actual nested `belongs`. This is where `targetfiles` 
                come into play as we pass in those results to the following `select' 
                statement.
         '''
-        #qry2 = (oP4.files.depotFile.belongs(targetfiles))
-
+        qry2 = (oP4.files.depotFile.belongs(targetfiles))
         ''' 4. Select records against qry2. `select()` takes packed fieldname arguments 
                that belong to the table 'files`. 
                
@@ -119,8 +114,7 @@ class Retype(object):
                         * field `idx` is not a valid field for any of the tables, therefore
                           it can be ignored.
         '''
-        #filelist = oP4(qry2).select('depotFile')
-
+        filelist = oP4(qry2).select('depotFile')
         ''' 5. We now have the complete list of files that need to be retyped as 'ktext'. 
                All that remains is to open up the files for `edit` while specifying 
                all we need to do, is open those files for edit while specifying a file 
@@ -132,18 +126,20 @@ class Retype(object):
         cmdargs = [
                     '-t',
                     'ktext',
-                    *targetfiles
+                    *filelist
                 ]
         if (preview is True):
             cmdargs.insert(0, '--preview', )
         try:
 
-            return oP4.edit(*cmdargs)
-            #return oP4.edit(*cmdargs)
+            oP4.change(**{'description':'just a test changelist!'})
+            oP4.edit(*cmdargs)
+
         except Exception as err:
             print(err)
 
 
 if (__name__ == '__main__'):
-    result = Retype(version='r16.2')(preview=True)
-    print(result)
+    results = Retype(version='r16.2')(preview=True)
+    for res in results:
+        print(res)

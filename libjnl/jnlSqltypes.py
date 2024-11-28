@@ -498,8 +498,8 @@ class JNLTable(object):
 
     __getitem__ = __getattr__
 
-    def on(self, constraint):
-        return DLGJoin(self.objp4, constraint)
+    def on(self, reference):
+        return DLGJoin(self.objp4, reference)
 
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"

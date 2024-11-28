@@ -285,8 +285,8 @@ class Py4Table(object):
         delattr(self, self.tablename)
         setattr(self, self.tablename, Lst())
 
-    def on(self, constraint):
-        return DLGJoin(self.objp4, constraint)
+    def on(self, reference):
+        return DLGJoin(self.objp4, reference)
 
     def get(self, name):
         return self.getfield(name=name)

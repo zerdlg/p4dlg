@@ -49,7 +49,7 @@ __all__ = [
            'is_strType', 'is_dictType', 'is_fieldType',
            'is_query_or_expressionType', 'is_recordsType', 'is_recordType',
            'is_expressionType', 'is_tableType', 'is_field_tableType',
-           'is_qType_or_field', 'query_is_constraint', 'is_list_of_queries',
+           'is_qType_or_field', 'query_is_reference', 'is_list_of_queries',
            'is_list_of_fields',
  \
     'DLGQuery', 'DLGExpression'
@@ -324,7 +324,7 @@ def is_q_or_dicttype(left, right=None):
             else False
     return ret
 
-def query_is_constraint(query):
+def query_is_reference(query):
     if (is_query_or_expressionType(query) is True):
         if (is_fieldType(query.left, query.right) is True):
             return True
@@ -3263,7 +3263,7 @@ class DLGExpression(object):
     def ilike(self, value):
         return self.like(value, case_sensitive=False)
 
-    def on(self, constraint):
+    def on(self, reference):
         ''' `ON` the SQL conditional clause for joining. AT any rate that's what is should be, however
             I got the idea to simply use ON as the springboard to defined join routines... it may or
             may not turn out to be a good idea.
@@ -3275,30 +3275,30 @@ class DLGExpression(object):
                 >>> table_1 = jnl.rev
                 >>> table_2 = jnl.change
                 >>> fieldname = 'change'
-                >>> constraint = (table_1[fieldname] == table_2[fieldname])
+                >>> reference = (table_1[fieldname] == table_2[fieldname])
 
                 >>> records = jnl(table_1).select(
-                                join=table_2.on(constraint)
+                                join=table_2.on(reference)
                                 )
 
                     or, this syntax is also supported:
 
-                >>> records = jnl(constraint).select()
+                >>> records = jnl(reference).select()
 
             left (left outerjoin)
 
                 >>> table_1 = jnl.rev
                 >>> table_2 = jnl.change
                 >>> fieldname = 'change'
-                >>> constraint = (table_1[fieldname] == table_2[fieldname])
+                >>> reference = (table_1[fieldname] == table_2[fieldname])
 
                 >>> records = jnl(table_1).select(
                                 table_1.ALL, table_2.ALL,
-                                left=table_2.on(constraint),
+                                left=table_2.on(reference),
                                 orderby=table_2.change
                                 )
         '''
-        return DLGExpression(self.objp4, ON, self, constraint)
+        return DLGExpression(self.objp4, ON, self, reference)
 
     def regexp(self, value):
         return DLGQuery(self.objp4, REGEX, self, value)

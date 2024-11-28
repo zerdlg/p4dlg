@@ -260,7 +260,7 @@ class Py4Options(object):
                 usage = re.sub('[\[\]]', '', usage)  # TODO: do something with | statements in usage line
                 cmdargs = self.objp4.p4globals + [self.tablename]
                 (lastarg, more_cmdargs) = (None, [])
-                if (reg_filename.match(usage) is not None):
+                if (reg_filename.search(usage) is not None):
                     try:
                         more_cmdargs = self.get_more_table_options(keywords)
                         rightside_mapping = f'//{self.objp4._client}/...'
@@ -276,6 +276,8 @@ class Py4Options(object):
                             (self.optionsdata.is_specs is True)
                     ):
                         more_cmdargs = self.get_more_table_options(keywords)
+                        if (reg_changelist.search(usage) is not None):
+                            more_cmdargs.append('1')
                     elif (self.optionsdata.is_spec is True):
                         if (self.tablename in self.spec_lastarg_pairs is True):
                             lastarg = self.spec_lastarg_pairs[self.tablename].default
@@ -405,7 +407,7 @@ class Py4Options(object):
                 argname = re.sub('-', '', argitem)
                 if (argname == arg):
                     default_value = usage_stoidx[idx]
-                    if (reg_filename.match(default_value) is None):
+                    if (reg_filename.search(default_value) is None):
                         default_value = False \
                             if (reg_option.match(default_value) is None) \
                             else None
@@ -512,8 +514,6 @@ class Py4Options(object):
                     args +=  ['--max', '1']
                 else:
                     args.append(f'--{kwitem}')
-        if (reg_changelist.search('changelist#') is not None):
-            args.append('1')
         return args
 
     def get_arg_by_kwarg(self, kwditem):

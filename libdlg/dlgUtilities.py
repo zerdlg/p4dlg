@@ -170,8 +170,9 @@ def reg_spec_usage(specname, usageline):
             return res
     except:pass
 
-reg_filename = re.compile(r'^.*\sfile(s|name)?(\s)?(\.)?')
-reg_changelist = re.compile(r'^.*\schange(list)?(#)?(\s)?(\.)?')
+#reg_filename = re.compile(r'^.*\sfile(s|name)?(\s)?(\.)?')
+reg_filename = re.compile(r'\sfile(s|name)?(\s)?(\.\.\.)?')
+reg_changelist = re.compile(r'\schange(list)?(#)?')
 
 ''' reg = re.compile(f'^.*(file(s|name)?)?(\[)?({rname})?(name|list|ID|type)?(#)?(\.)?(\])?$')
 
