@@ -662,7 +662,7 @@ class DLGRecordSet(object):
 
             >>> filename = '//dev/p4dlg/p4/libpy4/py4IO.py'
             >>> printed = oP4.print(filename)
-            >>> content = ''.join(*[p.data for p in printed[1:] if (p.data is not None)])
+            >>> content = ''.join([p.data for p in printed[1:] if (p.data is not None)])
             >>> results = printed.search(content, "administrationlist")
             >>> records = [results.sortby('score')]
             >>>

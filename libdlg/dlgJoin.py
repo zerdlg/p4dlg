@@ -4,6 +4,7 @@ from libdlg.dlgQuery_and_operators import (
 )
 from libdlg.dlgQuery_and_operators import is_recordsType
 from libjnl.jnlFile import JNLFile
+from libpy4.py4Run import Py4Run
 from libdlg.dlgRecordset import DLGRecordSet
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgRecord import DLGRecord
@@ -74,7 +75,7 @@ class DLGJoin(object):
             Note that records are skipped where inner fields are non-matching.
 
             eg.
-            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(reference)
+            >>> recs = jnl(jnl.rev).select(join=jnl.change.on(reference))
 
                 * alternatively, this syntax is equivalent:
                 >>> recs = jnl(reference).select()
@@ -122,7 +123,7 @@ class DLGJoin(object):
             like join but records with non-matching fields are included in overall outrecords.
 
             eg.
-            >>> recs = jnl(jnl.rev).select(left=jnl.change.on(reference)
+            >>> recs = jnl(jnl.rev).select(left=jnl.change.on(reference))
     '''
 
     def __init__(
@@ -185,7 +186,7 @@ class DLGJoin(object):
                 'tabletype': type(self.objp4)
             }
         )
-        ''' There are constraints for linking 2 table (SQL JOIN).
+        ''' There is a reference for linking 2 table (SQL JOIN).
             build a dedicated recordset then pass it on to
             Select.select via `oRecordSet`
         '''
@@ -194,8 +195,16 @@ class DLGJoin(object):
             records = (
                 JNLFile(self.objp4.journal, reader=self.objp4.reader)
             )
-        elif (type(self.left_records).__name__ == 'Py4Run'):
-            records = getattr(self.left_records, '__call__')(*self.left_records.options)
+        elif (is_Py4(self.objp4) is True):
+            records = self.objp4(cQuery).select()
+            #records = Py4Run(
+            #    self,
+            #    #*cmdoptions,
+            #    **cTabledata)
+
+        #elif AND((is_Py4(self.objp4) is True), (is_recordsType(self.left_records) is True)):
+        #    records = getattr(self.left_records, '__call__')(*self.left_records.options)
+
         cRecordset = DLGRecordSet(self.objp4, records, **cTabledata)
         return cRecordset
 

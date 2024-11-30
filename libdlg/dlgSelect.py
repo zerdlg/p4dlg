@@ -1178,7 +1178,6 @@ class Select(DLGControl):
                                 distinctvalue = record(distinct.fieldname or distinct)
                                 if (distinctvalue is not None):
                                     distinctrecords.merge({distinctvalue: record}, overwrite=False)
-
                             else:
                                 if (noneempty(self.maxrows) is False):
                                     recordcounter += 1

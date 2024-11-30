@@ -1,5 +1,7 @@
 import os
+import re
 from types import LambdaType
+from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgStore import (
     Lst,
@@ -72,13 +74,16 @@ class DLGRecords(object):
             records=Lst(),
             cols=Lst(),
             objp4=None,
-            **kwargs
+            **tabledata
     ):
         self.objp4 = objp4 or Storage()
         self.records = Lst(DLGRecord(record) for record in records)
         self.cols = cols
         self.oSearch = Search()
         self.grid = None
+        ''' thinking specifically for Py4 & Search
+        '''
+        self.tabledata = Storage(tabledata)
 
     def __call__(
             self,
@@ -127,14 +132,14 @@ class DLGRecords(object):
 
     def idx_is_valid(self, idx, length):
         try:
-            if (
-                    (
-                            (idx < length)
-                            & (length > 0)
+            if AND(
+                    AND(
+                            (idx < length),
+                            (length > 0)
                     )
-                    | (
-                            (-length < idx)
-                            & (idx < 0)
+                    | AND(
+                            (-length < idx),
+                            (idx < 0)
                     )
             ):
                 return True
@@ -571,3 +576,335 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         for rgroup in records_by_group.getkeys():
             outrecords += records_by_group[rgroup]
         return DLGRecords(outrecords, self.cols, self.objp4)
+
+    ''' extending P4QRecordSets/filters for p4 specific records (actions on files, changes/revs, spec/specs, ...
+
+                    p4 actions on files as P4QRecordSets attributes.
+
+                        so, anything that takes a filename
+
+                        add
+                        annotate
+                        clean
+                        copy
+                        describe
+                        diff / diff2
+                        edit
+                        delete
+                        grep
+                        integ / integrate
+                        lock
+                        merge
+                        move / rename
+                        print
+                        revert
+                        submit
+                        sync / flush
+                        shelve
+                        unshelve
+
+                    perhaps attributes to compliment actions on changes/revs
+
+                    as well, actions on specs & particularly on spec IO
+
+                '''
+
+    def sync(
+            self,
+            *options,
+            limitby=None,
+            action=None,
+            include_deleted_files=False,
+            #
+            # cmd line args
+            #
+            preview=False,
+            uselist=True,
+            force=False,
+            keepclient=False,
+            max=None,
+            publish=False,
+            safe=False,
+            estimates=False,
+            **kwargs
+    ):
+        (options, kwargs) = (Lst(options), Storage(kwargs))
+        records = self.select(close=False)
+        (start, end) = limitby \
+            if (noneempty(limitby) is False) \
+            else (0, len(records))
+        records = records.limitby((start, end))
+
+        if (len(records) == 0):
+            self.loginfo('searched 0 records')
+            return self
+
+        (
+            syncrecords,
+            syncfiles,
+            cols,
+            idx,
+            cols,
+            exclude_actions
+        ) = \
+            (
+                Lst(),
+                list(),
+                self.cols,
+                0,
+                Lst(),
+                Lst()
+            )
+
+        if (include_deleted_files is False):
+            exclude_actions.append('delete')
+
+        try:
+            for record in records:
+                if AND(
+                        (action is not None),
+                        (record.action != action)
+                ):
+                    exclude_actions.append(record.action)
+
+                recaction = Lst(re.split('/', record.action))(1)
+                if (not recaction in exclude_actions):
+                    specifier = None
+                    if (record.code is not None):
+                        record.delete('code')
+
+                    syncFile = record.depotFile or record.clientFile or record.path
+
+                    if (syncFile is not None):
+                        query = list(self.query) \
+                            if not (isinstance(self.query, list)) \
+                            else self.query
+                        for q in query:
+                            if (isinstance(q.right, Storage)):
+                                q = q.left
+                            if (q.right == syncFile):
+                                specifier = q.left.specifier
+                                break
+                        if (noneempty(specifier) is True):
+                            for item in (
+                                    ('rev', '#'),
+                                    ('change', '@')
+                            ):
+                                (
+                                    specitem,
+                                    specchar
+                                ) = \
+                                    (
+                                        item[0],
+                                        item[1]
+                                    )
+                                if (record[specitem] is not None):
+                                    syncFile = f'{syncFile}{specchar}{record[specitem]}'
+                                    break
+                        else:
+                            syncFile = f'{syncFile}{specifier}{record.rev}'
+                        syncfiles.append(syncFile)
+
+            for (key, value) in Storage(kwargs.copy()).items():
+                if (key.lower() in self.objp4.tablememo['sync'].cmdref.fieldsmap.getkeys()):
+                    optkey = f'--{key}'
+                    if (noneempty(value) is False):
+                        if (isinstance(value, bool)):
+                            if (value == True):
+                                options.append(key)
+                            kwargs.pop(key)
+                        else:
+                            (
+                                options.append(optkey),
+                                options.append(value)
+                            )
+                    options.append(optkey)
+
+            for optionitem in (
+                    Lst(force, '-f', '--force'),
+                    Lst(preview, '-n', '--preview'),
+                    Lst(estimates, '-N', '--estimates'),
+                    Lst(safe, '-s', '--safe'),
+                    Lst(publish, '-p', '--publish'),
+                    Lst(max, '-m', '--max'),
+                    Lst(keepclient, '-k', '--keep-client')
+            ):
+                if AND(
+                        (
+                                optionitem(0) is True
+                        ),
+                        (
+                                len(Lst(optionitem(1), optionitem(2)).intersect(options)) == 0
+                        )
+                ):
+                    options.append(optionitem(1))
+            if (uselist is True):
+                if (len(Lst('-l', '--use-list').intersect(options)) == 0):
+                    options.append('--use-list')
+                    options = options + syncfiles
+                else:
+                    options.append(' '.join(syncfiles))
+            options.insert(0, 'sync')
+            cmdargs = self.objp4.p4globals + options
+            out = Lst(self.objp4.p4Output('sync', *cmdargs))
+            syncrecords.append(out)
+            return DLGRecords(syncrecords, cols, self.objp4)
+        except Exception as err:
+            bail(err)
+        finally:
+            self.close()
+
+    def search(self, *term, limitby=None):
+        ''' [(rec.name, col) for rec in oSchema.p4schema.recordtypes.record for col in rec.column \
+        if ((col.name in ('depotFile', 'clientFile')) & (col.type == 'File'))]
+
+            USAGE:
+            >>> searchrecords = DLGRecords([], cols=self.cols, objp4=self.objp4)
+
+            >>> filename = '//dev/p4dlg/p4/libpy4/py4IO.py'
+            >>> printed = oP4.print(filename)
+            >>> content = ''.join([p.data for p in printed[1:] if (p.data is not None)])
+            >>> results = printed.search(content, "administrationlist")
+            >>> records = [results.sortby('score')]
+            >>>
+        '''
+        records = self.select(close=False)
+
+        (
+            start,
+            end
+        ) = \
+            limitby \
+                if (noneempty(limitby) is False) \
+                else (0, len(records))
+
+        records = records.limitby(
+            (
+                start,
+                end
+            )
+        )
+
+        searchrecords = Lst()
+        term = Lst([term]) \
+            if (isinstance(term, str)) \
+            else Lst(term)
+
+        if (len(records) == 0):
+            self.loginfo('searched 0 records')
+            return self
+
+        (
+            sources,
+            cols,
+            idx,
+            metadata
+        ) = \
+            (
+                Lst(),
+                self.cols,
+                0,
+                None
+            )
+
+        try:
+            for record in records:
+                try:
+                    ''' `cols` column header an be problematic. Though it
+                        should have been taken care of by now, try to remove it 
+                        anyways.
+                    '''
+                    if (record.code is not None):
+                        code = record.pop('code')
+                        if AND(
+                                (code == 'text'),
+                                (record.data is not None)
+                        ):
+                            bail(
+                                "Cannot search against queries on table `print`. \
+                            Try queries on tables with fieds \
+                            such as `depotFile`, or 'Description', etc."
+                            )
+
+                    ''' is there a 'depotFile' field in record.fieldnames ?
+                    '''
+                    sourceFile = record.depotFile or record.clientFile or record.path
+                    if (sourceFile is not None):
+                        query = list(self.query) \
+                            if not (isinstance(self.query, list)) \
+                            else self.query
+                        for q in query:
+                            if (isinstance(q.right, Storage)):
+                                q = q.left
+                            if (q.right == sourceFile):
+                                specifier = q.left.specifier
+                                if (noneempty(specifier) is False):
+                                    append_specifier = ''.join([specifier, record.rev])
+                                    sourceFile = ''.join([sourceFile, append_specifier])
+                                    break
+                                '''
+                                specifier = q.left.specifier
+                                specifier_value = q.left.specifier_value
+                                if (noneempty(specifier) is False):
+                                    append_specifier = ''.join([specifier, specifier_value])
+                                    sourceFile = ''.join([sourceFile, append_specifier])
+                                    break
+                                '''
+                        args = ['print', sourceFile]
+                        cmdargs = self.objp4.p4globals + args
+                        out = Lst(self.objp4.p4Output('print', *cmdargs))
+                        sources.append(out)
+                    elif record.getkeys().intersect(['desc', 'Description']):
+                        sources.append(record)
+                except Exception as err:
+                    bail(err)
+
+            for item in sources:
+                (
+                    source,
+                    metadata
+                ) = \
+                    (
+                        None,
+                        Storage()
+                    )
+                if (isinstance(item, dict)):
+                    item = Storage(item)
+                    if (item.Description is not None):
+                        source = item.Description
+                    elif (item.desc is not None):
+                        source = item.desc
+                    metadata = item
+                elif (isinstance(item, Lst)):
+                    metadata = Storage(item(0))
+                    if (len(out) == 2):
+                        source = out(1).data
+                    else:
+                        source = ''
+                        for idx in range(1, len(out)):
+                            source += out(idx).data
+                results = self.oSearch(source, *term)
+                for result in results:
+                    context = re.sub('^\s*', '... ', result.context)
+                    searchdata = Storage(
+                        {
+                            'score': result.score,
+                            'search_terms': result.terms,
+                            'linenumber': result.id,
+                            'context': context
+                        }
+                    )
+                    if (start <= idx):
+                        if (metadata is not None):
+                            searchdata.merge(metadata)
+                            searchrecords.append(searchdata)
+                    if (len(cols) == 0):
+                        cols = searchdata.getkeys()
+                    idx += 1
+                    if (idx == end):
+                        break
+            return DLGRecords(searchrecords, cols, self.objp4)
+        except Exception as err:
+            bail(err)
+        finally:
+            self.close()

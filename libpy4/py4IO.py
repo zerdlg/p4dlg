@@ -767,7 +767,7 @@ class Py4(object):
 
     def __getattr__(self, tablename):
         valid_tablenames = self.commands.diff(self.nocommands)
-        invalidAttributeError = f'{tablename} is not a valid attribute or tablename'
+        #invalidAttributeError = f'{tablename} is not a valid attribute or tablename'
         ''' Strange IPython attributes. 
         '''
         if (len(annoying_ipython_attributes(tablename)) > 0):
@@ -811,17 +811,17 @@ class Py4(object):
                         (len(valid_tablenames) > 0),
                     (tablename not in valid_tablenames)
             ):
-                self.logerror(invalidAttributeError)
+                #self.logerror(invalidAttributeError)
                 break
             try:
                 if (hasattr(self, tablename)):
                     return getattr(self, tablename)
                 elif (tablename in self.tablememo.keys()):
                     return self.tablememo[tablename]
-                else:
-                    self.logerror(invalidAttributeError)
+                #else:
+                #    self.logerror(invalidAttributeError)
             except (KeyError, AttributeError):
-                self.logerror(invalidAttributeError)
+                #self.logerror(invalidAttributeError)
                 break
 
     def truncate_table(self, tablename):

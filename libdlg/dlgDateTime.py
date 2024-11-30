@@ -482,6 +482,7 @@ class DLGDateTime(object):
                  >>> oP4QDT.to_p4date(1547856000.0)
                  '2019/8/1'
         '''
+        args = Lst(args)
         if (len(args) == 1):
             arg = args[0]
             if (type(arg) in (datetime, date)):
@@ -495,5 +496,12 @@ class DLGDateTime(object):
             elif (isinstance(arg, str)):
                 dateitems = [int(dateitem) for dateitem in reg_split_datetime.split(arg)]
                 return datetime(*dateitems).strftime(format=self.dateFormat)
-        if ((isinstance(args, (tuple, list))) and (len(args) >= 3)):
+        #if ((isinstance(args, (tuple, list))) and (len(args) >= 3)):
+        if (len(args) >= 3):
+            for arg in args:
+                if (isinstance(arg, str) is True):
+                    iarg = int(arg)
+                    idx = args.index(arg)
+                    args.pop(idx)
+                    args.insert(idx, iarg)
             return datetime(*args).strftime(format=self.dateFormat)

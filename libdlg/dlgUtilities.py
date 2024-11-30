@@ -275,7 +275,7 @@ reg_default = {
     'datetime': '\d{4}\\\d{2}\\d{2} \d{2}\:\d{2}(\:\d{2}(\.\d*)?)?',
     }
 reg_epochtime = re.compile(r'^\d*(\.\d+)?$')
-reg_datetime_fieldname = re.compile(r'[dD]ate|[aA]ccess|[modtT]ime]|[uP]date]')
+reg_datetime_fieldname = re.compile(r'[dD]ate|[aA]ccess|[modtT]ime]|[uP]date]|[tT]ime|[dD]ate[tT]ime]')
 reg_datetime_fieldtype = re.compile(r'^[dD]ate')
 p4charsymbols = {
                 '*': '%2A',
