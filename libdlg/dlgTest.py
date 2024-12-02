@@ -150,7 +150,7 @@ class TestSQL(unittest.TestCase):
         p4_recs = oP4(p4_reference).select()                                        # easy peasy join
         print('LEFTOUTER - P4')
         pprint(p4_recs(0))
-        p4_recs_alt = oP4(oP4.files).select(join=oP4.changes.on(p4_reference))      # equivalent to above
+        p4_recs_alt = oP4(oP4.files).select(left=oP4.changes.on(p4_reference))      # equivalent to above
         p4_assertion = (len(p4_recs(0).getkeys()) == 2)
         self.assertTrue(p4_assertion)
         self.assertDictEqual(p4_recs(0), p4_recs_alt(0))
@@ -159,7 +159,7 @@ class TestSQL(unittest.TestCase):
         jnl_recs = oJnl(jnl_reference).select()                                     # easy peasy join
         print('LEFTOUTER - JNL')
         pprint(jnl_recs(0))
-        jnl_recs_alt = oJnl(oJnl.rev).select(join=oJnl.change.on(jnl_reference))    # equivalent to above
+        jnl_recs_alt = oJnl(oJnl.rev).select(left=oJnl.change.on(jnl_reference))    # equivalent to above
         jnl_assertion = (len(jnl_recs(0).getkeys()) == 2)
         self.assertTrue(jnl_assertion)
         self.assertDictEqual(jnl_recs(0), jnl_recs_alt(0))

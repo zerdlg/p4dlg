@@ -12,7 +12,8 @@ from libdlg.dlgSearch import Search
 from libdlg.dlgUtilities import (
     bail,
     xrange,
-    noneempty
+    noneempty,
+    is_P4Jnl
 )
 from libdlg.dlgTables import *
 # from libdlg.p4qLogger import LogHandler
@@ -74,9 +75,11 @@ class DLGRecords(object):
             records=Lst(),
             cols=Lst(),
             objp4=None,
+            objtable=None,
             **tabledata
     ):
         self.objp4 = objp4 or Storage()
+        self.objtable = objtable
         self.records = Lst(DLGRecord(record) for record in records)
         self.cols = cols
         self.oSearch = Search()
@@ -84,6 +87,19 @@ class DLGRecords(object):
         ''' thinking specifically for Py4 & Search
         '''
         self.tabledata = Storage(tabledata)
+        ''' p4 cmd specific tables are of no use if objp4 is P4Jnl - 
+            let's get rid of them so as to not bring about confusion.  
+        '''
+        py4_attributes = (
+            'sync',
+            'edit',
+            'add',
+            'integ'
+        )
+        if (is_P4Jnl(self.objp4) is True):
+            for item in py4_attributes:
+                delattr(self, item)
+        #[delattr(self, item) for item in py4_attributes if (is_P4Jnl(self.objp4) is True)]
 
     def __call__(
             self,
@@ -203,7 +219,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         return self.records[key]
 
     def __iter__(self):
-        for i in xrange(len(self)):
+        for i in xrange(len(self.records)):
             yield self[i]
 
     def append(self, record):
@@ -628,6 +644,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             estimates=False,
             **kwargs
     ):
+        if (is_P4Jnl(self.objp4) is True):
+            bail('`sync` attribute is of no use here... dropping.')
         (options, kwargs) = (Lst(options), Storage(kwargs))
         records = self.select(close=False)
         (start, end) = limitby \
@@ -754,7 +772,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         finally:
             self.close()
 
-    def search(self, *term, limitby=None):
+    def search(self, *term, query=None, limitby=None):
         ''' [(rec.name, col) for rec in oSchema.p4schema.recordtypes.record for col in rec.column \
         if ((col.name in ('depotFile', 'clientFile')) & (col.type == 'File'))]
 
@@ -768,143 +786,181 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             >>> records = [results.sortby('score')]
             >>>
         '''
-        records = self.select(close=False)
-
-        (
-            start,
-            end
-        ) = \
-            limitby \
-                if (noneempty(limitby) is False) \
-                else (0, len(records))
-
-        records = records.limitby(
+        if (self.objtable is not None):
+            searchquery = query or self.objtable
+            #records = self.objp4(self.objtable).select(close=False)
+            records = self
             (
                 start,
                 end
-            )
-        )
+            ) = \
+                limitby \
+                    if (noneempty(limitby) is False) \
+                    else (0, len(records))
 
-        searchrecords = Lst()
-        term = Lst([term]) \
-            if (isinstance(term, str)) \
-            else Lst(term)
-
-        if (len(records) == 0):
-            self.loginfo('searched 0 records')
-            return self
-
-        (
-            sources,
-            cols,
-            idx,
-            metadata
-        ) = \
-            (
-                Lst(),
-                self.cols,
-                0,
-                None
-            )
-
-        try:
-            for record in records:
-                try:
-                    ''' `cols` column header an be problematic. Though it
-                        should have been taken care of by now, try to remove it 
-                        anyways.
-                    '''
-                    if (record.code is not None):
-                        code = record.pop('code')
-                        if AND(
-                                (code == 'text'),
-                                (record.data is not None)
-                        ):
-                            bail(
-                                "Cannot search against queries on table `print`. \
-                            Try queries on tables with fieds \
-                            such as `depotFile`, or 'Description', etc."
-                            )
-
-                    ''' is there a 'depotFile' field in record.fieldnames ?
-                    '''
-                    sourceFile = record.depotFile or record.clientFile or record.path
-                    if (sourceFile is not None):
-                        query = list(self.query) \
-                            if not (isinstance(self.query, list)) \
-                            else self.query
-                        for q in query:
-                            if (isinstance(q.right, Storage)):
-                                q = q.left
-                            if (q.right == sourceFile):
-                                specifier = q.left.specifier
-                                if (noneempty(specifier) is False):
-                                    append_specifier = ''.join([specifier, record.rev])
-                                    sourceFile = ''.join([sourceFile, append_specifier])
-                                    break
-                                '''
-                                specifier = q.left.specifier
-                                specifier_value = q.left.specifier_value
-                                if (noneempty(specifier) is False):
-                                    append_specifier = ''.join([specifier, specifier_value])
-                                    sourceFile = ''.join([sourceFile, append_specifier])
-                                    break
-                                '''
-                        args = ['print', sourceFile]
-                        cmdargs = self.objp4.p4globals + args
-                        out = Lst(self.objp4.p4Output('print', *cmdargs))
-                        sources.append(out)
-                    elif record.getkeys().intersect(['desc', 'Description']):
-                        sources.append(record)
-                except Exception as err:
-                    bail(err)
-
-            for item in sources:
+            records = records.limitby(
                 (
-                    source,
-                    metadata
-                ) = \
+                    start,
+                    end
+                )
+            )
+
+            term = Lst([term]) \
+                if (isinstance(term, str)) \
+                else Lst(term)
+
+            if (len(records) == 0):
+                return self
+
+            (
+                sources,
+                cols,
+                idx,
+                metadata
+            ) = \
+                (
+                    Lst(),
+                    self.cols,
+                    0,
+                    None
+                )
+            searchresults = []
+            for record in records:
+                intersect = self.cols.intersect(['depotFile', 'clientFile', 'path'])
+                filename = intersect(0)
+                if (filename is not None ):
+                    searchrecords = self.objp4.print(record[filename])
+                    if (len(searchrecords) > 1):
+                        metadata = searchrecords(0)
+                        srecords = searchrecords[1:]
+                        data = '\n'.join(Lst(datarec.data for datarec in srecords if (datarec.code == 'text')))
+
+                        results = self.oSearch(data, *term)
+                        for result in results:
+                            context = re.sub('^\s*', '... ', result.context)
+                            searchdata = Storage(
+                                {
+                                    'score': str(result.score),
+                                    'search_terms': result.terms,
+                                    'linenumber': result.idx,
+                                    'context': context
+                                }
+                            )
+                            if (start <= idx):
+                                if (metadata is not None):
+                                    searchdata.merge(metadata)
+                                searchresults.append(searchdata)
+                            #if (len(cols) == 0):
+                            #    cols = searchdata.getkeys()
+                            idx += 1
+                            if (idx == end):
+                                break
+            return DLGRecords(searchresults, searchdata.getkeys(), objp4=self.objp4, objtable=self.objtable)
+
+            """
+                        try:
+                            
+                            ''' `cols` column header an be problematic. Though it
+                                should have been taken care of by now, try to remove it 
+                                anyways.
+                            '''
+                            if (record.code is not None):
+                                code = record.pop('code')
+                                if AND(
+                                        (code == 'text'),
+                                        (record.data is not None)
+                                ):
+                                    bail(
+                                        "Cannot search against queries on table `print`. \
+                                    Try queries on tables with fieds \
+                                    such as `depotFile`, or 'Description', etc."
+                                    )
+
+                            ''' is there a 'depotFile' field in record.fieldnames ?
+                            '''
+                            sourceFile = record.depotFile or record.clientFile or record.path
+                            """
+
+            """
+                            #query = list(self.query) \
+                            #    if not (isinstance(self.query, list)) \
+                            #    else self.query
+                            query = list(self.objp4.query) \
+                                if not (isinstance(self.objp4.query, list)) \
+                                else self.objp4.query
+                            for q in query:
+                                if (isinstance(q.right, Storage)):
+                                    q = q.left
+                                if (q.right == filename):
+                                    specifier = q.left.specifier
+                                    if (noneempty(specifier) is False):
+                                        append_specifier = ''.join([specifier, record.rev])
+                                        sourceFile = ''.join([filename, append_specifier])
+                                        break
+                                    '''
+                                    specifier = q.left.specifier
+                                    specifier_value = q.left.specifier_value
+                                    if (noneempty(specifier) is False):
+                                        append_specifier = ''.join([specifier, specifier_value])
+                                        sourceFile = ''.join([sourceFile, append_specifier])
+                                        break
+                                    '''
+                                    args = ['print', sourceFile]
+                                    cmdargs = self.objp4.p4globals + args
+                                    out = Lst(self.objp4.p4Output('print', *cmdargs))
+                                    sources.append(out)
+                                elif record.getkeys().intersect(['desc', 'Description']):
+                                    sources.append(record)
+                                """
+            """
+            for item in sources:
+                try:
                     (
-                        None,
-                        Storage()
-                    )
-                if (isinstance(item, dict)):
-                    item = Storage(item)
-                    if (item.Description is not None):
-                        source = item.Description
-                    elif (item.desc is not None):
-                        source = item.desc
-                    metadata = item
-                elif (isinstance(item, Lst)):
-                    metadata = Storage(item(0))
-                    if (len(out) == 2):
-                        source = out(1).data
-                    else:
-                        source = ''
-                        for idx in range(1, len(out)):
-                            source += out(idx).data
-                results = self.oSearch(source, *term)
-                for result in results:
-                    context = re.sub('^\s*', '... ', result.context)
-                    searchdata = Storage(
-                        {
-                            'score': result.score,
-                            'search_terms': result.terms,
-                            'linenumber': result.id,
-                            'context': context
-                        }
-                    )
-                    if (start <= idx):
-                        if (metadata is not None):
-                            searchdata.merge(metadata)
-                            searchrecords.append(searchdata)
-                    if (len(cols) == 0):
-                        cols = searchdata.getkeys()
-                    idx += 1
-                    if (idx == end):
-                        break
+                        source,
+                        metadata
+                    ) = \
+                        (
+                            None,
+                            Storage()
+                        )
+                    if (isinstance(item, dict)):
+                        item = Storage(item)
+                        if (item.Description is not None):
+                            source = item.Description
+                        elif (item.desc is not None):
+                            source = item.desc
+                        metadata = item
+                    elif (isinstance(item, Lst)):
+                        metadata = Storage(item(0))
+                        if (len(out) == 2):
+                            source = out(1).data
+                        else:
+                            source = ''
+                            for idx in range(1, len(out)):
+                                source += out(idx).data
+                                
+                                
+                    results = self.oSearch(source, *term)
+                    for result in results:
+                        context = re.sub('^\s*', '... ', result.context)
+                        searchdata = Storage(
+                            {
+                                'score': result.score,
+                                'search_terms': result.terms,
+                                'linenumber': result.id,
+                                'context': context
+                            }
+                        )
+                        if (start <= idx):
+                            if (metadata is not None):
+                                searchdata.merge(metadata)
+                                searchrecords.append(searchdata)
+                        if (len(cols) == 0):
+                            cols = searchdata.getkeys()
+                        idx += 1
+                        if (idx == end):
+                            break
+                except Exception as err:
+                    bail(err)            
             return DLGRecords(searchrecords, cols, self.objp4)
-        except Exception as err:
-            bail(err)
-        finally:
-            self.close()
+            """
