@@ -722,7 +722,7 @@ def _query(**opts):
             'maxrows': 10,
             'which': 'query',
             'query': '(domain.type=99)',
-            'schemadir': 'r15.2',
+            'version': 'r15.2',
             'groupby': ''}
     '''
     Storage(opts).delete('which')

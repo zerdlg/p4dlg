@@ -179,6 +179,7 @@ class Py4Options(object):
                 None,
                 None
             )
+
         if (not self.tablename in [None] + self.objp4.usage_items):
             (data, generic, code, severity) = (None, 1, 'error', 3)
             cmdargs = Lst(
@@ -188,8 +189,6 @@ class Py4Options(object):
                                 '--explain'
                             ]
             )
-
-
             datarecord = self.objp4.p4OutPut(self.tablename, *cmdargs)
             if (len(datarecord) > 0):
                 if (isinstance(datarecord, (list, DLGRecords))):
@@ -235,14 +234,20 @@ class Py4Options(object):
                                 if (len(result) == 1) \
                                 else (None, None)
                             if (opt is not None):
+                                ''' before we do anything, we need to remove the ()-
+                                    characters from all options & keywords, then we can 
+                                    add them to their respective data lists.
+                                '''
                                 if (kwd is None):
                                     ''' Some commands do have more options than 
                                         keywords... Potentially, we can make them
-                                        up on the fly... We'll see later.  
+                                        up on the fly... but at a later when time 
+                                        permits.  
                                     '''
                                     missing_keywords.append(kwd)
-                                if (re.search(r'^\(.*\)$', opt) is not None):
-                                    opt = opt.strip("(-)")
+                                else:
+                                    kwd = re.sub('-', '', kwd)
+                                opt = re.sub('[()-]', '', opt)
                             (
                                 keywords.append(kwd),
                                 options.append(opt),
@@ -261,12 +266,9 @@ class Py4Options(object):
                 cmdargs = self.objp4.p4globals + [self.tablename]
                 (lastarg, more_cmdargs) = (None, [])
                 if (reg_filename.search(usage) is not None):
-                    try:
-                        more_cmdargs = self.get_more_table_options(keywords)
-                        rightside_mapping = f'//{self.objp4._client}/...'
-                        more_cmdargs += [rightside_mapping]
-                    except Exception as err:
-                        self.logerror(err)
+                    more_cmdargs = self.get_more_table_options(keywords)
+                    rightside_mapping = f'//{self.objp4._client}/...'
+                    more_cmdargs += [rightside_mapping]
                 elif (not self.tablename in (self.objp4.nocommands + self.objp4.initcommands)):
                     if OR(
                             AND(
@@ -281,45 +283,6 @@ class Py4Options(object):
                     elif (self.optionsdata.is_spec is True):
                         if (self.tablename in self.spec_lastarg_pairs is True):
                             lastarg = self.spec_lastarg_pairs[self.tablename].default
-                            ''' TODO: REQUIRES WORK!
-                            
-                                specs' last position options:
-    
-                                    change      ->      [ changelist# ]
-                                    depot       ->      depotname
-                                    server      ->      serverID
-                                    group       ->      groupname
-                                    job         ->      [ jobname ]
-                                    label       ->      labelname
-                                    client      ->      [ clientname ]
-                                    ldap        ->      ldapname
-                                    user        ->      [ username ]
-                                    stream      ->      [ streamname ]
-                                    remote      ->      [ remoteID ]
-                                    spec        ->      type
-                                    branch      ->      [ branchname ]
-    
-                            when time permits ... 
-                            remove the `>>> p4 <spectype>` -o` crap for their field definitions!
-                            we need to do `>>> p4 spec <spectype>` instead 
-    
-                            last_option = None
-                            if (reg_changelist.match(usage) is not None):
-                                last_option = '1'
-                            elif (reg_filename.match(usage) is not None):
-                                last_option = f'//{self.objp4._client}/...'
-                            # if ('max' in keywords):
-                            #    more_cmdargs.append('-m1')
-                            # if (last_option is not None):
-                            #    more_cmdargs.append(last_option)
-    
-    
-                                no args required:
-                                    license
-                                    protect
-                                    triggers
-                                    typemap
-                            '''
                             more_cmdargs += ['--output', lastarg]
                         else:
                             more_cmdargs += ['--output']

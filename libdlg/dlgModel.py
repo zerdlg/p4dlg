@@ -327,7 +327,7 @@ class Py4Model(object):
                     **{
                         'fields': tablefields,
                         'tablename': normalized_tablename,
-                        'schemadir': self.version
+                        'version': self.version
                     }
                 )
                 ''' add the fields key to current record 

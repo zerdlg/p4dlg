@@ -223,7 +223,7 @@ or a `typemap`. Each domain type (spec) has a associated flag.
             typemap:    116
 
 That said, we can write queries to select domain records based on their type.
-P4Q will understand a query that specifies the domain type by flag or by name.
+P4DLG will understand a query that specifies the domain type by flag or by name.
 
 therefore, the following queries are equivalent:           
     

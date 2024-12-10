@@ -35,7 +35,7 @@ schemadir = dirname(schemaxml.__file__)
 '''     Journals (and checkpoints) are the textual representation of of the p4 db (the metadata). 
         In a nutshell, a journal is a textual representation of the metadata stored in a p4 DB. 
 
-        P4Q is an program that tries to make sense of the rules, references, lookups, conversions, 
+        P4DLG is an program that tries to make sense of the rules, references, lookups, conversions, 
         guesses, etc. needed to interact with checkpoint or journal (or set of journals).  
 
         As an example, I use it for reading (query), writing (create), updating (edit/modify), and 
@@ -44,7 +44,7 @@ schemadir = dirname(schemaxml.__file__)
         committing changes the DB.  
 
         *Note: Every software release correlates to a dedicated DB schema. Make sure your server 
-        version and schema version line up (though P4Q manages that well enough for us).
+        version and schema version line up (though P4DLG manages that well enough for us).
         +-----------------------------------------------------------------------------------------+
         
         Handle operators (first field of every journal record):
@@ -407,7 +407,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             as users of journal data, don't necessarily have them memorized. However,
             we may know the name values of the target datatype.
 
-            That said, P4Q accepts either the type name or the type number. It will
+            That said, P4DLG accepts either the type name or the type number. It will
             simply resolve the name (if given) to its associated number. As in,
 
                 >>> qry = (oP4.domain.type == 'client')
@@ -662,13 +662,13 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                                             'fieldsmap': fieldsmap,
                                             'fieldtypesmap': fieldtypesmap,
                                             'fieldnames': fieldnames,
-                                            'logger': self.logger,
+                                            #'logger': self.logger,
                                         }
                     )
                     '''  table attributes & specify keying fields
                     '''
-                    tableschema = self.oSchema.p4model[tablename]
-                    attributes = tableschema.getkeys()
+                    tablemodel = self.oSchema.p4model[tablename]
+                    attributes = tablemodel.getkeys()
                     attributes.remove('tablename')
                     for tableattribute in attributes:
                         if (tableattribute != 'fields'):

@@ -2900,15 +2900,14 @@ class DLGQuery(object):
         '''
 
     def __repr__(self):
-        qdict = pformat(
-            {
+        qdict = Storage({#qdict = pformat(
                 'objp4': self.objp4,
                 'op': self.op,
                 'left': self.left,
                 'right': self.right,
                 'inversion': self.inversion
-            }
-        )
+        })
+        #)
         return f'<DLGQuery {qdict}>'
 
     __str__ = __repr__

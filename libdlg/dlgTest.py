@@ -164,6 +164,45 @@ class TestSQL(unittest.TestCase):
         self.assertTrue(jnl_assertion)
         self.assertDictEqual(jnl_recs(0), jnl_recs_alt(0))
 
+    def testTableRefs(self):
+        (oP4, oJnl) = (self.oP4, self.oJnl)
+        ''' Py4 command refs
+
+            accessessing a connector's table attribute is all that is needed
+            to force / trigger the Py4 object to define the table (aka the 
+            command), attributes as well as it's cmd option references.
+            
+            as for P4Jnl, the trigger is the same but the references are table
+            related only.
+        '''
+        oP4.reconcile                                                               # access the `reconcile` table
+        py4_tabledata = oP4.memoizetable('reconcile')                               # retrieve the table's data
+        py4_assertion = (len(py4_tabledata.tableoptions.optionsmap) > 0)
+        self.assertTrue(py4_assertion)             # once accessed, tabledata should
+                                                                                    # contain a valid optionsmap
+
+        oJnl.domain                                                                 # access table `domain`
+        jnl_tabledata = oJnl.memoizetable('domain')                                 # retrieve the table's data
+
+        jnl_assertion = (len(jnl_tabledata.getkeys().intersect(                     # once accessed, tabledata should
+            ['fieldsmap',                                                           # should contain the listed
+             'fieldtypesmap',                                                       # attributes
+             'fieldnames',
+             '_rname',
+             'name',
+             'type',
+             'version',
+             'classic_lockseq',
+             'peek_lockseq',
+             'keying',
+             'desc']
+            )
+        ) > 0)
+        self.assertTrue(jnl_assertion)
+
+    #def testRecordsSearch(self):
+    #    pass
+
 class TestDLG(unittest.TestCase):
     def testDateTime(self):
         ''' /libdlg/dlgDateTime/DLGDateTime
@@ -227,15 +266,6 @@ class TestDLG(unittest.TestCase):
         res = oDateTime.to_p4date(1547856000.0)
         print(f'DLGDateTime: {res}')
 
-    '''--------------------------------------------------------------------------------------------------------------'''
-    ''' test SQL functionality in p4 abstraction only                                                                '''
-    '''--------------------------------------------------------------------------------------------------------------'''
-
-    '''--------------------------------------------------------------------------------------------------------------'''
-    ''' test SQL functionality in jnl abstraction only                                                               '''
-    '''--------------------------------------------------------------------------------------------------------------'''
-
-
 if (__name__ == '__main__'):
     (
     loader,
@@ -245,7 +275,8 @@ if (__name__ == '__main__'):
     unittest.TestLoader(),
     unittest.TestSuite()
     )
-    for item in (loader.loadTestsFromTestCase(TestSQL), loader.loadTestsFromTestCase(TestDLG)):
+    for item in (
+            loader.loadTestsFromTestCase(TestSQL),
+            loader.loadTestsFromTestCase(TestDLG)
+    ):
         suite.addTests(item)
-    #suite.addTests(loader.loadTestsFromTestCase(TestSQL))
-    #suite.addTests(loader.loadTestsFromTestCase(TestDLG))

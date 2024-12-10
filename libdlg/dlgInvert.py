@@ -3,20 +3,20 @@ from libdlg.dlgError import *
 
 __all__ = ['invert']
 
-def invert(qry):
+def invert(qry, inversion=False):
     ''' do we need to invert?
     '''
     (
         op,
         left,
         right,
-        inversion
+        #inversion
     ) \
         = (
         qry.op,
         qry.left,
         qry.right,
-        qry.inversion or False
+        #qry.inversion or False
     )
     try:
         qry.inversion = inversion
@@ -27,27 +27,27 @@ def invert(qry):
             if (opname in (andops + orops + xorops)):
                 for lr in (left, right):
                     if (is_qType_or_field(lr) is True):
-                        lr = invert(lr)
+                        lr = invert(lr, inversion=inversion)
                         if AND(
                                 (is_fieldType(lr) is True),
                                 (lr.op is None)
                         ):
                             lr.op = op
             elif (opname in notops):
-                left.inversion = True
+                inversion = left.inversion = True
+                #op = left.op = NOT
                 if (hasattr(left, 'left')):
                     if (left.left is not None):
-                        left.left.inversion =True
-                        left.left = invert(left.left)
+                        left.left = invert(left.left, inversion=left.inversion)
                 if (hasattr(left, 'right')):
                     if (left.right is not None):
                         if is_qType_or_field(left.right):
-                            left.right.inversion = True
-                            left.right = invert(left.right)
+                            left.right = invert(left.right, inversion=left.inversion)
+                qry = left
             else:
                 for lr in (left, right):
                     if (is_qType_or_field(lr) is True):
-                        lr = invert(lr)
+                        qry = invert(lr, inversion=inversion)
                         ''' Crap! what did I want to do next...?
                         '''
         return qry

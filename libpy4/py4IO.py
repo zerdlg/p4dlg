@@ -249,6 +249,7 @@ class Py4(object):
                 self.domain_specs +
                 self.spec_takes_no_lastarg
         )
+
         self.p4specs = self.pluralize_specs(
             exclude=self.spec_takes_no_lastarg
         )
@@ -403,23 +404,25 @@ class Py4(object):
                         qry.right,
                         qry.inversion
                     )
-                qry = invert(qry)
+                qry = invert(qry, inversion=inversion)
                 if (tablename is None):
                     ''' grab the tablename and go!
                     '''
+
                     (
                         q,                  # the query, though it might have been altered
                         left,               # the left side of the query (or of the left side of 2 queries)
                         right,              # the right side of the query (or of the right side of 2 queries)
                         op,                 # the operator
                         tablename,          # the name of the target table
+                        options,
                         lastarg,            # the lastarg (AKA a field)
                         inversion,          # bool -> if True, invert the query's result
                         specifier,          # revision specifier can be `#`, `@`
                         specifier_value,    # the file's rev or changelist number
                         tabledata           # useful data about this table
                     ) \
-                        = self.breakdown_query(qry)
+                        = self.breakdown_query(qry, *options, **tabledata)
                 p4Queries.append(qry)
 
         if (noneempty(tabledata) is True):
@@ -455,8 +458,11 @@ class Py4(object):
                         lastarg = kwargs[item]
                         break
                 if (lastarg is None):
-                    lastarg = self.define_lastarg(tablename, query=p4Queries)
-            if isinstance(lastarg, str):
+                    lastarg = self.define_lastarg(tablename, query=p4Queries, *options)
+            if AND(
+                    (isinstance(lastarg, str) is True),
+                    (not lastarg in options)
+            ):
                 options.append(lastarg)
         ''' No p4Queries, a straight up p4 cmd (with or without options)
 
@@ -837,120 +843,121 @@ class Py4(object):
             return
         (cmdargs, kwargs) = (Lst(cmdargs), Storage(kwargs))
         query = kwargs.query
-        (lastarg, last_cmdarg) = (None, cmdargs(-1))
-        tabledata = self.memoizetable(tablename)
-        usage = tabledata.tableoptions.usage
-        is_spec = True \
-            if AND(
-                (tablename in self.p4spec),
-                (not tablename in self.spec_takes_no_lastarg)) \
-            else False
         if (query is not None):
             query = query(0) \
                 if (isinstance(query, Lst)) \
                 else query.left \
                 if (type(query.left) is DLGQuery) \
                 else query
-        if AND(
-                (is_spec is True),
-                (tablename not in self.spec_takes_no_lastarg)
+
+        (lastarg, last_cmdarg) = (None, None)
+        tabledata = self.memoizetable(tablename)
+
+        if OR(
+                (tablename in self.nocommands),
+                (noneempty(tabledata.tableoptions) is True)
         ):
-            altarg = tabledata.altarg
-            if (altarg is not None):
-                if (altarg.lower() in LOWER(kwargs.getkeys())):
-                    altarg = tabledata.fieldsmap[altarg.lower()]
-                    lastarg = kwargs[altarg]
-                elif (query is not None):
-                    if AND(
-                            (isinstance(query.right, str)),
-                            (query.left.fieldname.lower() == altarg.lower())
-                    ):
-                        lastarg = query.right
+            return
 
-            arg = getattr(self, f'_{tablename}')
-            if (last_cmdarg is not None):
-                lastarg = last_cmdarg if (last_cmdarg != tablename) else tablename
-            elif (len(cmdargs) > 0):
-                lastarg = cmdargs(-1)
-            if (lastarg is None):
-                if (arg is not None):
-                    lastarg = arg
-            return lastarg
 
-        if AND(
-                (query is not None),
-                (last_cmdarg is not None)
-        ):
+        usage = tabledata.tableoptions.usage
+        requires_filearg = (reg_filename.search(usage) is not None)
+
+        if (requires_filearg is False):
+            is_spec = True \
+                if AND(
+                (tablename in self.p4spec),
+                (not tablename in self.spec_takes_no_lastarg)) \
+                else False
+
             if AND(
-                    (isanyfile(last_cmdarg) is True),
-                    (query.op in (EQ, NE, '=', '!='))
+                    (is_spec is True),
+                    (tablename not in self.spec_takes_no_lastarg)
             ):
-                lastarg = last_cmdarg
-
-        anyarg = lastarg or last_cmdarg
-        if (anyarg is not None):
-            if (isanyfile(anyarg) is True):
-                ''' stop looking, we  have it!
-                    * at least we have a file/dir on the local FS, 
-                        - or we have a clientFile 
-                        - or we have a depotFile
-                '''
-                return anyarg
-        try:
-            if OR(
-                    (tablename in self.nocommands),
-                    (noneempty(tabledata.tableoptions) is True)
-            ):
-                return
-            if AND(
-                    (usage is not None),
-                    (reg_filename.search(usage) is not None)
-            ):
-                ''' filearg is required!
-
-                    search priority:
-                        1) cmdargs
-                        2) self.p4args
-                        3) check kwargs.queries as they may contain a clue about a specified lastarg
-                        4) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
-                '''
-                for argitem in (cmdargs, self.p4args):
-                    if (len(argitem) > 0):
-                        ''' priorities 1 & 2
-                        '''
-                        fileitem = argitem(-1)
-                        if (fileitem is not None):
-                            if (isanyfile(fileitem) is True):
-                                return fileitem
-                ''' priority 3
-                '''
-                if (isinstance(query, str) is True):
-                    if (isanyfile(query.right) is True):
-                        if (query.left.fieldname.lower() in (
-                                'depotfile',
-                                'clientfile',
-                                'path'
-                            )
+                altarg = tabledata.altarg
+                if (altarg is not None):
+                    if (altarg.lower() in LOWER(kwargs.getkeys())):
+                        altarg = tabledata.fieldsmap[altarg.lower()]
+                        lastarg = kwargs[altarg]
+                    elif (query is not None):
+                        if AND(
+                                (isinstance(query.right, str)),
+                                (query.left.fieldname.lower() == altarg.lower())
                         ):
-                            if (query.op in (
-                                    EQ,
-                                    NE,
-                                    '=',
-                                    '!='
-                                )
-                            ):
-                                cmdargs = self.p4globals + ['where', query.right]
-                                out = self.p4OutPut(tablename, *cmdargs)
-                                lastarg = out.depotFile
-                        else:
-                            lastarg = None
-                ''' lastly... use the client lastarg
-                '''
-                if (noneempty(lastarg) is True):
-                    lastarg = f'//{self._client}/...'
+                            lastarg = query.right
+
+                arg = getattr(self, f'_{tablename}')#getattr(self, tabledata._name)
+                if (last_cmdarg is not None):
+                    lastarg = last_cmdarg \
+                        if (last_cmdarg != tablename) \
+                        else tablename
+                elif (len(cmdargs) > 0):
+                    lastarg = cmdargs(-1)
+                if (lastarg is None):
+                    if (arg is not None):
+                        lastarg = arg
                 return lastarg
-        except Exception as err:
-            bail(err)
+
+        else:
+            ''' filearg is required!
+
+                search priority:
+                    1) cmdargs
+                    2) self.p4args
+                    3) check kwargs.queries as they may contain a clue about a specified lastarg
+                    4) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
+            '''
+            if (cmdargs(-1) is not None):
+                if (isanyfile(cmdargs(-1)) is True):
+                    last_cmdarg = cmdargs.pop(-1)
+                    lastarg = last_cmdarg
+
+            eitherarg = lastarg or last_cmdarg
+            if (eitherarg is not None):
+                if (isanyfile(eitherarg) is True):
+                    ''' stop looking, we  have it!
+                        * at least we have a file/dir on the local FS, 
+                            - or we have a clientFile 
+                            - or we have a depotFile
+                    '''
+                    return eitherarg
+
+            ''' priorities 1 & 2
+            '''
+            for argitem in (cmdargs, self.p4args):
+                if (len(argitem) > 0):
+
+                    fileitem = argitem(-1)
+                    if (fileitem is not None):
+                        if (isanyfile(fileitem) is True):
+                            return fileitem
+            ''' priority 3
+            '''
+            if (isinstance(query, str) is True):
+                if (isanyfile(query.right) is True):
+                    if (query.left.fieldname.lower() in (
+                            'depotfile',
+                            'clientfile',
+                            'path'
+                    )
+                    ):
+                        if (query.op in (
+                                EQ,
+                                NE,
+                                '=',
+                                '!='
+                        )
+                        ):
+                            cmdargs = self.p4globals + ['where', query.right]
+                            out = self.p4OutPut(tablename, *cmdargs)
+                            lastarg = out.depotFile
+                    else:
+                        lastarg = None
+            ''' lastly... use the clientFile
+            '''
+            if (noneempty(lastarg) is True):
+                lastarg = f'//{self._client}/...'
+            return lastarg
 
     '''     notes and query usage
 
@@ -1061,7 +1068,8 @@ class Py4(object):
         if (left.tablename is not None):
             return (left.tablename, left.fieldname)
 
-    def breakdown_query(self, qry, tabledata=None):
+    def breakdown_query(self, qry, *options, **tabledata):
+        options=Lst(options)
         (
             op,
             left,
@@ -1074,16 +1082,30 @@ class Py4(object):
                 qry.right,
                 qry.inversion or False
         )
+        try:
+            (
+                tablename,
+                fieldname
+            ) = \
+                (
+                    left.tablename,
+                    left.fieldname
+                )
+        except:
+            (
+                tablename,
+                fieldname
+            ) = \
+                (
+                    None,
+                    None
+                )
         (
-            tablename,
-            fieldname,
             lastarg,
             specifier,
             specifier_value
         ) = \
             (
-                left.tablename,
-                left.fieldname,
                 None,
                 None,
                 None
@@ -1098,12 +1120,13 @@ class Py4(object):
                 right,
                 op,
                 tablename,
+                options,
                 lastarg,
                 inversion,
                 specifier,
                 specifier_value,
                 tabledata
-            ) = self.breakdown_query(left, tabledata)
+            ) = self.breakdown_query(left, *options, **tabledata)
         if (isnum(right) is True):
             right = str(right)
         elif (right is None):
@@ -1116,6 +1139,7 @@ class Py4(object):
                     right,
                     op,
                     tablename,
+                    options,
                     lastarg,
                     inversion,
                     specifier,
@@ -1151,7 +1175,7 @@ class Py4(object):
                     (isdepotfile(right) is True),
                     (tablename is not None)
             ):
-                lastarg = self.define_lastarg(tablename, query=qry)
+                lastarg = self.define_lastarg(tablename, *options, query=qry)
         if (tablename is None):
             tablename = qry.tablename
         if (noneempty(tabledata) is True):
@@ -1167,7 +1191,7 @@ class Py4(object):
             qkwargs = {}
             if (qry is not None):
                 qkwargs = {'query': qry}
-            lastarg = self.define_lastarg(tablename, **qkwargs)
+            lastarg = self.define_lastarg(tablename, *options, **qkwargs)
         if (lastarg is not None):
             ''' is a rev | changelist specified in qry.right?
             '''
@@ -1228,6 +1252,7 @@ class Py4(object):
                 right,
                 op,
                 tablename,
+                options,
                 lastarg,
                 inversion,
                 specifier,          # can be `#`, `@`
@@ -1528,7 +1553,6 @@ class Py4(object):
                     'fieldsmap':    fieldsmap,
                     'fieldnames':   fieldnames,
                     'keying':       keying,
-                    'logger':       self.logger,
                     '_rname':       tablename,
                 }
             )
