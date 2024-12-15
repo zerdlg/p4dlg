@@ -811,6 +811,9 @@ class Select(DLGControl):
                 #return filter(lambda rec: (rec[1][2] in tablenames), records)
             except Exception as err:
                 bail(err)
+        #for rec in records:
+        #    print(rec)
+
         return enumerate(records, start=1) \
                 if (type(records) is not enumerate) \
                 else records
@@ -847,7 +850,7 @@ class Select(DLGControl):
                 (isinstance(right, DLGRecords) is True),
                 (is_array(grecords) is True)
         ):
-            grecords = DLGRecords(grecords, Lst(), self.objp4)
+            grecords = DLGRecords(grecords, Lst(), self.objp4)#, objtable=self.objp4[tablename])
         return grecords
 
     def get_records_datetime_fields(self, tablename):
@@ -994,7 +997,7 @@ class Select(DLGControl):
         kwargs.delete('fieldsmap', 'tablename')
 
         if (records is None):
-            return DLGRecords(records=[], cols=cols, objp4=self.objp4)
+            return DLGRecords(records=[], cols=cols, objp4=self.objp4)#, objtable=self.objp4[self.tablename])
 
         (
             eor,
@@ -1070,7 +1073,7 @@ class Select(DLGControl):
         ):
             oJoin = self.reference.right._table.on(self.reference)
 
-        outrecords = DLGRecords(Lst(), cols, self.objp4)
+        outrecords = DLGRecords(Lst(), cols, self.objp4)#, objtable=self.objp4[self.tablename])
         insertrecord = outrecords.insert
         ''' make a list of fields that are datetime specific so 
             that we can express Unix time to an ISO format
@@ -1198,7 +1201,7 @@ class Select(DLGControl):
                 eor = True
                 bail(err)
         if (distinct is not None):
-            outrecords = DLGRecords(distinctrecords.getvalues(), cols, self.objp4)
+            outrecords = DLGRecords(distinctrecords.getvalues(), cols, self.objp4)#, objtable=self.objp4[self.tablename])
         if (len(kwargs) > 0):
             outrecords = self.aggregate(outrecords, **kwargs)
             self.loginfo(f'records filtered: {len(outrecords)}')

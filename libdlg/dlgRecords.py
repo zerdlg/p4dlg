@@ -75,12 +75,12 @@ class DLGRecords(object):
             records=Lst(),
             cols=Lst(),
             objp4=None,
-            objtable=None,
+            #objtable=None,
             **tabledata
     ):
         self.objp4 = objp4 or Storage()
-        self.objtable = objtable
-        self.records = Lst(DLGRecord(record) for record in records)
+        #self.objtable = objtable
+        self.records = Lst(DLGRecord(record) for record in records) if (records is not None) else Lst()
         self.cols = cols
         self.oSearch = Search()
         self.grid = None
@@ -696,7 +696,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
         kwargs = Storage(kwargs)
         records = self
-        syncquery = query or self.objtable
+        #syncquery = query or self.objtable
 
         (start, end) = limitby \
             if (noneempty(limitby) is False) \
@@ -819,7 +819,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             cmdargs = self.objp4.p4globals + options
             out = Lst(self.objp4.p4Output('sync', *cmdargs))
             syncrecords.append(out)
-            return DLGRecords(syncrecords, cols, self.objp4, objtable=self.objtable)
+            return DLGRecords(syncrecords, cols, self.objp4)#, objtable=self.objtable)
         except Exception as err:
             bail(err)
 
@@ -844,83 +844,85 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             >>>
         '''
 
-        if (self.objtable is not None):
-            searchquery = query or self.objtable
-            #records = self.objp4(self.objtable).select(close=False)
+        #if (self.objtable is not None):
+        #searchquery = query or self.objtable
+        #records = self.objp4(self.objtable).select(close=False)
 
-            # select against query (if any) here
-            # otherwise, self
+        # select against query (if any) here
+        # otherwise, self
 
-            records = self
+        records = self
+        (
+            start,
+            end
+        ) = \
+            limitby \
+                if (noneempty(limitby) is False) \
+                else (0, len(records))
+
+        records = records.limitby(
             (
                 start,
                 end
-            ) = \
-                limitby \
-                    if (noneempty(limitby) is False) \
-                    else (0, len(records))
+            )
+        )
 
-            records = records.limitby(
-                (
-                    start,
-                    end
-                )
+        if (len(records) == 0):
+            return self
+
+        recordcols = records(0).getkeys()
+
+        term = Lst([term]) \
+            if (isinstance(term, str)) \
+            else Lst(term)
+
+        (
+            sources,
+            cols,
+            idx,
+            metadata
+        ) = \
+            (
+                Lst(),
+                  recordcols or self.cols,
+                0,
+                None
             )
 
-            if (len(records) == 0):
-                return self
-
-            term = Lst([term]) \
-                if (isinstance(term, str)) \
-                else Lst(term)
-
-            (
-                sources,
-                cols,
-                idx,
-                metadata
-            ) = \
-                (
-                    Lst(),
-                    self.cols,
-                    0,
-                    None
-                )
-
-            searchresults = []
-            for record in records:
-                intersect = self.cols.intersect(
-                    [
-                        'depotFile',
-                        'clientFile',
-                        'path'
-                    ]
-                )
-                filename = intersect(0)
-                if (filename is not None ):
-                    searchFile = f'{record[intersect(0)]}'          # defaults to head revision
-                    for item in (
-                            ('rev', '#'),
-                            ('change', '@')
-                    ):
+        searchresults = []
+        for record in records:
+            intersect = cols.intersect(
+                [
+                    'depotFile',
+                    'clientFile',
+                    'path'
+                ]
+            )
+            filename = intersect(0)
+            if (filename is not None ):
+                searchFile = f'{record[intersect(0)]}'          # defaults to head revision
+                for item in (
+                        ('rev', '#'),
+                        ('change', '@')
+                ):
+                    (
+                        specitem,
+                        specchar
+                    ) = \
                         (
-                            specitem,
-                            specchar
-                        ) = \
-                            (
-                                item[0],
-                                item[1]
-                            )
-                        if (record[specitem] is not None):
-                            searchFile = f'{searchFile}{specchar}{record[specitem]}'
-                            break                               # we have something, break free & exec!
+                            item[0],
+                            item[1]
+                        )
+                    if (record[specitem] is not None):
+                        searchFile = f'{searchFile}{specchar}{record[specitem]}'
+                        break                               # we have something, break free & exec!
 
-                    searchrecords = self.objp4.print(searchFile)
-
-                    if (len(searchrecords) > 1):
-                        metadata = searchrecords(0)
-                        srecords = searchrecords[1:]
-                        data = '\n'.join(Lst(datarec.data for datarec in srecords if (datarec.code == 'text')))
+                searchrecords = self.objp4.print(searchFile)
+                if (len(searchrecords) > 1):
+                    metadata = searchrecords(0)
+                    srecords = searchrecords[1:]
+                    data = '\n'.join(Lst(datarec.data for datarec in srecords if (datarec.code == 'text')))
+                    if (len(data) > 0):
                         results = self.oSearch(data, *term)
                         for result in results:
                             context = re.sub('^\s*', '... ', result.context)
@@ -939,4 +941,4 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                             idx += 1
                             if (idx == end):
                                 break
-            return DLGRecords(searchresults, searchdata.getkeys(), objp4=self.objp4, objtable=self.objtable)
+        return DLGRecords(searchresults, [], objp4=self.objp4)#, objtable=self.objtable)

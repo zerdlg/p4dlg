@@ -458,7 +458,7 @@ class Py4(object):
                         lastarg = kwargs[item]
                         break
                 if (lastarg is None):
-                    lastarg = self.define_lastarg(tablename, query=p4Queries, *options)
+                    (lastarg, options) = self.define_lastarg(tablename, *options, query=p4Queries)
             if AND(
                     (isinstance(lastarg, str) is True),
                     (not lastarg in options)
@@ -840,7 +840,7 @@ class Py4(object):
 
     def define_lastarg(self, tablename, *cmdargs, **kwargs):
         if (tablename is None):
-            return
+            return (None, None)
         (cmdargs, kwargs) = (Lst(cmdargs), Storage(kwargs))
         query = kwargs.query
         if (query is not None):
@@ -850,87 +850,64 @@ class Py4(object):
                 if (type(query.left) is DLGQuery) \
                 else query
 
-        (lastarg, last_cmdarg) = (None, None)
+        lastarg = None
         tabledata = self.memoizetable(tablename)
 
         if OR(
                 (tablename in self.nocommands),
                 (noneempty(tabledata.tableoptions) is True)
         ):
-            return
-
+            return (None, None)
 
         usage = tabledata.tableoptions.usage
         requires_filearg = (reg_filename.search(usage) is not None)
 
         if (requires_filearg is False):
-            is_spec = True \
-                if AND(
-                (tablename in self.p4spec),
-                (not tablename in self.spec_takes_no_lastarg)) \
-                else False
-
-            if AND(
-                    (is_spec is True),
-                    (tablename not in self.spec_takes_no_lastarg)
-            ):
-                altarg = tabledata.altarg
-                if (altarg is not None):
-                    if (altarg.lower() in LOWER(kwargs.getkeys())):
-                        altarg = tabledata.fieldsmap[altarg.lower()]
-                        lastarg = kwargs[altarg]
-                    elif (query is not None):
-                        if AND(
-                                (isinstance(query.right, str)),
-                                (query.left.fieldname.lower() == altarg.lower())
-                        ):
-                            lastarg = query.right
-
-                arg = getattr(self, f'_{tablename}')#getattr(self, tabledata._name)
-                if (last_cmdarg is not None):
-                    lastarg = last_cmdarg \
-                        if (last_cmdarg != tablename) \
-                        else tablename
-                elif (len(cmdargs) > 0):
-                    lastarg = cmdargs(-1)
-                if (lastarg is None):
-                    if (arg is not None):
-                        lastarg = arg
-                return lastarg
-
+            if (not tablename in self.spec_takes_no_lastarg):
+                is_spec = True if (tablename in self.p4spec) else False
+                if (is_spec is True):
+                    altarg = tabledata.altarg
+                    if (altarg is not None):
+                        if (altarg.lower() in LOWER(kwargs.getkeys())):
+                            altarg = tabledata.fieldsmap[altarg.lower()]
+                            lastarg = kwargs[altarg]
+                        elif (query is not None):
+                            if AND(
+                                    (isinstance(query.right, str)),
+                                    (query.left.fieldname.lower() == altarg.lower())
+                            ):
+                                lastarg = query.right
+                    arg = getattr(self, tablename)
+                    if (len(cmdargs) > 0):
+                        lastarg = cmdargs.pop(-1)
+                    if (lastarg is None):
+                        if (arg is not None):
+                            lastarg = arg
+                return (lastarg, cmdargs)
         else:
             ''' filearg is required!
 
                 search priority:
                     1) cmdargs
-                    2) self.p4args
-                    3) check kwargs.queries as they may contain a clue about a specified lastarg
-                    4) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
+                    2) check kwargs.queries as they may contain a clue about a specified lastarg
+                    3) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
             '''
             if (cmdargs(-1) is not None):
                 if (isanyfile(cmdargs(-1)) is True):
-                    last_cmdarg = cmdargs.pop(-1)
-                    lastarg = last_cmdarg
-
-            eitherarg = lastarg or last_cmdarg
-            if (eitherarg is not None):
-                if (isanyfile(eitherarg) is True):
+                    lastarg = cmdargs.pop(-1)
                     ''' stop looking, we  have it!
                         * at least we have a file/dir on the local FS, 
                             - or we have a clientFile 
                             - or we have a depotFile
                     '''
-                    return eitherarg
-
+                    return (lastarg, cmdargs)
             ''' priorities 1 & 2
             '''
-            for argitem in (cmdargs, self.p4args):
-                if (len(argitem) > 0):
-
-                    fileitem = argitem(-1)
-                    if (fileitem is not None):
-                        if (isanyfile(fileitem) is True):
-                            return fileitem
+            if (len(cmdargs) > 0):
+                fileitem = cmdargs.pop(-1)
+                if (fileitem is not None):
+                    if (isanyfile(fileitem) is True):
+                        return (fileitem, cmdargs)
             ''' priority 3
             '''
             if (isinstance(query, str) is True):
@@ -946,10 +923,10 @@ class Py4(object):
                                 NE,
                                 '=',
                                 '!='
-                        )
+                            )
                         ):
-                            cmdargs = self.p4globals + ['where', query.right]
-                            out = self.p4OutPut(tablename, *cmdargs)
+                            p4args = self.p4globals + ['where', query.right]
+                            out = self.p4OutPut(tablename, *p4args)
                             lastarg = out.depotFile
                     else:
                         lastarg = None
@@ -957,7 +934,7 @@ class Py4(object):
             '''
             if (noneempty(lastarg) is True):
                 lastarg = f'//{self._client}/...'
-            return lastarg
+            return (lastarg, cmdargs)
 
     '''     notes and query usage
 
@@ -1175,7 +1152,7 @@ class Py4(object):
                     (isdepotfile(right) is True),
                     (tablename is not None)
             ):
-                lastarg = self.define_lastarg(tablename, *options, query=qry)
+                (lastarg, options) = self.define_lastarg(tablename, *options, query=qry)
         if (tablename is None):
             tablename = qry.tablename
         if (noneempty(tabledata) is True):
@@ -1191,7 +1168,7 @@ class Py4(object):
             qkwargs = {}
             if (qry is not None):
                 qkwargs = {'query': qry}
-            lastarg = self.define_lastarg(tablename, *options, **qkwargs)
+            (lastarg, options) = self.define_lastarg(tablename, *options, **qkwargs)
         if (lastarg is not None):
             ''' is a rev | changelist specified in qry.right?
             '''
@@ -1335,7 +1312,7 @@ class Py4(object):
                 False
         )
         if (not '--explain' in p4args):
-            lastarg = self.define_lastarg(tablename, *p4args)
+            (lastarg, p4args) = self.define_lastarg(tablename, *p4args)
             if isinstance(lastarg, str):
                 p4args.append(lastarg)
         if (
@@ -1393,7 +1370,7 @@ class Py4(object):
                     (kwargs.lastarg is not None),
                     (kwargs.lastarg != p4args(-1))
             ):
-                specname = self.define_lastarg(tablename, *p4args)
+                (specname, p4args) = self.define_lastarg(tablename, *p4args)
                 if AND(
                         (isinstance(specname, str) is True),
                         (specname != p4args[-1])

@@ -199,7 +199,7 @@ class Py4Table(object):
             if (p4ret.data is not None):
                 p4ret = p4ret.data
         if (isinstance(p4ret, Lst)):
-            p4ret = DLGRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self.objp4, objtable=self)
+            p4ret = DLGRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self.objp4)#, objtable=self)
         return p4ret
 
     ''' p4 keyed tables... get a table's `keying` attributes

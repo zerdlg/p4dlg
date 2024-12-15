@@ -62,7 +62,9 @@ class Py4Run(object):
                 + self.objp4.fetchfirst
                 + self.objp4.spec_takes_no_lastarg
         )
-        lastarg = self.objp4.define_lastarg(tablename, *cmdargs) if (not tablename in noargs_cmds) else None
+        lastarg = None
+        if (not tablename in noargs_cmds):
+            (lastarg, cmdargs) = self.objp4.define_lastarg(tablename, *cmdargs)
         self.objp4.p4globals += self.objp4.supglobals
         ''' tablename should be cmdargs' 1st argument. so either insert 
             if missing or, if suspected to be in the wrong position, 
@@ -179,6 +181,8 @@ class Py4Run(object):
             '''
             if (lastarg in cmdargs):
                 cmdargs.pop(cmdargs.index(lastarg))
+            if (lastarg in self.options):
+                self.options.pop(self.options.index(lastarg))
             options = self.options.storageindex(reversed=True)
             [cmdargs.append(value) for (key, value) in options.items() \
                 if (not value in cmdargs)]
@@ -211,25 +215,34 @@ class Py4Run(object):
                             (tablename == 'print'),
                             (len(output) >= 2)
                     ):
-                        if (not None in (
+                        if (output(0).type not in (
+                                'binary',
+                                'symlink',
+                                'apple',
+                                'resource'
+                        )
+                        ):
+                            if (not None in (
                                             output(1).code,
                                             output(1).data
                                         )
-                        ):
-                            ''' decision: join or don't join data chunks 
-                                *** think about the size of the combined chunks of text 
-                            '''
-                            if (join_datachunks is True):
-                                metadata = output(0)
-                                data = ''
-                                for out_chunk in output[1:]:
-                                    data += out_chunk.data
-                                output = Storage(
-                                    {
-                                        'code': metadata,
-                                        'data': data
-                                    }
-                                )
+                            ):
+                                ''' decision: join or don't join data chunks 
+                                    *** think about the size of the combined chunks of text
+                                    
+                                    Of course, said datachunks need only apply to text files (omit bins)
+                                '''
+                                if (join_datachunks is True):
+                                    metadata = output(0)
+                                    data = ''
+                                    for out_chunk in output[1:]:
+                                        data += out_chunk.data
+                                    output = Storage(
+                                        {
+                                            'code': metadata,
+                                            'data': data
+                                        }
+                                    )
                     if AND(
                             (tablename in self.objp4.nocommands),
                             (type(output).__name__ == 'DLGRecords')

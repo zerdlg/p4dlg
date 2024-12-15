@@ -222,7 +222,6 @@ class DLGRecordSet(object):
             **tabledata
     ):
         (args, tabledata) = (Lst(args), objectify(tabledata))
-
         self.objp4 = objp4
 
         ''' logging
