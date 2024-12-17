@@ -344,7 +344,7 @@ class Py4(object):
             reference,
         ) \
             = (
-            kwargs.tablename,#or self.tablename if (hasattr(self, 'tablename')) else None,
+            kwargs.tablename,
             None,
             Storage(),
             None,
@@ -370,6 +370,7 @@ class Py4(object):
             if (isinstance(query, (list, Lst, tuple)) is False):
                 if (query_is_reference(query) is True):
                     reference = query
+                    reference.flat = kwargs.flat or False
                     ''' re-define query as the query's left 
                         side's Table object (_table)
                     '''
@@ -393,7 +394,8 @@ class Py4(object):
                 qries = objectify(Lst(query))
 
             for qry in qries:
-                inversion = False
+                if (qry.inversion is None):
+                    qry.inversdion = False
                 if (isinstance(qry, dict) is True):
                     if (not 'inversion' in qry):
                         qry.inversion = inversion
@@ -404,7 +406,7 @@ class Py4(object):
                         qry.right,
                         qry.inversion
                     )
-                qry = invert(qry, inversion=inversion)
+                qry = invert(qry)#, inversion=inversion)
                 if (tablename is None):
                     ''' grab the tablename and go!
                     '''

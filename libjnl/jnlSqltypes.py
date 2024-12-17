@@ -272,6 +272,7 @@ class JNLTable(object):
         self.oSchema = oSchema or self.objp4.oSchema
         self.oSchemaType = SchemaType(self.objp4)
         self.jnlRecords = Lst()
+        self.inversion = tabledata.inversion or False
         (
             self.fieldsmap,
             self.fieldtypesmap

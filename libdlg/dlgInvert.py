@@ -6,20 +6,24 @@ __all__ = ['invert']
 def invert(qry, inversion=False):
     ''' do we need to invert?
     '''
-    (
-        op,
-        left,
-        right,
-        #inversion
-    ) \
-        = (
-        qry.op,
-        qry.left,
-        qry.right,
-        #qry.inversion or False
-    )
+    if (is_tableType(qry) is True):
+        op = None
+        right = None
+    else:
+        (
+            op,
+            left,
+            right,
+            inversion
+        ) \
+            = (
+            qry.op,
+            qry.left,
+            qry.right,
+            qry.inversion or False
+        )
     try:
-        qry.inversion = inversion
+        #qry.inversion = inversion
         if (op is not None):
             opname = op.__name__ \
                 if (callable(op) is True) \
@@ -44,10 +48,17 @@ def invert(qry, inversion=False):
                         if is_qType_or_field(left.right):
                             left.right = invert(left.right, inversion=left.inversion)
                 qry = left
+            #elif ()
+            elif AND(
+                    (is_fieldType(left) is True),
+                    (is_fieldType(right) is True)
+            ):
+                return invert(qry, inversion=inversion)
             else:
                 for lr in (left, right):
                     if (is_qType_or_field(lr) is True):
-                        qry = invert(lr, inversion=inversion)
+                        #qry = invert(lr, inversion=inversion)
+                        lr = invert(lr, inversion=inversion)
                         ''' Crap! what did I want to do next...?
                         '''
         return qry

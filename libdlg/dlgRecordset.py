@@ -6,7 +6,7 @@ import timeit
 from libdlg.dlgSelect import Select
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgStore import Storage, Lst, objectify
-from libdlg.dlgUtilities import noneempty, bail
+from libdlg.dlgUtilities import noneempty, bail, ALLLOWER
 from libdlg.dlgFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
 from libdlg.dlgQuery_and_operators import (
@@ -924,7 +924,6 @@ class DLGRecordSet(object):
 
         if (hasattr(self, 'tablename')):
             tablename = self.tablename
-
         elif AND(
                 AND(
                     (len(fieldnames) == 1),
@@ -932,25 +931,26 @@ class DLGRecordSet(object):
                 ), ~(hasattr(self, 'tablename'))
         ):
             tablename = fieldnames(0).tablename
-            fieldnames = Lst()
             self.tablename = tablename
 
-        if (cols is None):
+        if (noneempty(cols) is True):
             cols = self.cols
 
         if (tablename is not None):
-            if (self.objp4.tablememo[tablename] is not None):
-                if (len(fieldnames) == 0):
-                    fieldnames = self.objp4.tablememo[tablename].fieldnames
-                if (len(cols) == 0):
-                    self.cols = cols = self.objp4.tablememo[tablename].fieldnames
-                if (not 'fieldnames' in self.__dict__.keys()):
-                    self.fieldnames = fieldnames#self.objp4.tablememo[tablename].fieldnames
-                elif (len(self.fieldnames) == 0):
-                    self.fieldnames = self.cols
-                if (noneempty(fieldsmap) is True):
-                    fieldsmap = self.objp4.tablememo[tablename].fieldsmap
-                self.fieldsmap = fieldsmap
+            if (len(fieldnames) == 0):
+                fieldnames = self.objp4.tablememo[tablename].fieldnames
+            if (noneempty(fieldsmap) is True):
+                if (len(self.fieldsmap) > 0):
+                    fieldsmap = self.fieldsmap
+                else:
+                    self.fieldsmap = fieldsmap = self.objp4.tablememo[tablename].fieldsmap
+            if (len(cols) == 0):
+                self.cols = cols = self.objp4.tablememo[tablename].fieldnames
+        if AND(
+                (len(fieldnames) > 0),
+                (len(self.fieldnames) != len(fieldnames))
+        ):
+            self.fieldnames = fieldnames
 
         if (query is None):
             query = self.query
@@ -959,7 +959,7 @@ class DLGRecordSet(object):
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
-        tabledata = objp4.memoizetable(tablename)
+        tabledata = self.objp4.memoizetable(tablename)
 
         oSelect = Select(
             objp4,
@@ -972,7 +972,6 @@ class DLGRecordSet(object):
         if (self.reference is not None):
             kwargs.update(
                 join=self.reference.right._table.on(self.reference),
-                flat=kwargs.flat or False
             )
         outrecords = oSelect.select(
             *fieldnames,

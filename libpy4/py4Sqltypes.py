@@ -106,7 +106,7 @@ class Py4Table(object):
                 Storage()
             )
         self._reference_by = None
-
+        self.inversion = tabledata.inversion or False
         ''' p4table attributes
         '''
         self.p4schema = self.oSchema.p4schema or Storage()
@@ -199,7 +199,7 @@ class Py4Table(object):
             if (p4ret.data is not None):
                 p4ret = p4ret.data
         if (isinstance(p4ret, Lst)):
-            p4ret = DLGRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self.objp4)#, objtable=self)
+            p4ret = DLGRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self.objp4)
         return p4ret
 
     ''' p4 keyed tables... get a table's `keying` attributes
@@ -285,7 +285,9 @@ class Py4Table(object):
         delattr(self, self.tablename)
         setattr(self, self.tablename, Lst())
 
-    def on(self, reference):
+    def on(self, reference, flat=False):
+        if (not hasattr(reference, 'flat')):
+            reference.flat = flat
         return DLGJoin(self.objp4, reference)
 
     def get(self, name):

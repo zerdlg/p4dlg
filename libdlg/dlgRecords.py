@@ -75,14 +75,11 @@ class DLGRecords(object):
             records=Lst(),
             cols=Lst(),
             objp4=None,
-            #objtable=None,
             **tabledata
     ):
         self.objp4 = objp4 or Storage()
-        #self.objtable = objtable
         self.records = Lst(DLGRecord(record) for record in records) if (records is not None) else Lst()
         self.cols = cols
-        self.oSearch = Search()
         self.grid = None
         ''' thinking specifically for Py4 & Search
         '''
@@ -692,12 +689,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         if (is_P4Jnl(self.objp4) is True):
             bail('`sync` attribute is of no use here... dropping.')
 
-
-
         kwargs = Storage(kwargs)
         records = self
-        #syncquery = query or self.objtable
-
         (start, end) = limitby \
             if (noneempty(limitby) is False) \
             else (0, len(records))
@@ -819,7 +812,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             cmdargs = self.objp4.p4globals + options
             out = Lst(self.objp4.p4Output('sync', *cmdargs))
             syncrecords.append(out)
-            return DLGRecords(syncrecords, cols, self.objp4)#, objtable=self.objtable)
+            return DLGRecords(syncrecords, cols, self.objp4)
         except Exception as err:
             bail(err)
 
@@ -842,15 +835,28 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             >>> results = printed.search(content, "administrationlist")
             >>> records = [results.sortby('score')]
             >>>
-        '''
 
-        #if (self.objtable is not None):
-        #searchquery = query or self.objtable
-        #records = self.objp4(self.objtable).select(close=False)
+            or
+            >>> files = p4(p4.files, *['//dev/p4dlg/libconnect/...']).select()
+            >>> results = files.search('mart')
+            >>> results(0)
+            <DLGRecord {'action': 'add',
+                        'change': '480',
+                        'code': 'stat',
+                        'context': '... [$Author: mart $]',
+                        'depotFile': '//dev/p4dlg/libconnect/__init__.py',
+                        'fileSize': '311',
+                        'linenumber': 8,
+                        'rev': '1',
+                        'score': '0.7071067811865475',
+                        'search_terms': ['mart'],
+                        'time': '1726902220',
+                        'type': 'text'}>
+        '''
 
         # select against query (if any) here
         # otherwise, self
-
+        # records = self.objp4().select(close=False)
         records = self
         (
             start,
@@ -877,68 +883,69 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             else Lst(term)
 
         (
-            sources,
             cols,
             idx,
             metadata
         ) = \
             (
-                Lst(),
                   recordcols or self.cols,
                 0,
                 None
             )
 
         searchresults = []
+        oSearch = Search()
         for record in records:
-            intersect = cols.intersect(
-                [
-                    'depotFile',
-                    'clientFile',
-                    'path'
-                ]
-            )
-            filename = intersect(0)
-            if (filename is not None ):
-                searchFile = f'{record[intersect(0)]}'          # defaults to head revision
-                for item in (
-                        ('rev', '#'),
-                        ('change', '@')
-                ):
-                    (
-                        specitem,
-                        specchar
-                    ) = \
+            if (re.search('text', record.type) is not None):
+                intersect = cols.intersect(
+                    [
+                        'depotFile',
+                        'clientFile',
+                        #'path'
+                    ]
+                )
+                p4File = intersect(0)
+                if (p4File is not None ):
+                    searchFile = f'{record[p4File]}'          # defaults to head revision
+                    for item in (
+                            ('rev', '#'),
+                            ('change', '@')
+                    ):
                         (
-                            item[0],
-                            item[1]
-                        )
-                    if (record[specitem] is not None):
-                        searchFile = f'{searchFile}{specchar}{record[specitem]}'
-                        break                               # we have something, break free & exec!
-
-                searchrecords = self.objp4.print(searchFile)
-                if (len(searchrecords) > 1):
-                    metadata = searchrecords(0)
-                    srecords = searchrecords[1:]
-                    data = '\n'.join(Lst(datarec.data for datarec in srecords if (datarec.code == 'text')))
-                    if (len(data) > 0):
-                        results = self.oSearch(data, *term)
-                        for result in results:
-                            context = re.sub('^\s*', '... ', result.context)
-                            searchdata = Storage(
-                                {
-                                    'score': str(result.score),
-                                    'search_terms': result.terms,
-                                    'linenumber': result.idx,
-                                    'context': context
-                                }
+                            specitem,
+                            specchar
+                        ) = \
+                            (
+                                item[0],
+                                item[1]
                             )
-                            if (start <= idx):
-                                if (metadata is not None):
-                                    searchdata.merge(metadata)
-                                searchresults.append(searchdata)
-                            idx += 1
-                            if (idx == end):
-                                break
-        return DLGRecords(searchresults, [], objp4=self.objp4)#, objtable=self.objtable)
+                        if (record[specitem] is not None):
+                            searchFile = f'{searchFile}{specchar}{record[specitem]}'
+                            break                               # we have something, break free & exec!
+
+                    filechunks = self.objp4.print(searchFile)
+                    if (len(filechunks) > 1):
+                        metadata = filechunks(0)
+                        datachunks = filechunks[1:]
+                        data = '\n'.join(Lst(chunk.data for chunk in datachunks if (chunk.code == 'text')))
+                        if (len(data) > 0):
+                            results = oSearch(data, *term)
+                            for result in results:
+                                #context = re.sub('^\s*', '... ', result.context).rstrip('\n')
+                                context = result.context.rstrip('\n')
+                                searchdata = Storage(
+                                    {
+                                        'score': str(result.score),
+                                        'search_terms': result.terms,
+                                        'linenumber': result.idx,
+                                        'context': context
+                                    }
+                                )
+                                if (start <= idx):
+                                    if (metadata is not None):
+                                        searchdata.merge(metadata)
+                                    searchresults.append(searchdata)
+                                idx += 1
+                                if (idx == end):
+                                    break
+        return DLGRecords(searchresults, [], objp4=self.objp4)

@@ -850,7 +850,7 @@ class Select(DLGControl):
                 (isinstance(right, DLGRecords) is True),
                 (is_array(grecords) is True)
         ):
-            grecords = DLGRecords(grecords, Lst(), self.objp4)#, objtable=self.objp4[tablename])
+            grecords = DLGRecords(grecords, Lst(), self.objp4)
         return grecords
 
     def get_records_datetime_fields(self, tablename):
@@ -902,7 +902,7 @@ class Select(DLGControl):
             query = self.query
         ''' cols
         '''
-        if (cols is None):
+        if (noneempty(cols) is True):
             cols = self.cols or Lst()
         if AND(
                 (len(cols) > 0),
@@ -997,7 +997,7 @@ class Select(DLGControl):
         kwargs.delete('fieldsmap', 'tablename')
 
         if (records is None):
-            return DLGRecords(records=[], cols=cols, objp4=self.objp4)#, objtable=self.objp4[self.tablename])
+            return DLGRecords(records=[], cols=cols, objp4=self.objp4)
 
         (
             eor,
@@ -1073,7 +1073,7 @@ class Select(DLGControl):
         ):
             oJoin = self.reference.right._table.on(self.reference)
 
-        outrecords = DLGRecords(Lst(), cols, self.objp4)#, objtable=self.objp4[self.tablename])
+        outrecords = DLGRecords(Lst(), cols, self.objp4)
         insertrecord = outrecords.insert
         ''' make a list of fields that are datetime specific so 
             that we can express Unix time to an ISO format
@@ -1201,7 +1201,7 @@ class Select(DLGControl):
                 eor = True
                 bail(err)
         if (distinct is not None):
-            outrecords = DLGRecords(distinctrecords.getvalues(), cols, self.objp4)#, objtable=self.objp4[self.tablename])
+            outrecords = DLGRecords(distinctrecords.getvalues(), cols, self.objp4)
         if (len(kwargs) > 0):
             outrecords = self.aggregate(outrecords, **kwargs)
             self.loginfo(f'records filtered: {len(outrecords)}')

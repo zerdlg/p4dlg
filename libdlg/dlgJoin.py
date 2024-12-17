@@ -225,6 +225,8 @@ class DLGJoin(object):
             else False
 
     def join_record(self, jointype=None, flat=False):
+        if (flat is False):
+            flat = self.reference.flat or False
         # cKeys = self.cMemo.keys()
         mRecords = DLGRecords(records=[], cols=[], objp4=self.objp4)
         records = self.left_records
@@ -260,18 +262,24 @@ class DLGJoin(object):
         return mRecords
 
     def merge_records(self, flat=True):
+        if (flat is False):
+            flat = self.reference.flat or False
         return self.join_record(
             jointype='inner',
             flat=flat
         )
 
     def join(self, flat=False):
+        if (flat is False):
+            flat = self.reference.flat or False
         return self.join_record(
             jointype='inner',
             flat=flat
         )
 
     def left(self, flat=False):
+        if (flat is False):
+            flat = self.reference.flat or False
         return self.join_record(
             jointype='outer',
             flat=flat
