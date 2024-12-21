@@ -1,4 +1,4 @@
-# ``p4dlg                                              ``
+# ``p4dlg            ``
 *this readme is under construction*
 #### A set of *abstractions* that use SQL to access your Perforce instances (p4d) and their resources (I.e.: the metadata stored in it's db). 
 
