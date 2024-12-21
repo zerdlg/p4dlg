@@ -1,17 +1,31 @@
 # ``p4dlg                                              ``
-#### A set of *abstractions* that use SQL to access your Perforce instances and their resources. In other words, **p4dlg** enables you to think SQL while interacting with Perforce. 
+*this readme is under construction*
+#### A set of *abstractions* that use SQL to access your Perforce instances (p4d) and their resources (I.e.: the metadata stored in it's db). 
+
+In other words, **p4dlg** enables you to interact with Perforce while taking full advantage of true SQL features and functionality that we've come to appreciate. 
+
+``Have you ever written an app against a versioning engine? P4dlg makes it easy and intuitive! ``
 
 ### Abstractions:
-+ P4Jnl (Interact with your metadata, without Perforce client or admin programs)
-+ Py4RCS (Interact with your versioned files, without Perforce client or admin programs) - under construction
-+ Py4 (Interact with p4d using SQL)
++ P4Jnl (Interact with your metadata, without without having to rely on a Perforce client)
++ Py4 (you can put away the p4 cmd line (and mercifully, p4v!). Interact with your Perforce instance using SQL)
+
+### How do we use it and what SQL functionality does it support?
+
+[a few details and examples ... add here]
+
+
+[more stuff here ...]
+
+
+``Note: Though I don't know how this runs on Windows, it does however work as expected on both MacOS and Linux. ``
 
 ### Intsallation:
 + drop p4dlg on your system somewhere.
 + requires IPython / qtconsole
 + I generally install Anaconda as my defualt distribution - if you don't and p4dlg complains about missing dependencies, please do let me know.
 
-### How & where do we use *p4dlg*?
+### Where do we use *p4dlg*?
 ``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Just type the following cmdline to start it up!``
 
 ```Python
@@ -327,40 +341,6 @@ linuxclient 2021/12/01                # programs.
 linuxclient 2021/12/01
 ```
 ### More examples below on the use of aggregators, operators, queries, expressions, etc., as well as p4dlg's take on using SQL mechanics to drive interactions with a Perforce instance.
-
-## Py4
-### A client program, A wrapper, an abstraction layer over the p4 cmd line client API probably describes it better. If you're like me, you have favoured the more robust and never failing cmd line client when interacting with your Perforce server. So using this connector might be counter intiative, at first. If we are to think SQL instead of `executable cmd *args`, we must alter our mind set, a little bit. Please, bare with me & let's just rip off the bandaid.
-
-Let's forget the executable, the command and everything else that comes after that. I propose instead that we accept a new Perforce where the executable no longer an executable but rather a name. That is a name of a connection to a DB (after all the P4DB is just that, a DB). ALong the same lines, a command is no longer a command, but rather a table. Think of Postgres or mysql. Like that. Of course if we think of tables, we will start seeing fields with values. Here's what I mean:
-
-```c++
-
->>> p4 client computer_p4dlg
-Client:▷computer_p4dlg
- 
- Update:▷2024/09/20 23:53:18
- 
- Access:▷2024/10/04 19:14:53
-  
- Owner:▷⋅bigbird
-  
- Host:▷⋅⋅computer.local
-  
- Description:
- ▷⋅⋅⋅Created by bigbird.
-  
- Root:▷⋅⋅/Users/gc/anastasia/dev/p4dlg
-  
- Options:▷⋅⋅⋅noallwrite noclobber nocompress unlocked nomodtime normdir
-  
- SubmitOptions:▷⋅submitunchanged
- 
- LineEnd:▷⋅⋅⋅local
-  
- View:
- ▷⋅⋅⋅//dev/p4dlg/... //computer_p4dlg/... 
-```
-
 
 #### Other samples & examples
 + Please see working samples & example in /p4q/libsample.
