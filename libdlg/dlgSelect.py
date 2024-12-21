@@ -32,6 +32,11 @@ from libdlg.dlgUtilities import (
 __all__ = ('Select',)
 
 class Select(DLGControl):
+    def __getitem__(self, item):
+        try:
+            return self.__dict__.get(item)
+        except: pass
+
     def __init__(
             self,
             objp4,
@@ -697,8 +702,11 @@ class Select(DLGControl):
     def update_datefields(self, record, fieldnames):
         for name in fieldnames:
             try:
-                datestamp = self.oDateTime.to_p4date(record[name])
-                record.merge({name: datestamp})
+                if (re.search('[tT]ime', record[name]) is not None):
+                    dtstamp = self.oDateTime.string_to_datetime(record[name])
+                else:
+                    dtstamp = self.oDateTime.to_p4date(record[name])
+                record.merge({name: dtstamp})
             except Exception as err:
                 self.logerror(f'Failed to convert Date field ({name}) from epoch to datestamp.\n{err}')
         return record
@@ -811,8 +819,6 @@ class Select(DLGControl):
                 #return filter(lambda rec: (rec[1][2] in tablenames), records)
             except Exception as err:
                 bail(err)
-        #for rec in records:
-        #    print(rec)
 
         return enumerate(records, start=1) \
                 if (type(records) is not enumerate) \
@@ -947,7 +953,7 @@ class Select(DLGControl):
         if (len(fieldnames) == 1):
             fieldtype = type(fieldnames[0]).__name__
             if (fieldtype in ('JNLTable', 'Py4Table')):
-                fieldnames = cols#self.objp4.fieldnames
+                fieldnames = cols
         fieldnames = Lst(fieldnames or self.objp4.fieldnames).storageindex(reversed=True)
         return (tablename, fieldnames, fieldsmap, query, cols, records)
 
@@ -958,6 +964,7 @@ class Select(DLGControl):
             cols=None,
             query=None,
             close_session=True,
+            leave_field_values_untouched=False,
             **kwargs
     ):
         kwargs = Storage(kwargs)
@@ -995,7 +1002,6 @@ class Select(DLGControl):
             query = Lst([query])
 
         kwargs.delete('fieldsmap', 'tablename')
-
         if (records is None):
             return DLGRecords(records=[], cols=cols, objp4=self.objp4)
 
@@ -1058,6 +1064,8 @@ class Select(DLGControl):
                 else (kwargs.left, 'outer')
             if (kwargs.merge_records is not None):
                 flat = True
+            if (flat is True):
+                oJoin.flat = True
         kwargs.delete(
             *[
                 'flat',
@@ -1074,14 +1082,13 @@ class Select(DLGControl):
             oJoin = self.reference.right._table.on(self.reference)
 
         outrecords = DLGRecords(Lst(), cols, self.objp4)
-        insertrecord = outrecords.insert
         ''' make a list of fields that are datetime specific so 
             that we can express Unix time to an ISO format
         '''
         datetime_fields = self.get_records_datetime_fields(tablename)
         recordsiter = self.get_recordsIterator(records)
         while (eor is False):
-            table_mismatch = False
+            skip_record = False
             try:
                 if (reg_dbtablename.match(tablename) is not None):
                     tablename = self.oTableFix.normalizeTableName(tablename)
@@ -1093,12 +1100,11 @@ class Select(DLGControl):
                 ) = (
                     next(recordsiter)
                 )
-                ''' TODO: other abstractions may frown on this validation...
+                ''' some abstractions may frown on this validation...
                     not everyone comes across as being a list of things!
                     
-                    maybe we should do `if (self.is_jnlobject is True)` instead?
-                    
-                    DOH! merging tables might require a list of 2 records!!! let's keep that in  mind.
+                    TODO: think about:
+                        - maybe we should do `if (self.is_jnlobject is True)`?
                 '''
                 if (isinstance(record, list) is True):
                     record = Lst(record)
@@ -1117,8 +1123,10 @@ class Select(DLGControl):
                             )
                         )
                     else:
-                        table_mismatch = True
-                if (table_mismatch is False):
+                        skip_record = True
+                ''' first skip_record check
+                '''
+                if (skip_record is False):
                     ''' The P4DB supports keyed tables, and field `id` 
                         is already in use on some of the tables. Using 
                         name `idx` instead. Add it to cols if needed.
@@ -1153,6 +1161,8 @@ class Select(DLGControl):
                             raise RecordFieldsNotMatchCols(fieldnames.getvalues(), record.getkeys())
                         '''
                         if (len(fieldnames) > 0):
+                            ''' we have a custom field list to output! - re-define the record accordingly!
+                            '''
                             rec = Storage()
                             for fn in fieldnames.keys():
                                 field = fieldnames[fn]
@@ -1162,34 +1172,69 @@ class Select(DLGControl):
                                 value = record[field]
                                 rec.merge({field: value})
                             record = rec
-                        ''' does anything lead us to believe that this record should be skipped?
+
+                        ''' does anything lead us to believe that this record 
+                            should be skipped?
+                            
+                            second skip_record check
                         '''
-                        skip = self.skiprecord(record, tablename)
-                        if (skip is False):
+                        skip_record = self.skiprecord(record, tablename)
+                        if (skip_record is False):
                             if AND(
                                     (not 'code' in cols),
                                     (record.code is not None)
                             ):
                                 record.delete('code')
-                            ''' convert epoch datetime stamps to ISO
-                                
-                                eg.  1726617600 --> '2024/09/17'
+
+                            ''' has the user requested to leave field values untouched? (default is False) 
                             '''
-                            if (len(datetime_fields) > 0):
-                                record = self.update_datefields(record, datetime_fields)
+                            if (leave_field_values_untouched is True):
+                                updateable_fields = []
+                                fieldlist = Lst(fieldnames[fidx] \
+                                                    if (isinstance(fvalue, str) is True) \
+                                                    else fieldnames[fidx].fieldname for (fidx, fvalue)
+                                                in fieldnames.items())
+
+                                ''' convert epoch datetime stamps to ISO
+    
+                                    eg.  1726617600 --> '2024/09/17'
+                                '''
+                                if (len(datetime_fields) > 0):
+                                    ''' some datetime fields are missing from the full fields list
+                                        (eg. user has passed in a custom list fields list - let's 
+                                        check those we have (if any)
+                                    '''
+                                    updateable_fields = datetime_fields \
+                                        if (len(fieldlist.intersect(datetime_fields)) == len(datetime_fields)) \
+                                        else [dtitem for dtitem in datetime_fields if (dtitem in fieldlist)]
+                                    ''' re-define the record, yet again.
+                                    '''
+                                    if (len(updateable_fields) > 0):
+                                        record = self.update_datefields(record, [updateable_fields])
+
+                                ''' check if any other field values need to be converted from 
+                                    field flags or masks (as per the p4 schema definition) 
+                                '''
+
+                            ''' should any fields be distinct?
+                            '''
                             if (distinct is not None):
                                 distinctvalue = record(distinct.fieldname or distinct)
                                 if (distinctvalue is not None):
                                     distinctrecords.merge({distinctvalue: record}, overwrite=False)
                             else:
-                                if (noneempty(self.maxrows) is False):
+                                ''' how about 'maxrows', have we set a max value?
+                                '''
+                                if (self.maxrows > 0):
                                     recordcounter += 1
                                     if (recordcounter <= self.maxrows):
-                                        insertrecord(idx, record)
+                                        outrecords.insert(idx, record)
                                     else:
                                         eor = True
                                 else:
-                                    insertrecord(idx, record)
+                                    ''' since we're here, there is nothing else. insert and move on! 
+                                    '''
+                                    outrecords.insert(idx, record)
             # BUG: sometimes StopIteration is skipped (oJnl.rev.depotFile.contains(...))
             # so wrapping while loop in its own try: except: finally block for now...
             # until time for this is to be had... argh!!!!!

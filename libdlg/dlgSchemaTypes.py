@@ -1,7 +1,7 @@
 import re
 from libdlg.dlgUtilities import (bail, isnum, ALLLOWER)
 from libdlg.dlgStore import Lst, Storage
-from libdlg.dlgQuery_and_operators import BELONGS
+from libdlg.dlgQuery_and_operators import BELONGS, AND, OR
 
 __all__ = ['SchemaType']
 
@@ -464,7 +464,7 @@ class SchemaType(object):
     def cleanup(self, s):
         return re.sub('[\"\']', '', Lst(re.split('[,;\s]', s))(0))
 
-    def datatypes_flags(self):
+    def datatdatatypes_flagsypes_flags(self):
         ''' datatypes where type is 'flag'
         '''
         return Lst(
@@ -491,10 +491,17 @@ class SchemaType(object):
         return Lst(dtype.name for dtype in self.datatypes_bitmasks())
 
     def is_flag(self, field):
+        datatypenames = self.datatype_names()
+        datatypenames_lower = ALLLOWER(datatypenames)
+        fieldname = field.fieldname
+        fieldtype = field.type
+        fieldname_lower = fieldname.lower()
+
+        return True if AND((fieldname_lower in datatypenames_lower), (fieldtype == 'flag')) else False
         ''' TODO: complete this
         '''
-        fieldname = field if (isinstance(field, str) is True) else field.fieldname
-        return True if (fieldname in self.flagnames) else False
+        #fieldname = field if (isinstance(field, str) is True) else field.fieldname
+        #return True if (fieldname in self.flagnames) else False
 
     def is_bitmask(self, field):
         ''' TODO: complete this
@@ -521,7 +528,7 @@ class SchemaType(object):
             if (dflag is not None) \
             else False
 
-    def mask_value2nanme(self, oField, value):
+    def mask_value2name(self, oField, value):
         ''' TODO: this '''
 
     def flagname_byvalue(self, oField, value):
@@ -558,3 +565,21 @@ class SchemaType(object):
         values = self.values_bydatatype(oField.type)
         value = next(filter(lambda rec: rec.desc.startswith(flag), values)).value
         return value
+
+    '''
+    datatypenames = jnl.oSchemaType.datatype_names())
+    datatypenames_lower = ALLLOWER(datatypenames)
+    
+    def is
+    
+    def get_datatype_name(field):
+        fieldname = field.fieldname
+        fieldname_lower = fieldname.lower() 
+        if (fieldname_lower in datatypenames_lower):
+            return re.sub(fieldname[0], fieldname[0].upper(), fieldname)
+    
+    
+    
+    
+    
+    '''

@@ -286,9 +286,7 @@ class Py4Table(object):
         setattr(self, self.tablename, Lst())
 
     def on(self, reference, flat=False):
-        if (not hasattr(reference, 'flat')):
-            reference.flat = flat
-        return DLGJoin(self.objp4, reference)
+        return DLGJoin(self.objp4, reference, flat=flat)
 
     def get(self, name):
         return self.getfield(name=name)
@@ -419,18 +417,8 @@ class Py4Field(DLGExpression):
 
     __str__ = __repr__ = lambda self: f"<Py4Field {self.fieldname}>"
 
-    def update_instance(self, op=None, left=None, right=None, **kwargs):
-        '''  attributes for operators instead of DLGQuery class reference?
-        '''
-        for argitem in (op, left, right):
-            if (argitem is not None):
-                argname = argitem.__name__
-                setattr(self, argname, argitem)
-        [setattr(self,k, v) for (k, v) in kwargs.items() if (len(kwargs) > 0)]
-
     def __len__(self):
         return lambda i: len(self.__dict__[i])
-
 
     def __init__(
                  self,
@@ -528,7 +516,6 @@ class Py4Field(DLGExpression):
             fieldname=fieldname,
             tablename=tablename
         )
-
 
     def __bool__(self):
         return True

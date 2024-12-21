@@ -130,9 +130,11 @@ class DLGJoin(object):
             self,
             objp4,
             reference,
+            flat=False
     ):
         self.objp4 = objp4
         self.reference = reference
+        self.flat = flat
         self.records = None
         self.left_records = None
         self.exclude_fieldnames = [
@@ -190,13 +192,22 @@ class DLGJoin(object):
             build a dedicated recordset then pass it on to
             Select.select via `oRecordSet`
         '''
-        records = []
-        if (is_P4Jnl(self.objp4) is True):
-            records = (
-                JNLFile(self.objp4.journal, reader=self.objp4.reader)
-            )
-        elif (is_Py4(self.objp4) is True):
-            records = self.objp4(cQuery).select()
+        cRecordset = self.objp4(cQuery)
+        return cRecordset
+        #records = []
+        #cRecordset = None
+        #if (is_P4Jnl(self.objp4) is True):
+        #    cRecordset = self.objp4(cQuery)
+
+            #records = self.objp4(cQuery).select()
+            #records = (
+            #    JNLFile(self.objp4.journal, reader=self.objp4.reader)
+            #)
+        #elif (is_Py4(self.objp4) is True):
+        #    cRecordset = self.objp4(cQuery)
+
+            #records = self.objp4(cQuery).select()
+
             #records = Py4Run(
             #    self,
             #    #*cmdoptions,
@@ -205,8 +216,8 @@ class DLGJoin(object):
         #elif AND((is_Py4(self.objp4) is True), (is_recordsType(self.left_records) is True)):
         #    records = getattr(self.left_records, '__call__')(*self.left_records.options)
 
-        cRecordset = DLGRecordSet(self.objp4, records, **cTabledata)
-        return cRecordset
+        #cRecordset = DLGRecordSet(self.objp4, [], **cTabledata)
+        #return cRecordset
 
     def select_and_group_records(self, recset):
         cRecords = recset.select()
@@ -225,8 +236,6 @@ class DLGJoin(object):
             else False
 
     def join_record(self, jointype=None, flat=False):
-        if (flat is False):
-            flat = self.reference.flat or False
         # cKeys = self.cMemo.keys()
         mRecords = DLGRecords(records=[], cols=[], objp4=self.objp4)
         records = self.left_records
@@ -262,24 +271,18 @@ class DLGJoin(object):
         return mRecords
 
     def merge_records(self, flat=True):
-        if (flat is False):
-            flat = self.reference.flat or False
         return self.join_record(
             jointype='inner',
             flat=flat
         )
 
     def join(self, flat=False):
-        if (flat is False):
-            flat = self.reference.flat or False
         return self.join_record(
             jointype='inner',
             flat=flat
         )
 
     def left(self, flat=False):
-        if (flat is False):
-            flat = self.reference.flat or False
         return self.join_record(
             jointype='outer',
             flat=flat

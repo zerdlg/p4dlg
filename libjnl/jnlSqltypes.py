@@ -504,24 +504,11 @@ class JNLTable(object):
 
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"
-
-    def update_instance(self, op=None, left=None, right=None, **kwargs):
-        '''  attributes for operators instead of DLGQuery class reference?
-        '''
-        [setattr(self, argitem.__name__, argitem)
-         for argitem in (op, left, right)
-         if (argitem is not None)]
-
-        [setattr(self,k, v) for (k, v) in kwargs.items()
-         if (len(kwargs) > 0)]
-
     __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
+    def __len__(self): return lambda i: len(self.__dict__[i])
 
     def containschars(self):
         return self.__contains__(self)
-
-    def __len__(self):
-        return lambda i: len(self.__dict__[i])
 
     def __init__(
                  self,
