@@ -491,6 +491,8 @@ class SchemaType(object):
         return Lst(dtype.name for dtype in self.datatypes_bitmasks())
 
     def is_flag(self, field):
+        ''' TODO: test this.
+        '''
         datatypenames = self.datatype_names()
         datatypenames_lower = ALLLOWER(datatypenames)
         fieldname = field.fieldname
@@ -498,8 +500,7 @@ class SchemaType(object):
         fieldname_lower = fieldname.lower()
 
         return True if AND((fieldname_lower in datatypenames_lower), (fieldtype == 'flag')) else False
-        ''' TODO: complete this
-        '''
+
         #fieldname = field if (isinstance(field, str) is True) else field.fieldname
         #return True if (fieldname in self.flagnames) else False
 
@@ -577,9 +578,5 @@ class SchemaType(object):
         fieldname_lower = fieldname.lower() 
         if (fieldname_lower in datatypenames_lower):
             return re.sub(fieldname[0], fieldname[0].upper(), fieldname)
-    
-    
-    
-    
-    
+
     '''

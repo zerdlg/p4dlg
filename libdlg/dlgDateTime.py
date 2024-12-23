@@ -452,7 +452,7 @@ class DLGDateTime(object):
         elif (len(args) > 2):
             return self.guess_dt_from_ints(*args)
 
-    def to_p4date(self, *args, **kwargs):
+    def to_p4date(self, *args, datetype='datetime' ,**kwargs):
         '''  The method's singular purpose is input of datetime
              data then output a p4 formatted date/time stamp (str)
 
@@ -485,17 +485,23 @@ class DLGDateTime(object):
         args = Lst(args)
         if (len(args) == 1):
             arg = args[0]
-            if (type(arg) in (datetime, date)):
-                return arg.strftime(format=self.dateFormat)
+            if (type(arg) in (date, datetime, time)):
+                if (datetype is 'date'):
+                    return arg.strftime(format=self.dateFormat)
+                elif (datetype is 'datetime'):
+                    return arg.strftime(format=self.datetimeFormat)
+                elif (datetype is 'time' is time):
+                    return arg.strftime(format=self.timeFormat)
             elif (isinstance(arg, list) is True):
-                return self.to_p4date(*arg)
+                return self.to_p4date(*arg, datetype=datetype)
             elif ((isinstance(arg, (int, float))) or
                   (reg_epochtime.match(arg) is not None)):
                 dtime = datetime.fromtimestamp(float(arg))
-                return dtime.strftime(format=self.dateFormat)
+                return self.to_p4date(dtime, datetype=datetype)
             elif (isinstance(arg, str)):
                 dateitems = [int(dateitem) for dateitem in reg_split_datetime.split(arg)]
-                return datetime(*dateitems).strftime(format=self.dateFormat)
+                return datetime(*dateitems, ddatetype=datetype)
+                #return datetime(*dateitems).strftime(format=self.dateFormat)
         #if ((isinstance(args, (tuple, list))) and (len(args) >= 3)):
         if (len(args) >= 3):
             for arg in args:
@@ -504,4 +510,6 @@ class DLGDateTime(object):
                     idx = args.index(arg)
                     args.pop(idx)
                     args.insert(idx, iarg)
-            return datetime(*args).strftime(format=self.dateFormat)
+            dtime = datetime(*args)
+            return self.to_p4date(dtime, datetype=datetype)
+            #return datetime(*args).strftime(format=self.dateFormat)

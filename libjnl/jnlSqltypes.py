@@ -499,8 +499,8 @@ class JNLTable(object):
 
     __getitem__ = __getattr__
 
-    def on(self, reference):
-        return DLGJoin(self.objp4, reference)
+    def on(self, reference, flat=False):
+        return DLGJoin(self.objp4, reference, flat=flat)
 
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"

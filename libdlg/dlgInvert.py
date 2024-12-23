@@ -23,7 +23,6 @@ def invert(qry, inversion=False):
             qry.inversion or False
         )
     try:
-        #qry.inversion = inversion
         if (op is not None):
             opname = op.__name__ \
                 if (callable(op) is True) \
@@ -39,7 +38,6 @@ def invert(qry, inversion=False):
                             lr.op = op
             elif (opname in notops):
                 inversion = left.inversion = True
-                #op = left.op = NOT
                 if (hasattr(left, 'left')):
                     if (left.left is not None):
                         left.left = invert(left.left, inversion=left.inversion)
@@ -48,7 +46,6 @@ def invert(qry, inversion=False):
                         if is_qType_or_field(left.right):
                             left.right = invert(left.right, inversion=left.inversion)
                 qry = left
-            #elif ()
             elif AND(
                     (is_fieldType(left) is True),
                     (is_fieldType(right) is True)
@@ -57,7 +54,6 @@ def invert(qry, inversion=False):
             else:
                 for lr in (left, right):
                     if (is_qType_or_field(lr) is True):
-                        #qry = invert(lr, inversion=inversion)
                         lr = invert(lr, inversion=inversion)
                         ''' Crap! what did I want to do next...?
                         '''

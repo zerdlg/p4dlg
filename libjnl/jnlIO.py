@@ -227,7 +227,7 @@ class P4Jnl(object):
                 * Default: could be 'latest' (doh! if you want to risk anything higher than r16.2)
                 * IMHO, I wouldn't recommend it, so setting the default @r16.2            
         '''
-        self.schemaversion = self.version = version or self.oSchema.version #or self.guessVersion() -> I think this is broken
+        self.schemaversion = self.version = version or self.oSchema.version
         self.schemadir = schemadir
         self.excludetables = Lst()
         ''' A list of tables to exclude.
@@ -552,7 +552,6 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 qries = objectify(Lst(query))
 
             for qry in qries:
-                #if (is_queryType(qry) is True):
                 if (is_query_or_expressionType(qry) is True):
                     if (tablename is None):
                         ''' grab the tablename and move on!
@@ -621,7 +620,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
 
         if (len(jnlQueries) == 0):
             if (is_tableType(query) is True):        # A single query is defined, its just a _table.
-                if (reference is None):             # No references in this run
+                if (reference is None):              # No references in this run
                     return oRecordSet                # Bypass DLGRecordSet.__call__ altogether!
                 return oRecordSet(                   # A single query is defined, its really a reference
                     reference=reference
@@ -662,7 +661,6 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                                             'fieldsmap': fieldsmap,
                                             'fieldtypesmap': fieldtypesmap,
                                             'fieldnames': fieldnames,
-                                            #'logger': self.logger,
                                         }
                     )
                     '''  table attributes & specify keying fields

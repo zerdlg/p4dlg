@@ -1,17 +1,9 @@
 from libdlg.dlgQuery_and_operators import (
-    AND,
     OR
 )
 from libdlg.dlgQuery_and_operators import is_recordsType
-from libjnl.jnlFile import JNLFile
-from libpy4.py4Run import Py4Run
-from libdlg.dlgRecordset import DLGRecordSet
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgRecord import DLGRecord
-from libdlg.dlgUtilities import (
-    is_Py4,
-    is_P4Jnl
-)
 
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSelect.py $] [$Change: 479 $] [$Revision: #56 $]
@@ -194,30 +186,6 @@ class DLGJoin(object):
         '''
         cRecordset = self.objp4(cQuery)
         return cRecordset
-        #records = []
-        #cRecordset = None
-        #if (is_P4Jnl(self.objp4) is True):
-        #    cRecordset = self.objp4(cQuery)
-
-            #records = self.objp4(cQuery).select()
-            #records = (
-            #    JNLFile(self.objp4.journal, reader=self.objp4.reader)
-            #)
-        #elif (is_Py4(self.objp4) is True):
-        #    cRecordset = self.objp4(cQuery)
-
-            #records = self.objp4(cQuery).select()
-
-            #records = Py4Run(
-            #    self,
-            #    #*cmdoptions,
-            #    **cTabledata)
-
-        #elif AND((is_Py4(self.objp4) is True), (is_recordsType(self.left_records) is True)):
-        #    records = getattr(self.left_records, '__call__')(*self.left_records.options)
-
-        #cRecordset = DLGRecordSet(self.objp4, [], **cTabledata)
-        #return cRecordset
 
     def select_and_group_records(self, recset):
         cRecords = recset.select()

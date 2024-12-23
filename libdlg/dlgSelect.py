@@ -699,14 +699,12 @@ class Select(DLGControl):
         except Exception as err:
             bail(err)
 
-    def update_datefields(self, record, fieldnames):
+    def update_datefields(self, record, fieldnames, datetype='datetime'):
         for name in fieldnames:
             try:
-                if (re.search('[tT]ime', record[name]) is not None):
-                    dtstamp = self.oDateTime.string_to_datetime(record[name])
-                else:
-                    dtstamp = self.oDateTime.to_p4date(record[name])
-                record.merge({name: dtstamp})
+                if (record[name] != '0'):
+                    dtstamp = self.oDateTime.to_p4date(record[name], datetype=datetype)
+                    record.merge({name: dtstamp})
             except Exception as err:
                 self.logerror(f'Failed to convert Date field ({name}) from epoch to datestamp.\n{err}')
         return record
@@ -965,6 +963,7 @@ class Select(DLGControl):
             query=None,
             close_session=True,
             leave_field_values_untouched=False,
+            datetype='datetime',
             **kwargs
     ):
         kwargs = Storage(kwargs)
@@ -1145,7 +1144,8 @@ class Select(DLGControl):
                     for qry in query:
                         recresult = self.build_results(qry, record)
                         QResults.append(recresult)
-                    ''' sum the results (True = 1, False = 0) & keep the record 
+                    ''' sum the results & keep the record 
+                        
                         if sum(queries) == the length of queries, otherwise skip
                         and move on to the next record
                     '''
@@ -1188,8 +1188,7 @@ class Select(DLGControl):
 
                             ''' has the user requested to leave field values untouched? (default is False) 
                             '''
-                            if (leave_field_values_untouched is True):
-                                updateable_fields = []
+                            if (leave_field_values_untouched is False):
                                 fieldlist = Lst(fieldnames[fidx] \
                                                     if (isinstance(fvalue, str) is True) \
                                                     else fieldnames[fidx].fieldname for (fidx, fvalue)
@@ -1210,7 +1209,7 @@ class Select(DLGControl):
                                     ''' re-define the record, yet again.
                                     '''
                                     if (len(updateable_fields) > 0):
-                                        record = self.update_datefields(record, [updateable_fields])
+                                        record = self.update_datefields(record, updateable_fields, datetype=datetype)
 
                                 ''' check if any other field values need to be converted from 
                                     field flags or masks (as per the p4 schema definition) 

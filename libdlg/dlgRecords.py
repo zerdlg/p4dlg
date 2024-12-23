@@ -270,9 +270,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             return DLGRecords(Lst(), self.cols, self.objp4)
         i = 0
         while (i < len(records)):
-            #if (func(self[i]) is True):
             self.records[i].update(**update_fields)
-            #else:
             i += 1
 
     def limitby(self, args, records=None):
@@ -731,8 +729,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
                 record_action = Lst(re.split('/', record.action))(1)
                 if (not record_action in exclude_actions):
-
-                    #specifier = None
                     if (record.code is not None):
                         record.delete('code')
 
@@ -853,10 +849,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                         'time': '1726902220',
                         'type': 'text'}>
         '''
-
-        # select against query (if any) here
-        # otherwise, self
-        # records = self.objp4().select(close=False)
         records = self
         (
             start,
@@ -906,7 +898,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 )
                 p4File = intersect(0)
                 if (p4File is not None ):
-                    searchFile = f'{record[p4File]}'          # defaults to head revision
+                    ''' defaults to head revision
+                    '''
+                    searchFile = f'{record[p4File]}'
                     for item in (
                             ('rev', '#'),
                             ('change', '@')
@@ -921,7 +915,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                             )
                         if (record[specitem] is not None):
                             searchFile = f'{searchFile}{specchar}{record[specitem]}'
-                            break                               # we have something, break free & exec!
+                            ''' we have something, break free & exec!
+                            '''
+                            break
 
                     filechunks = self.objp4.print(searchFile)
                     if (len(filechunks) > 1):

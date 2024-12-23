@@ -1,4 +1,4 @@
-import sys
+import os, sys
 import re
 from functools import reduce
 from types import FunctionType
@@ -16,7 +16,8 @@ from libdlg.dlgUtilities import (
     fieldType,
     tableType,
     reg_type,
-    basestring
+    basestring,
+    isdepotfile,
 )
 
 '''  [$File: //dev/p4dlg/libdlg/dlgQuery_and_operators.py $] 
@@ -469,7 +470,6 @@ def IN(*args, **kwargs):
     return clsIN(**kwargs)(*args)
 
 def ON(*args, **kwargs):
-    #return clsNOTIMPLEMENTED(**kwargs)(*args)
     return clsON(**kwargs)(*args)
 
 def COUNT(*args, **kwargs):
@@ -769,7 +769,7 @@ class QClass(object):
             ret.mergeright(expresult)
         return ret
 
-    def evaluate(self, qry, record=None):  # qry, record):
+    def evaluate(self, qry, record=None):
         if (record is not None):
             try:
                 # "@some[?,#,?#,op]@[?,#,?#,op]"
@@ -860,7 +860,6 @@ def op_error(*items, name=None, err=None):
         items(3)
     )
     if (op is not None):
-        #opname = op.__name__ if (type(op) is FunctionType) else op
         opname = op.__name__ \
                 if (callable(op) is True) \
                 else op
@@ -1514,7 +1513,10 @@ class clsCONTAINS(QClass):
                 qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                try:
+                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                except:
+                    (tablename, fieldname, value, op) = (None, None, None, None)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                                   self.getSequence(*exps))
@@ -1627,7 +1629,10 @@ class clsON(QClass):
                 qres = reduce(lambda left, right: (re.match(f"^{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                try:
+                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                except:
+                    (tablename, fieldname, value, op) = (None, None, None, None)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.match(f"^{right}.*$", left) is not None),
                                   self.getSequence(*exps))
@@ -1679,9 +1684,13 @@ class clsSTARTSWITH(QClass):
                 qres = reduce(lambda left, right: (re.match(f"^{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                try:
+                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                except:
+                    (tablename, fieldname, value, op) = (None, None, None, None)
                 if ((tablename, fieldname) == (None, None)):
-                    qres = reduce(lambda left, right: (re.match(f"^{right}.*$", left) is not None),
+                    condition = (re.match(f"^{right}.*$", left) is not None)
+                    qres = reduce(lambda left, right: condition,
                                   self.getSequence(*exps))
                 else:
                     qres = Storage({'op': STARTSWITH,
@@ -1692,12 +1701,13 @@ class clsSTARTSWITH(QClass):
                                    'right': value
                                     }
                                    )
+                return qres
             else:
                 qres = self.build_query(
-                                        left,
-                                        right,
-                                        STARTSWITH
-                )
+                                    left,
+                                    right,
+                                    STARTSWITH
+            )
             return qres
         except Exception as err:
             op_error(lambda left, right, op: (
@@ -1724,7 +1734,10 @@ class clsENDSWITH(QClass):
                 qres = reduce(lambda left, right: (re.match(f".*{right}$", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                try:
+                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                except:
+                    (tablename, fieldname, value, op) = (None, None, None, None)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.match(f"^.*{right}$", left) is not None),
                                   self.getSequence(*exps))
@@ -1769,10 +1782,13 @@ class clsMATCH(QClass):
                 qres = reduce(lambda left, right: (re.match(f"{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                try:
+                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                except:
+                    (tablename, fieldname, value, op) = (None, None, None, None)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.match(f"{right}", left) is not None),
-                                  self.getSequence(*exps))#
+                                  self.getSequence(*exps))
                 else:
                     qres = Storage({'op': MATCH,
                                     'left': {
@@ -1814,7 +1830,10 @@ class clsSEARCH(QClass):
                 qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                try:
+                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                except:
+                    (tablename, fieldname, value, op) = (None, None, None, None)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                               self.getSequence(*exps))
@@ -2437,7 +2456,6 @@ class clsILIKE(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        #left = left.lower()
         left = re.sub('%', '', left).lower()
         OPERATOR = None
         if (isinstance(left, str)):
@@ -2449,22 +2467,6 @@ class clsILIKE(QClass):
                 (left, OPERATOR) = (f"^{left}", STARTSWITH) \
                     if (left.endswith('%') is True) \
                     else (f"^{left}$", CONTAINS)
-        """
-        if (left.startswith('%') is True):
-            if (left.endswith('%') is True):
-                left = f"^{releft}$"
-                OPERATOR = CONTAINS
-            else:
-                left = f"{releft}$"
-                OPERATOR = ENDSWITH
-        else:
-            if (left.endswith('%') is True):
-                left = f"^{releft}"
-                OPERATOR = STARTSWITH
-            else:
-                left = f"^{releft}$"
-                OPERATOR = CONTAINS
-        """
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': LIKE, 'left': left, 'right': right})
@@ -2603,10 +2605,6 @@ class clsEPOCH(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        #typeright = type(right)
-        #is_str_type = isinstance(right, str)
-        #is_date_type = isinstance(right, (datetime.date, datetime.time, datetime.datetime))
-        #oConvert = DateTimeConvert()
         oDateTime = DLGDateTime()
         try:
             if (type(left).__name__ == 'Storage'):
@@ -2900,14 +2898,15 @@ class DLGQuery(object):
         '''
 
     def __repr__(self):
-        qdict = Storage({#qdict = pformat(
+        qdict = Storage(
+            {
                 'objp4': self.objp4,
                 'op': self.op,
                 'left': self.left,
                 'right': self.right,
                 'inversion': self.inversion
-        })
-        #)
+            }
+        )
         return f'<DLGQuery {qdict}>'
 
     __str__ = __repr__
@@ -3064,8 +3063,6 @@ class DLGExpression(object):
             }
         )
         return f'<DLGExpression {qdict}>'
-
-    #__str__ = __repr__
 
     def __repr__new(self):
         qdict = self.as_dict()
@@ -3321,27 +3318,9 @@ class DLGExpression(object):
         return DLGExpression(self.objp4, SECOND, self, value)
 
     def __add__(self, value):
-        # stype = None
-        # if (self.type == 'integer'):
-        #    stype = 'integer'
-        # elif self.type in ['date', 'time', 'datetime', 'double', 'float']:
-        #    stype = 'float'
-        # elif self.type.startswith('decimal('):
-        #    stype = self.type
-        # else:
-        #    bail(f"addition operation not supported for type {stype}")  # , logger = self.errorlogger)
         return DLGExpression(self.objp4, ADD, self, value)
 
     def __sub__(self, value):
-        # stype = None
-        # if (self.type == 'integer'):
-        #    stype = 'integer'
-        # elif self.type in ['date', 'time', 'datetime', 'double', 'float']:
-        #    stype = 'float'
-        # elif self.type.startswith('decimal('):
-        #    stype = self.type
-        # else:
-        #    bail(f"subtraction operation not supported for type {stype}")#, logger = self.errorlogger)
         return DLGExpression(self.objp4, SUB, self, value)
 
     def __mul__(self, value):

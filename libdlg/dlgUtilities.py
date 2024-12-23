@@ -102,7 +102,6 @@ __all__ = [
            'p4charsymbols', 'p4ops', 'journal_actions', 'ignore_actions', 'fixep4names',
            'relative_change_Operators', 'relative_revision_operators', 'revision_actions',
     # untested
-           'isclientfile',
            'isdepotfile',
            'isfsfile',
     #
@@ -1576,11 +1575,6 @@ def isfsfile(_file):
 
 def isdepotfile(_file):
     return (re.match(r'//.*$', _file) is not None)
-
-
-def isclientfile(_file):
-    return (re.match(r'^//[^0-9].*/[^0-9].*[^/]$', _file) is not None)
-
 
 def real_tablename(tablename):
     if (re.match(r'^db\.', tablename) is None):
