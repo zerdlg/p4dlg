@@ -22,6 +22,9 @@ __all__ = [
     'msgbox',
 ]
 
+''' Some parts below still need to be tested (and likely trashed & re-written)
+'''
+
 if (noneempty(os.getenv('ANSI_COLORS_DISABLED')) is False):
     os.getenv('ANSI_COLORS_DISABLED', None)
 

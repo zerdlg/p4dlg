@@ -71,8 +71,8 @@ class Select(DLGControl):
         '''
         self.is_jnlobject = (is_P4Jnl(self.objp4) is True)
         self.is_py4object = (is_Py4(self.objp4) is True)
-        ''' Everything is built on knowing the schema of this 
-            current server version, keeping it close by!
+        ''' Everything relies on the assumption that the schema of
+            the current server version is known, keep it close by!
         '''
         self.oSchema = self.objp4.oSchema
         ''' importing DomainType directly will cause a circular 
@@ -81,14 +81,19 @@ class Select(DLGControl):
         self.oSchemaType = self.objp4.oSchemaType \
             if (hasattr(self.objp4, 'oSchemaType')) \
             else None
-        ''' considering journals, is may not matter the table we query, 
-            but if it does belong to db.domain, then we will need to dig 
-            in and allocate the actual filds needed. 
+        ''' it doesn't really matter which the table we query, 
+            but if it happens to be db.domain, then we need to 
+            be a little more specific as to the type of domain
+            we're looking at. 
         '''
         self.domaintypes = self.oSchemaType.values_names_bydatatype('DomainType') \
             if (self.oSchemaType is not None) \
             else self.get_domaintypes()
-        ''' compute new columns
+        ''' decide on how we modify the p4 table names,
+            I.e.: `db.domain` --> `domain`, `dbdomain` or `db_domain` 
+        '''
+        self.oTableFix = fix_name('remove')
+        ''' compute new columns, if any.
         '''
         compute = self.objp4.compute
         if (isinstance(compute, str)):
@@ -99,15 +104,16 @@ class Select(DLGControl):
             ).clean()
         self.compute = compute or Lst()
         self.maxrows = self.objp4.maxrows
-        self.oTableFix = fix_name('remove')
         self.cols = cols
         self.records = records
         self.oDateTime = DLGDateTime()
         self.query = query or Lst()
-        ''' if we don't have tablename & fieldsmap, 
-            we have nothing. If that is the case then
-            either make they get passed in to select() 
-            or face an error! 
+        ''' if we don't have tablename & fieldsmap, we have nothing.
+        
+            However, we need a few lines lines of code since, depending
+            on what is doing a select (P4Jnl or Py4), those values can
+            be determined differently. I.e. they can be passed in via kwargs
+            or by looking at the query.
         '''
         (
             self.tablename,
@@ -118,11 +124,10 @@ class Select(DLGControl):
                 tabledata.fieldsmap,
             )
 
-        qry = query \
-            if (isinstance(query, Lst) is False) \
-            else query(0)
-
         if (self.tablename is None):
+            qry = query \
+                if (isinstance(query, Lst) is False) \
+                else query(0)
             if (hasattr(qry, 'left')):
                 self.tablename = qry.left.tablename
             elif (is_tableType(qry) is True):
@@ -139,7 +144,8 @@ class Select(DLGControl):
         super(Select, self).__init__()
 
     def memoize_reference_table(self, key, record=None):
-        '''
+        ''' keeping around for now - in case it ends up making more
+            sense to store the field references in reference_memo.
         '''
         memo = {}
         try:
@@ -161,10 +167,6 @@ class Select(DLGControl):
             )
         except Exception as err:
             bail(err)
-
-    #def __iter__(self):
-    #    for i in xrange(len(self.records)):
-    #        yield self[i]
 
     def __iter__(self):
         for col in self.cols:
@@ -207,8 +209,14 @@ class Select(DLGControl):
                 1. something is wrong with the record
                 2. it is not a record
                 3. tablename is either None or empty
+
+                TODO: think about these 2...
                 4. tablename != self.tablename
-                4. fieldnames != col names
+                    * hum.. I don;t think this should be a reason to skip...
+                        - error id = `cols_NE_record_keys`
+                5. fieldnames != col names
+                    * same here...
+                        - error is = `inst_tablename_NE_tablename`
         '''
         def is_error():
             ''' for example, this sync record indicates an error but is
@@ -532,7 +540,7 @@ class Select(DLGControl):
                         value = int(value)
                 ''' TODO: revisit this - I don't remember why
                     evaluating left against right in one case
-                    the evaluating right against left in the
+                    and evaluating right against left in the
                     other...
                 '''
                 receval = opfunc(value, qright) \
@@ -632,8 +640,9 @@ class Select(DLGControl):
 
                 if (right is not None):
                     # this should likely cause an exception,
-                    # the value of righnt should be a qry (
-                    # with 'op', 'left', 'right' attributes
+                    # the value of right should be a qry (
+                    # with its own 'op', 'left', 'right'
+                    # attributes
                     #
                     # TODO: fix this likely exception
                     buildright = self.build_results(right, record)
@@ -677,11 +686,12 @@ class Select(DLGControl):
                     built = not bool(built)
             elif (qry_func is not None):
                 ''' done with AND/OR/XOR.
-                    time to handle queries & expressions
-                    =, !=, <, >, <=, >=, 
-                    CONTAINS (# / !#), 
-                    STARTSWITH (#^ / !#^), 
-                    ENDSWITH (#$ / !#$), etc. 
+                    time to handle queries & expressions like:
+                    
+                        =, !=, <, >, <=, >=, 
+                        CONTAINS (# / !#), 
+                        STARTSWITH (#^ / !#^), 
+                        ENDSWITH (#$ / !#$), etc. 
                 '''
                 if (is_queryType(qry) is True):
                     built = self.parse(qry, record, qry_func)
@@ -706,7 +716,7 @@ class Select(DLGControl):
                     dtstamp = self.oDateTime.to_p4date(record[name], datetype=datetype)
                     record.merge({name: dtstamp})
             except Exception as err:
-                self.logerror(f'Failed to convert Date field ({name}) from epoch to datestamp.\n{err}')
+                self.logerror(f'Failed to convert Date/Time field ({name}) from epoch to datestamp.\n{err}')
         return record
 
     def computecolumns(self, record):
@@ -1049,8 +1059,8 @@ class Select(DLGControl):
             )
 
         ''' Are we joining records ? 
-            What kind of joi (inner /left)?
-            Should we flatten records ?
+            What kind of join? inner/join - outer/left - merge_records ?
+            Should we flatten records ? (default is False)
         '''
         if OR(
                 (kwargs.merge_records is not None),
@@ -1126,9 +1136,12 @@ class Select(DLGControl):
                 ''' first skip_record check
                 '''
                 if (skip_record is False):
-                    ''' The P4DB supports keyed tables, and field `id` 
-                        is already in use on some of the tables. Using 
-                        name `idx` instead. Add it to cols if needed.
+                    ''' p4 tables are keyed tables, and field `id` 
+                        is already in use in a few tables (I.e. db.server). 
+                        so p4dlg will adopt filed name `idx` in its place,
+                        for now. 
+                         
+                        * add it to cols if needed.
                     '''
                     if AND(
                             ('idx' in cols),
@@ -1144,10 +1157,7 @@ class Select(DLGControl):
                     for qry in query:
                         recresult = self.build_results(qry, record)
                         QResults.append(recresult)
-                    ''' sum the results & keep the record 
-                        
-                        if sum(queries) == the length of queries, otherwise skip
-                        and move on to the next record
+                    ''' sum the results & keep (or skip) the record 
                     '''
                     if (sum(QResults) == len(query)):
                         ''' if any, compute new columns now and adjust the record
@@ -1155,7 +1165,8 @@ class Select(DLGControl):
                         if (len(self.compute) > 0):
                             record = Storage(self.computecolumns(record))
                         ''' match column to their records 
-                        
+                            hum...
+                            
                         intersect = fieldnames.getvalues().intersect(record.getkeys())
                         if (len(intersect) != len(fieldnames)):
                             raise RecordFieldsNotMatchCols(fieldnames.getvalues(), record.getkeys())
@@ -1172,11 +1183,7 @@ class Select(DLGControl):
                                 value = record[field]
                                 rec.merge({field: value})
                             record = rec
-
-                        ''' does anything lead us to believe that this record 
-                            should be skipped?
-                            
-                            second skip_record check
+                        ''' should this record should be skipped? check again.
                         '''
                         skip_record = self.skiprecord(record, tablename)
                         if (skip_record is False):
@@ -1185,18 +1192,19 @@ class Select(DLGControl):
                                     (record.code is not None)
                             ):
                                 record.delete('code')
-
-                            ''' has the user requested to leave field values untouched? (default is False) 
+                            ''' should field values remain untouched? (default is False)
+                            
+                                this behaviour is too encompassing
+                                TODO: apply this behaviour to a list of fields (or `ALL`) instead. 
                             '''
                             if (leave_field_values_untouched is False):
                                 fieldlist = Lst(fieldnames[fidx] \
                                                     if (isinstance(fvalue, str) is True) \
                                                     else fieldnames[fidx].fieldname for (fidx, fvalue)
                                                 in fieldnames.items())
-
-                                ''' convert epoch datetime stamps to ISO
+                                ''' convert epoch datetime stamps to an ISO standard (like p4' flavour).
     
-                                    eg.  1726617600 --> '2024/09/17'
+                                    eg. '2024/09/17 00:00:00'
                                 '''
                                 if (len(datetime_fields) > 0):
                                     ''' some datetime fields are missing from the full fields list
@@ -1207,12 +1215,20 @@ class Select(DLGControl):
                                         if (len(fieldlist.intersect(datetime_fields)) == len(datetime_fields)) \
                                         else [dtitem for dtitem in datetime_fields if (dtitem in fieldlist)]
                                     ''' re-define the record, yet again.
+                                
+                                        the `datetype` kwarg value is 'datetime' which, you guessed it,
+                                        has the effect of forcing p4dlg to output the full date/time 
+                                        stamp. `datetype` accepted values are:
+                                            datetime    ->  '2024/09/17 00:00:00'
+                                            date        ->  '2024/09/17'
+                                            time        ->  '00:00:00'
                                     '''
                                     if (len(updateable_fields) > 0):
                                         record = self.update_datefields(record, updateable_fields, datetype=datetype)
-
                                 ''' check if any other field values need to be converted from 
                                     field flags or masks (as per the p4 schema definition) 
+                                    
+                                    TODO: this!
                                 '''
 
                             ''' should any fields be distinct?
@@ -1231,12 +1247,9 @@ class Select(DLGControl):
                                     else:
                                         eor = True
                                 else:
-                                    ''' since we're here, there is nothing else. insert and move on! 
+                                    ''' that's it for this record, for now, insert and move on! 
                                     '''
                                     outrecords.insert(idx, record)
-            # BUG: sometimes StopIteration is skipped (oJnl.rev.depotFile.contains(...))
-            # so wrapping while loop in its own try: except: finally block for now...
-            # until time for this is to be had... argh!!!!!
             except (StopIteration, EOFError):
                 eor = True
                 if (hasattr(records, 'read')):
