@@ -1,10 +1,10 @@
-# ``p4dlg            ``
+## ``p4dlg``
 *this readme is under construction*
-#### A set of *abstractions* that use SQL to access your Perforce instances (p4d) and their resources (I.e.: the metadata stored in it's db). 
+#### P4dlg is a set of *abstractions* written in Python that lets you take full advantage of SQL features and functionality to access & interact with your Perforce instances and their resources. 
 
-In other words, **p4dlg** enables you to interact with Perforce while taking full advantage of true SQL features and functionality that we've come to appreciate. 
+I am making 2 Perforce Abstractions available for public use, though, depending on interest, more may be released. A more complete toolset would not only extend the versionning capabilities and experience that SQL brings to this exercise, but would also provide some exposure, even if just a little, to the fun that can be had when applying a new (ish) perspective & mindset on a versioning engine's relatively unchanging set of practices and uses. I don't just mean mechanically, though in its self, there is definitely some awsomeness in pushing the limitations of a technology's proprietory design (eg. the mighty P4 DB), but also philosophically so as to elevate or broaden the perception of a versioning engine's traditional role in application design. 
 
-``Have you ever written an app against a versioning engine? P4dlg makes it easy and intuitive! ``
+At some point, Perforce had the idea that we should be "Version[ing] Everything!" - which was really quite telling at the time. Now, unfortunately, that p4 enthusiam & p4 vision is basilly mut given Perforce's fascination and childlike hero worship for GIT. Actually, sooner or later, I woudl expecet Perforce to quite sadly end up getting pimped out to service GIT's larger client base (aka. `p4 whoring`), but I digrace...
 
 ### Abstractions:
 + P4Jnl (Interact with your metadata, without without having to rely on a Perforce client)
