@@ -1,11 +1,18 @@
 import re
-from libdlg.dlgUtilities import (bail, isnum, ALLLOWER)
+from libdlg.dlgUtilities import (
+    bail,
+    isnum,
+    ALLLOWER
+)
 from libdlg.dlgStore import Lst, Storage
 from libdlg.dlgQuery_and_operators import BELONGS, AND, OR
 
 __all__ = ['SchemaType']
 
 class SchemaType(object):
+
+    flagnames = lambda self: Lst(dtype.name for dtype in self.datatypes_flags())
+    bitmasknames = lambda self: Lst(dtype.name for dtype in self.datatypes_bitmasks())
 
     def __init__(self, objJnl):
         self.objJnl = objJnl
@@ -156,21 +163,12 @@ class SchemaType(object):
              'summary': 'A domain name',
              'desc': 'A string representing the name of a depot, label, client,\n\t\tbranch, typemap, or stream.'}
         '''
-        error = f'{datatypename} does not belong to this schema version ({self.version}).\n'
         datatypename = self.validate_datatype_name(datatypename)
         if (datatypename is not None):
-            datatype = None
-            qry = (lambda dtype: dtype.name == datatypename)
             try:
-                dtypesfilter = filter(qry, self.datatypes)
-                datatype = next(dtypesfilter)
+                return next(filter(lambda dtype: (dtype.name == datatypename), self.datatypes))
             except StopIteration:
                 pass
-            except Exception as err:
-                bail(err)
-            return datatype
-        else:
-            bail(error)
 
     def datatypes_bytype(self, datatypetype):
         ''' retrive all datatype records of type `typename`
@@ -464,12 +462,12 @@ class SchemaType(object):
     def cleanup(self, s):
         return re.sub('[\"\']', '', Lst(re.split('[,;\s]', s))(0))
 
-    def datatdatatypes_flagsypes_flags(self):
+    def datatypes_flags(self):
         ''' datatypes where type is 'flag'
         '''
         return Lst(
             filter(
-                lambda dtype: dtype.type == 'flag',
+                lambda dtype: (dtype.type == 'flag'),
                 self.datatypes
             )
         )
@@ -479,36 +477,41 @@ class SchemaType(object):
         '''
         return Lst(
             filter(
-                lambda dtype: dtype.type == 'bitmask',
+                lambda dtype: (dtype.type == 'bitmask'),
                 self.datatypes
             )
         )
 
-    def flagnames(self):
-        return Lst(dtype.name for dtype in self.datatypes_flags())
+    def is_flag(self, fieldtype):
+        if (not isinstance(fieldtype, str)):
+            ''' use may have passed in a field instance, get its type & carry on
+            '''
+            try:
+                fieldtype = fieldtype.type
+            except Exception as err:
+                bail(err)
+        if (fieldtype in self.flagnames()):
+            dtype = self.datatype_byname(fieldtype)
+            return True \
+                if (dtype.type == 'flag') \
+                else False
+        return False
 
-    def bitmasknames(self):
-        return Lst(dtype.name for dtype in self.datatypes_bitmasks())
+    def is_bitmask(self, fieldtype):
+        if (not isinstance(fieldtype, str)):
+            ''' use may have passed in a field instance, get its type & carry on
+            '''
+            try:
+                fieldtype = fieldtype.type
+            except:
+                bail(f'`{fieldtype}` is not a valid field type')
+        if (fieldtype in self.bitmasknames()):
 
-    def is_flag(self, field):
-        ''' TODO: test this.
-        '''
-        datatypenames = self.datatype_names()
-        datatypenames_lower = ALLLOWER(datatypenames)
-        fieldname = field.fieldname
-        fieldtype = field.type
-        fieldname_lower = fieldname.lower()
-
-        return True if AND((fieldname_lower in datatypenames_lower), (fieldtype == 'flag')) else False
-
-        #fieldname = field if (isinstance(field, str) is True) else field.fieldname
-        #return True if (fieldname in self.flagnames) else False
-
-    def is_bitmask(self, field):
-        ''' TODO: complete this
-        '''
-        fieldname = field if (isinstance(field, str) is True) else field.fieldname
-        return True if (fieldname in self.bitmasknames) else False
+            dtype = self.datatype_byname(fieldtype)
+            return True \
+                if (dtype.type == 'bitmask') \
+                else False
+        return False
 
     def fix_tablename(self, name):
         ''' >>> oSchemaType.fix_tablename('domain')
@@ -529,8 +532,76 @@ class SchemaType(object):
             if (dflag is not None) \
             else False
 
-    def mask_value2name(self, oField, value):
-        ''' TODO: this '''
+    def convert_maskname_to_maskvalue(self, dtype, maskname):
+        ''' USAGE:
+
+            >>> data_type = jnl.protect.perm.type    --> ('Perm')
+            >>> oSchemaType.convert_maskname_to_maskvalue(data_type, '0x0040')
+            'Super'
+        '''
+        maskvalues = self.datatype_byname(dtype)('values')
+        try:
+             maskvalue = next(filter(lambda maskrec: maskrec('name').lower() == maskname.lower(), maskvalues))
+             return maskvalue('value')
+        except StopIteration:
+            pass
+        except Exception as err:
+            bail(err)
+
+    def convert_maskvalue_to_maskname(self, dtype, maskvalue):
+        ''' USAGE:
+
+            >>> data_type = jnl.protect.perm.type    --> ('Perm')
+            >>> oSchemaType.convert_maskvalue_to_maskname(data_type, '0x0040')
+            'Super'
+        '''
+        maskvalues = self.datatype_byname(dtype)('values')
+        try:
+            bitmaskvalue = next(filter(lambda maskrec: maskrec('value') == maskvalue, maskvalues))
+            return bitmaskvalue('name')
+        except StopIteration:
+            pass
+        except Exception as err:
+            bail(err)
+
+    def convert_flagname_to_flagvalue(self, data_type, flagname):
+        ''' USAGE:
+
+            >>> data_type = jnl.domain.type.type    --> ('DomainType')
+            >>> oSchemaType.convert_flagname_to_flagvalue(data_type, 'client')
+            '99'
+        '''
+        flagvalues = self.datatype_byname(data_type)('values')
+        for flagvalue in flagvalues:
+            initvalue = flagvalue('value')
+            if (re.search('\(ASCII', initvalue) is not None):
+                value = Lst(re.split('\s', initvalue))(0)
+            elif (flagvalue('name') is not None):
+                value = flagvalue('name')
+            if OR(
+                    (flagvalue('desc') == flagname),
+                    (re.sub("[:;']", '', Lst(re.split('\s', flagvalue('desc')))(0)) == flagname)
+            ):
+                return value
+
+    def convert_flagvalue_to_flagname(self, data_type, value):
+        ''' USAGE:
+
+            >>> data_type = jnl.domain.type.type    -> (DomainType)
+            >>> oSchemaType.convert_flagvalue_to_flagname(data_type, '99')
+            'client'
+        '''
+        value = str(value)
+        flagvalues = self.datatype_byname(data_type)('values')
+        for flagvalue in flagvalues:
+            initvalue = flagvalue('value')
+            if OR((value == initvalue), (value in initvalue)):
+                flagname = None
+                if (flagvalue('name') is not None):
+                    flagname = flagvalue('name')
+                elif (flagvalue('desc') is not None):
+                    flagname = re.sub("[:;']", '', Lst(re.split('\s', flagvalue('desc')))(0))
+                return flagname
 
     def flagname_byvalue(self, oField, value):
         ''' Eg.
@@ -566,17 +637,3 @@ class SchemaType(object):
         values = self.values_bydatatype(oField.type)
         value = next(filter(lambda rec: rec.desc.startswith(flag), values)).value
         return value
-
-    '''
-    datatypenames = jnl.oSchemaType.datatype_names())
-    datatypenames_lower = ALLLOWER(datatypenames)
-    
-    def is
-    
-    def get_datatype_name(field):
-        fieldname = field.fieldname
-        fieldname_lower = fieldname.lower() 
-        if (fieldname_lower in datatypenames_lower):
-            return re.sub(fieldname[0], fieldname[0].upper(), fieldname)
-
-    '''

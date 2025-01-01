@@ -210,7 +210,7 @@ class Py4Table(object):
             tablename = f"db.{tablename}"
         dtable = Lst(
             filter(
-                lambda tbl: tbl.name == tablename, tables
+                lambda tbl: (tbl.name == tablename), tables
             )
         )(0) or Storage()
         try:

@@ -132,7 +132,7 @@ class SpecIO(object):
                 (True in (is_input, is_output)),
                 (not True in has_outputkey)
         ):
-            ''' make sure the outputargs endswith [..., tablename, '--output', specname] 
+            ''' make sure the output args endswith [..., tablename, '--output', specname] 
             '''
             if (specname == tablename):
                 if (outputargs.count(tablename) > 1):

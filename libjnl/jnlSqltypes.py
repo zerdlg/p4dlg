@@ -201,6 +201,7 @@ A column/field has 3 attributes: `name`           --> the field/column name
                                  `type`           --> the field/column type
                                  `description`    --> the field/column description
                            
+
 A column's `type` maps to a `datatype` definition (specifically its type) 
 
 A datatype definition has at least 4 attributes: `name`
@@ -268,7 +269,7 @@ class JNLTable(object):
     ):
         (args, tabledata) = (Lst(args), Storage(tabledata))
         self.objp4 = objp4
-        self.tablename = tablename
+        self.tablename = self._name = tablename
         self.oSchema = oSchema or self.objp4.oSchema
         self.oSchemaType = SchemaType(self.objp4)
         self.jnlRecords = Lst()
@@ -294,7 +295,8 @@ class JNLTable(object):
         ''' schema table data
         '''
         self.name = tabledata.name
-        self.type = tabledata.type
+
+        self._type = tabledata.type
         self.version = tabledata.version
         self.classic_lockseq = tabledata.classic_lockseq
         self.peek_lockseq = tabledata.peek_lockseq
@@ -334,12 +336,20 @@ class JNLTable(object):
                 )
             except Exception as err:
                 pass
+            (is_flag, is_bitmask, datatype) = (False, False, Storage())
+            if (not field.name in ('id', 'idx', 'db_action', 'table_revision', 'table_name')):
+                datatype = self.oSchemaType.datatype_byname(field.type)
+                is_flag = self.oSchemaType.is_flag(field.type)
+                is_bitmask = self.oSchemaType.is_bitmask(field.type)
             oField = JNLField(
                                 field,
                                 objp4=objp4,
                                 oSchema=self.oSchema,
                                 oSchemaType=self.oSchemaType,
-                                _table=self
+                                _table=self,
+                                datatype=datatype,
+                                is_flag=is_flag,
+                                is_bitmask=is_bitmask,
             )
             setattr(self, field.name, oField)
             fields.append(getattr(self, field.name))
@@ -525,11 +535,12 @@ class JNLField(DLGExpression):
                  _table=None,
                  **kwargs
     ):
-        self.fieldname = fieldname = field.fieldname \
+        self.fieldname = self._name = fieldname = field.fieldname \
             if (hasattr(field, 'fieldname')) \
             else field
         self.tablename = tablename = field.tablename
         self._table = _table or objp4[tablename]
+
         super(JNLField, self).__init__(
             objp4,
             None,
@@ -631,16 +642,21 @@ class JNLField(DLGExpression):
     __getitem__ = __getattr__
     __get__ = lambda self: self.__getitem__
 
+    def masks(self):
+        ''
+
+    def flags(self):
+        ''
+
+
     def as_dict(self, flat=False, sanitize=True):
         attrs = (
-                'fieldname', 'tablename',
-                'op', 'left', 'right',
-                'type', 'required',
-                'label', 'comment',
-                'writable', 'readable',
-                '_rname'
+            'fieldname', '_rname', '_table', 'tablename',
+            'op', 'left', 'right',
+            'type', 'required',
+            'label', 'comment',
+            'writable', 'readable',
         )
-
         def flatten(obj):
             flatobj = dict(
                 (
@@ -672,13 +688,16 @@ class JNLField(DLGExpression):
             else None
             return flatobj
 
+
         fielddict = Storage()
         if NOT(
                 AND(
                     (sanitize is True),
-                    OR(
-                        (self.readable is True),
-                        (self.writable is True)
+                    NOT(
+                        OR(
+                            (self.readable is True),
+                            (self.writable is True)
+                        )
                     )
                 )
         ):

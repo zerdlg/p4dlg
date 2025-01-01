@@ -53,9 +53,7 @@ class Py4Run(object):
                 (tablename in self.objp4.spec_takes_no_lastarg)
         ):
             return
-        ''' don't bother if this command 
-            doesn't take a last positional 
-            arg
+        ''' don't bother if this command doesn't take/need a last position arg 
         '''
         noargs_cmds = (
                 self.objp4.nocommands
@@ -66,9 +64,9 @@ class Py4Run(object):
         if (not tablename in noargs_cmds):
             (lastarg, cmdargs) = self.objp4.define_lastarg(tablename, *cmdargs)
         self.objp4.p4globals += self.objp4.supglobals
-        ''' tablename should be cmdargs' 1st argument. so either insert 
+        ''' tablename must be cmdargs' 1st argument. so either insert 
             if missing or, if suspected to be in the wrong position, 
-            pop it out, then insert it to the very left of cmdargs.
+            pop it out, then insert it to the very left.
         '''
         if (tablename is not None):
             if (not tablename in cmdargs):
@@ -83,7 +81,7 @@ class Py4Run(object):
                     (not '--explain' in cmdargs)
             ):
                 cmdargs += self.options
-                ''' **cmdkwargs should contain only spec keys and values to create/update a spec.
+                ''' **cmdkwargs should contain only spec key/value pairs to create/update a spec.
                 
                     >>> oP4.client(
                         '-S',
@@ -175,7 +173,7 @@ class Py4Run(object):
         '''
         if (isinstance(lastarg, str) is True):
             ''' we have a required filename... pop it out if
-                already in cmd & force any options into 
+                already in cmdargs & force any options into 
                 cmdargs (but in order!). Then insert the 
                 filename in cmdargs last position. 
             '''

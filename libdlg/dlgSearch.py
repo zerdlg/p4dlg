@@ -239,7 +239,6 @@ class Search(DLGControl):
                             result(2),
                             self.source(result(2))
                     )
-
                     context = context.lstrip().rstrip()
                     record.insert(0, idx)
                     record.insert(3, context)
