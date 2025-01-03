@@ -1,7 +1,6 @@
 from libdlg.dlgQuery_and_operators import (
-    OR
+    OR, is_recordsType
 )
-from libdlg.dlgQuery_and_operators import is_recordsType
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgRecord import DLGRecord
 

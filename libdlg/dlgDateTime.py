@@ -3,7 +3,10 @@ from datetime import datetime, date, time
 from time import mktime, strptime
 
 from libdlg.dlgStore import Lst, Storage
-from libdlg.dlgUtilities import noneempty
+from libdlg.dlgUtilities import (
+    noneempty,
+    reg_datetime_fieldname
+)
 
 '''  [$File: //dev/p4dlg/libdlg/dlgDateTime.py $] [$Change: 452 $] [$Revision: #13 $]
      [$DateTime: 2024/07/30 12:39:25 $]
@@ -36,7 +39,7 @@ from libdlg.dlgUtilities import noneempty
     1567468800.0
 '''
 
-__all__ = ['DLGDateTime']
+__all__ = ['DLGDateTime', 'DLGDateTimeConvert']
 
 reg_time = re.compile('([^0-9 ]+(?P<m>[0-9 ]+))?([^0-9ap ]+(?P<s>[0-9]*))?')
 reg_epochtime = re.compile(r'^\d*(\.\d+)?$')
@@ -486,11 +489,11 @@ class DLGDateTime(object):
         if (len(args) == 1):
             arg = args[0]
             if (type(arg) in (date, datetime, time)):
-                if (datetype is 'date'):
+                if (datetype == 'date'):
                     return arg.strftime(format=self.dateFormat)
-                elif (datetype is 'datetime'):
+                elif (datetype == 'datetime'):
                     return arg.strftime(format=self.datetimeFormat)
-                elif (datetype is 'time' is time):
+                elif (datetype == 'time'):
                     return arg.strftime(format=self.timeFormat)
             elif (isinstance(arg, list) is True):
                 return self.to_p4date(*arg, datetype=datetype)
@@ -500,9 +503,7 @@ class DLGDateTime(object):
                 return self.to_p4date(dtime, datetype=datetype)
             elif (isinstance(arg, str)):
                 dateitems = [int(dateitem) for dateitem in reg_split_datetime.split(arg)]
-                return datetime(*dateitems, ddatetype=datetype)
-                #return datetime(*dateitems).strftime(format=self.dateFormat)
-        #if ((isinstance(args, (tuple, list))) and (len(args) >= 3)):
+                return self.to_p4date(*dateitems, datetype=datetype)
         if (len(args) >= 3):
             for arg in args:
                 if (isinstance(arg, str) is True):
@@ -512,4 +513,85 @@ class DLGDateTime(object):
                     args.insert(idx, iarg)
             dtime = datetime(*args)
             return self.to_p4date(dtime, datetype=datetype)
-            #return datetime(*args).strftime(format=self.dateFormat)
+
+class DLGDateTimeConvert(object):
+    def __init__(self, objp4):
+        self.objp4 = objp4
+        self.oDateTime = DLGDateTime()
+
+    def __call__(self, *fields, record=None, tablename=None, datetype='datetime', **kwargs):
+        fieldlist = record.getkeys() if (len(fields) == 0) else Lst(fields)
+        fieldnames = fieldlist.storageindex(reversed=True)
+        fieldlist = Lst(fieldnames[fidx] \
+                            if (isinstance(fvalue, str) is True) \
+                            else fieldnames[fidx].fieldname for (fidx, fvalue)
+                        in fieldnames.items())
+        ''' convert epoch datetime stamps to an ISO standard (like p4' flavour).
+
+            eg. '2024/09/17 00:00:00'
+        '''
+        datetime_fields = self.get_datetime_fields(tablename)
+        if (len(datetime_fields) > 0):
+            ''' some datetime fields are missing from the full fields list
+                (eg. user has passed in a custom list fields list - let's 
+                check those we have (if any)
+            '''
+            updateable_fields = datetime_fields \
+                if (len(fieldlist.intersect(datetime_fields)) == len(datetime_fields)) \
+                else [dtitem for dtitem in datetime_fields if (dtitem in fieldlist)]
+            ''' re-define the record, yet again.
+
+                the `datetype` kwarg value is 'datetime' which, you guessed it,
+                has the effect of forcing p4dlg to output the full date/time 
+                stamp. `datetype` accepted values are:
+                    datetime    ->  '2024/09/17 00:00:00'
+                    date        ->  '2024/09/17'
+                    time        ->  '00:00:00'
+            '''
+            if (len(updateable_fields) > 0):
+                record = self.update_datefields(record, updateable_fields, datetype=datetype)
+        return record
+
+    def update_datefields(self, record, fieldnames, datetype='datetime'):
+        for name in fieldnames:
+            try:
+                if (record[name] != '0'):
+                    dtstamp = self.oDateTime.to_p4date(record[name], datetype=datetype)
+                    record.merge({name: dtstamp})
+            except Exception as err:
+                print(f'Failed to convert Date/Time field ({name}) from epoch to datestamp.\n{err}')
+        return record
+
+    def get_datetime_fields(self, tablename):
+        ''' promote fields that looks like date/time fields &
+            them to p4 formatted date/time stamps (yyyy/mm/dd)
+        '''
+        datetime_fields = []
+        table = getattr(self.objp4, tablename)
+        for fld in table.fields:
+            (
+                fieldname,
+                fieldtype
+            ) \
+                = (
+                table.fields[fld].fieldname,
+                table.fields[fld].type
+            ) \
+                if (isinstance(fld, str)) \
+                else (
+                fld.name,
+                fld.type
+            ) \
+                if (type(fld).__name__ in ('Py4Field', 'JNLField')) \
+                else (
+                fld.fieldname,
+                fld.type
+            ) \
+                if (type(fld).__name__ == 'Storage') \
+                else (
+                None,
+                None
+            )
+            if (reg_datetime_fieldname.search(fieldname) is not None):
+                datetime_fields.append(fieldname)
+        return datetime_fields

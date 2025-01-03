@@ -1,4 +1,4 @@
-import os, sys
+import sys
 import re
 from functools import reduce
 from types import FunctionType
@@ -14,10 +14,8 @@ from libdlg.dlgUtilities import (
     getTableOpKeyValue,
     is_array,
     fieldType,
-    tableType,
     reg_type,
     basestring,
-    isdepotfile,
 )
 
 '''  [$File: //dev/p4dlg/libdlg/dlgQuery_and_operators.py $] 
@@ -44,16 +42,15 @@ __all__ = [
            'EXTRACT', 'SUBSTRING', 'LIKE', 'ILIKE',
            'SUM', 'ABS',
            'AVG', 'MIN', 'MAX', 'BELONGS', 'IN', 'TRUEDIV', 'COUNT',
-           'YEAR', 'MONTH', 'DAY',
+           'YEAR', 'MONTH', 'DAY', \
  \
-           'qtypes', 'is_q_or_dicttype', 'is_queryType',
-           'is_strType', 'is_dictType', 'is_fieldType',
-           'is_query_or_expressionType', 'is_recordsType', 'is_recordType',
-           'is_expressionType', 'is_tableType', 'is_field_tableType',
-           'is_qType_or_field', 'query_is_reference', 'is_list_of_queries',
-           'is_list_of_fields',
- \
-    'DLGQuery', 'DLGExpression'
+            'DLGQuery', 'DLGExpression',
+\
+            'qtypes',
+            'is_dictType', 'is_queryType', 'is_expressionType',
+            'is_fieldType', 'is_qType_or_field', 'is_field_tableType',
+            'is_tableType', 'is_recordType', 'is_recordsType', 'is_strType',
+            'is_query_or_expressionType',
            ]
 
 qtypes = ('DLGQuery', 'DLGExpression')
@@ -77,6 +74,7 @@ def is_recordType(left, right=None):
             else False
     return ret
 
+
 def is_recordsType(left, right=None):
     if OR(
             (isinstance(left, (int, bool)) is True),
@@ -95,6 +93,7 @@ def is_recordsType(left, right=None):
             if (type(left).__name__ == 'DLGRecords') \
             else False
     return ret
+
 
 def is_strType(left, right=None):
     if OR(
@@ -115,6 +114,7 @@ def is_strType(left, right=None):
             else False
     return ret
 
+
 def is_dictType(left, right=None):
     if OR(
             (isinstance(left, (int, bool)) is True),
@@ -134,6 +134,7 @@ def is_dictType(left, right=None):
             else False
     return ret
 
+
 def is_query_or_expressionType(left, right=None):
     if OR(
             (isinstance(left, (int, bool)) is True),
@@ -152,6 +153,7 @@ def is_query_or_expressionType(left, right=None):
             if (type(left).__name__ in qtypes) \
             else False
     return ret
+
 
 def is_qType_or_field(left, right=None):
     if OR(
@@ -181,6 +183,7 @@ def is_qType_or_field(left, right=None):
             else False
     return ret
 
+
 def is_expressionType(left, right=None):
     if OR(
             (isinstance(left, (int, bool)) is True),
@@ -201,6 +204,7 @@ def is_expressionType(left, right=None):
             else False
     return ret
 
+
 def is_queryType(left, right=None):
     if OR(
             (isinstance(left, (int, bool)) is True),
@@ -219,6 +223,7 @@ def is_queryType(left, right=None):
             if (type(left).__name__ == 'DLGQuery') \
             else False
     return ret
+
 
 def is_fieldType(left, right=None):
     if OR(
@@ -239,6 +244,7 @@ def is_fieldType(left, right=None):
             else False
     return ret
 
+
 def is_tableType(left, right=None):
     if OR(
             (isinstance(left, (int, bool)) is True),
@@ -257,6 +263,7 @@ def is_tableType(left, right=None):
             if (type(left).__name__ in ('Py4Table', 'JNLTable')) \
             else False
     return ret
+
 
 def is_field_tableType(left, right=None):
     def istype(ttype):
@@ -292,6 +299,7 @@ def is_field_tableType(left, right=None):
             else False
     return ret
 
+
 def is_q_or_dicttype(left, right=None):
     def istype(ttype):
         return True \
@@ -325,11 +333,13 @@ def is_q_or_dicttype(left, right=None):
             else False
     return ret
 
+
 def query_is_reference(query):
     if (is_query_or_expressionType(query) is True):
         if (is_fieldType(query.left, query.right) is True):
             return True
     return False
+
 
 def is_list_of_fields(iterable):
     try:
@@ -339,6 +349,7 @@ def is_list_of_fields(iterable):
     except Exception as err:
         print(err)
     return False
+
 
 def is_list_of_queries(iterable):
     try:

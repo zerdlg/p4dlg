@@ -1,6 +1,7 @@
 import sys, os
 import datetime
 from io import StringIO
+
 try:
     import cPickle as pickle
 except:
@@ -28,7 +29,7 @@ try:
 except ImportError:
     import pickle
 
-from libdlg.dlgStore import Storage, Lst, StorageIndex
+from libdlg.dlgStore import StorageIndex
 from libdlg.dlgStore import Storage, objectify, Lst
 
 ''' maps py2 to 3 '''
@@ -101,7 +102,7 @@ __all__ = [
            'set_localport', 'fix_name', 'friendly_tablename', 'real_tablename',
            'p4charsymbols', 'p4ops', 'journal_actions', 'ignore_actions', 'fixep4names',
            'relative_change_Operators', 'relative_revision_operators', 'revision_actions',
-    # untested
+    #
            'isdepotfile',
            'isfsfile',
     #
@@ -122,7 +123,7 @@ __all__ = [
            'reg_ipython_builtin', 'reg_envvariable', 'reg_changelist', 'reg_spec_usage',
     #
            'now', 'cacheprop', 'casttype', 'noneempty', 'IsMatch',
-           'storageIndexToList', 'Casttype', 'BSTypeConvert', 'NumBase', 'itemgrouper_filler',
+           'storageIndexToList', 'Casttype', 'BSTypeConvert', 'is_int_hex_or_str', 'itemgrouper_filler',
            'itemgrouper', 'containschars', 'sqOperators', 'getTableOpKeyValue', 'getOpKeyValue',
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
            'ALLLOWER', 'ALLUPPER', 'PY2',
@@ -1475,71 +1476,53 @@ def percents2Float(*args, **kwargs):
     result = (sum(sums) / len(sums)) if (average is True) else sum(sums)
     return round(float(result), decimals)
 
-class NumBase(object):
-    '''  USAGE:
+def is_int_hex_or_str(item):
+    '''  easy solution to check if item is an int,
+         a hex, a str or just plain old None
 
-            >>> oNum=NumBase()
-            >>> print(oNum.Binary("10000000"))
-            True
-            >>> print(oNum.Binary("0b10000000"))
-            True
-            >>> print(isOctal("200"))
-            True
-            >>> print(isOctal("0b200")
-            True
-            >>> print(isHex("1000"))
-            True
-            >>> print(isHex("0x1000"))
-            True
-            >>> print(self.validateBase("0x0400",16))
-            True
+         results:
+            returns -1, user passed in NoneType
+            returns 0, it's a str
+            returns 1, it's a hex
+            retruns 2, it's an int
+
+         eg.
+
+         >>> is_int_hex_or_str('99')
+         2                              #  it's an int
+         >>> is_int_hex_or_str('0x14')
+         1                              #  it's a hex
+         >>> is_int_hex_or_str('Super')
+         0                              #  it's a str
+         >>> is_int_hex_or_str(None)
+         -1
+
+         ** except for a None value, item MUST be of type str.
+            Otherwise Python will interprete 0x14 as being `20`,
+            thereby returning an erroneous value (2 instead of 1)
     '''
+    (item, res) = (str(item), 0)
+    if (item == 'None'):
+        res = -1
+    else:
+        for baseitem in (10, 16):
+            try:
+                int(item, baseitem)
+                res += 1
+            except ValueError:
+                pass
+    return res
 
-    def __init__(self, *args, **kwargs):
-        pass
 
-    def __call__(self, *args, **kwargs):
-        return self
-
-    def validateBase(self, snum, base):
-        try:
-            int(snum, base=base)
-            return True
-        except ValueError:
-            return False
-
-    def isBinary(self, snum):
-        return self.validateBase(str(snum), 2)
-
-    def isOctal(self, snum):
-        return self.validateBase(str(snum), 8)
-
-    def isHex(self, snum):
-        snum = str(snum)
-        if (str(self.hex_to_int(snum)) == str(snum)):
-            return True
-        return False
-
-    def isInt(self, snum):
-        snum = str(snum)
-        return False \
-            if (
-                (self.validateBase(str(snum), 10))\
-                and (str(self.int_to_hex(snum)) == snum)
-                ) \
-            else False
-
-    def int_to_hex(self, num):
-        try:
-            return hex(int(num))
-        except Exception as err:
-            print(err)
-
-    def hex_to_int(self, hexnum):
-        try:
-            return int(hexnum)
-        except Exception as err:
-            return int(hexnum, base=16)
+    try:
+        int(item, 10)
+        res += 1
+    except ValueError: pass
+    try:
+        int(item, 16)
+        res += 1
+    except ValueError: pass
+    return res
 
 def equivalence_table():
     return objectify(

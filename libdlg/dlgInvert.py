@@ -3,6 +3,9 @@ from libdlg.dlgError import *
 
 __all__ = ['invert']
 
+from libdlg.dlgQuery_and_operators import is_qType_or_field, is_fieldType, is_tableType
+
+
 def invert(qry, inversion=False):
     ''' do we need to invert?
     '''

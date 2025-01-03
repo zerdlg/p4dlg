@@ -2,7 +2,7 @@ import re
 from types import LambdaType
 from pprint import pformat
 
-from libdlg.dlgDateTime import DLGDateTime
+from libdlg.dlgDateTime import DLGDateTime, DLGDateTimeConvert
 from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgControl import DLGControl
@@ -21,7 +21,8 @@ from libdlg.dlgUtilities import (
     reg_datetime_fieldname,
     fix_name,
     ignore_actions,
-    reg_dbtablename
+    reg_dbtablename,
+    is_int_hex_or_str
 )
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSelect.py $] [$Change: 479 $] [$Revision: #56 $]
@@ -212,7 +213,7 @@ class Select(DLGControl):
 
                 TODO: think about these 2...
                 4. tablename != self.tablename
-                    * hum.. I don;t think this should be a reason to skip...
+                    * hum.. I don't think this should be a reason to skip...
                         - error id = `cols_NE_record_keys`
                 5. fieldnames != col names
                     * same here...
@@ -1025,7 +1026,6 @@ class Select(DLGControl):
 
         distinctrecords = Storage()
         aggregators = (
-
                 'groupby',
                 'having',
                 'sortby',
@@ -1198,6 +1198,30 @@ class Select(DLGControl):
                                 TODO: apply this behaviour to a list of fields (or `ALL`) instead. 
                             '''
                             if (leave_field_values_untouched is False):
+                                ''' convert date/time related record field values.
+                                
+                                    datetype:
+                                     
+                                        Is the date/time stamp's default return value.
+                                    
+                                        eg.
+                                        +----------+-----------------------+
+                                        | datetime | '2024/06/29 00:00:00' |
+                                        +----------+-----------------------+
+                                        | date     | '2014/06/29'          |
+                                        +----------+-----------------------+
+                                        | time     | '00:00:00'            |
+                                        +----------+-----------------------+
+                                '''
+                                record = (DLGDateTimeConvert(self.objp4)
+                                          (
+                                    *fieldnames,
+                                    record=record,
+                                    tablename=tablename,
+                                    datetype=datetype
+                                    )
+                                )
+                                """
                                 fieldlist = Lst(fieldnames[fidx] \
                                                     if (isinstance(fvalue, str) is True) \
                                                     else fieldnames[fidx].fieldname for (fidx, fvalue)
@@ -1225,6 +1249,8 @@ class Select(DLGControl):
                                     '''
                                     if (len(updateable_fields) > 0):
                                         record = self.update_datefields(record, updateable_fields, datetype=datetype)
+                                """
+
                                 ''' check if any other field values need to be converted from 
                                     field flags or masks (as per the p4 schema definition) 
                                     

@@ -300,18 +300,15 @@ class SchemaXML(object):
         self.rightURL = 'doc/schema/index.xml'
         ''' schema & model
         '''
-        self.p4schema = self.loadxmlschema_local(self.version).p4schema
-        oModel = Py4Model(self.p4schema)
-        self.p4model = oModel.modelize_schema()
+        (self.p4schema, self.p4model) = (None, None)
+        localschemacontent = self.loadxmlschema_local(self.version)
+        if (localschemacontent is not None):
+            self.p4schema = localschemacontent.p4schema
+            oModel = Py4Model(self.p4schema)
+            self.p4model = oModel.modelize_schema()
 
-    #def __call__(self, version=None):
-    #    if (version in ('latest', None)):
-    #        version = self.latestrelease_local()
-    #    self.version = version
-    #    self.p4schema = self.loadxmlschema_local(version).p4schema
-    #    oModel = Py4Model(self.p4schema)
-    #    self.p4model = oModel.modelize_schema()
-    #    return self
+    def __call__(self):
+        return self
 
     ''' list schema files, both local and remote from 'ftp://ftp.perforce.com/perforce/'
     '''
@@ -388,11 +385,13 @@ class SchemaXML(object):
             preview=False
     ):
         (
+            status,
             exists,
             error,
             schema
         ) = \
             (
+                None,
                 False,
                 None,
                 None
@@ -408,32 +407,37 @@ class SchemaXML(object):
                 schema = self.readxmlfile_remote(version)
             except Exception as err:
                 status = 'skipped'
-                error = f'No schema available for p4 release `{version}`.'
                 return (
                     status,
-                    error
+                    f'{err.url} {err.msg}'
                 )
-        try:
-            os.mkdir(self.schemadir)
-        except OSError:
-            pass
 
-        status = 'pending'
+        try:
+            if (preview is False):
+                os.mkdir(self.schemadir)
+        except OSError:pass
+
         localxmlfilepath = fullxmlpath(self.schemadir, version) \
             if (localfile is None) \
             else localfile
+        status = 'pending'
+
         if (os.path.exists(localxmlfilepath)):
-            if (preview is False):
-                if (overwrite is True):
-                    if (is_writable(localxmlfilepath) is False):
+            if (overwrite is True):
+                if (is_writable(localxmlfilepath) is False):
+                    if (preview is False):
                         make_writable(localxmlfilepath)
+                if (preview is False):
                     os.remove(localxmlfilepath)
-                    status = 'removed'
-                else:
-                    status = 'skipped'
-                    error = f'{localxmlfilepath} already exists.'
-                    return (status, error)
-        if (preview is False):
+                status = 'removed'
+            else:
+                status = 'skipped'
+                error = f'{localxmlfilepath} already exists.'
+
+        if AND(
+                (status != 'skipped'),
+                (preview is False)
+        ):
             oFile = fileopen(localxmlfilepath, 'w')
             try:
                 oFile.write(schema)
@@ -441,16 +445,14 @@ class SchemaXML(object):
                     if (status != 'removed') \
                     else 'overwritten'
             except Exception as err:
-                error = err
+                error = err.msg
                 status = f'{status}-failed'
             finally:
                 oFile.close()
-        else:
-            if (status == 'pending'):
-                status = 'overwritten' \
-                    if (os.path.exists(localxmlfilepath) is False) \
-                    else 'writtten'
-            status = f'{status}-previewed'
+
+        if (preview is True):
+            status = f'{status} - previewed'
+
         return (
             status,
             error
@@ -482,7 +484,7 @@ class SchemaXML(object):
                         (err.msg == 'Not Found'),
                         (err.status == '404')
                 ):
-                    error = f"No schema available for p4 release `{ver}`"
+                    error = f"No remote schema available for p4 release `{ver}`"
 
         return (
             ver,
@@ -497,47 +499,83 @@ class SchemaXML(object):
             preview=False,
             newonly=True
     ):
-        if (sum([overwrite, newonly]) != 1):
-            bail("`overwrite` & `newonly` are mutually exclusive. They cannot both be `True` or both be `False`.")
-        else:
-            localversions = self.listreleases_local()
-            remoteversions = versions or self.listreleases_remote()
-            max_version = max(localversions)
-            (results, skip) = ([], True)
-            for ver in remoteversions:
+        ''' eg.
+            SchemaXML().update_xmlschemas(preview=True, newonly=False)
+        '''
+
+        def either(arg1, arg2):
+            ''' Force mutual exclusivity between newonly & overwrite,
+                favouring newonly - they can't both be True.
+            '''
+            match arg1:
+                case True:
+                    arg2 = False
+                case False:
+                    arg2 = True
+            return (arg1, arg2)
+
+        (newonly, overwrite) = either(newonly, overwrite)
+        localversions = self.listreleases_local()
+        remoteversions = versions or self.listreleases_remote()
+        max_version = max(localversions)
+        (results, skip, EOV) = ([], True, False)
+        result_headers = [
+            'RELEASE',
+            'STATUS',
+            'ERROR'
+        ]
+
+        verfilter = filter(lambda rver: rver, remoteversions)
+        while EOV is False:
+            try:
+                ver = next(verfilter)
                 is_new = (ver > max_version)
-                if AND(
-                        (newonly is True),
-                        (is_new is True)
-                ):
-                    skip = False
-                elif OR(
-                        AND(
+                if OR(
+                        OR(
+                            AND(
                                 (is_new is False),
                                 (overwrite is True)
+                            ),
+                            AND(
+                                (newonly is True),
+                                (is_new is True)
+                            )
                         ),
-                        (newonly is False)
+                        AND(
+                            (newonly is False),
+                            (is_new is False)
+                        )
                 ):
                     skip = False
-                if (skip is False):
+
+                if (skip is True):
+                    status = f'skipped - {preview}' \
+                        if (preview is True) \
+                        else 'Skipped'
+                    result = [ver, status, None]
+                    result = Storage(
+                        zip(
+                            result_headers,
+                            list(result)
+                        )
+                    )
+                    results.append(result)
+                else:
                     result = self._schema_update(
                         ver,
                         overwrite,
                         preview,
                     )
-
                     result = Storage(
                         zip(
-                            [
-                                'RELEASE',
-                                'STATUS',
-                                'ERROR'
-                            ],
+                            result_headers,
                             list(result)
                         )
                     )
                     results.append(result)
-            return results
+            except StopIteration:
+                EOV = True
+        return results
 
     ''' read remote (index.xml)
     '''
@@ -575,21 +613,22 @@ class SchemaXML(object):
 
     def loadxmlschema_local(self, ver):
         xmlfile = fullxmlpath(self.schemadir, ver)
-        oFile = open(xmlfile, 'rb')
-        oTree = ElementTree()
-        try:
-            oTree.parse(oFile)
-            root = oTree.getroot()
-            schema = self.xmlschema2Storage(root)
-            return objectify(
-                {
-                    root.tag: schema
-                }
-            )
-        except Exception as err:
-            return Storage()
-        finally:
-            oFile.close()
+        if (os.stat(xmlfile).st_size > 0):
+            oFile = open(xmlfile, 'rb')
+            oTree = ElementTree()
+            try:
+                oTree.parse(oFile)
+                root = oTree.getroot()
+                schema = self.xmlschema2Storage(root)
+                return objectify(
+                    {
+                        root.tag: schema
+                    }
+                )
+            except Exception as err:
+                return Storage()
+            finally:
+                oFile.close()
 
     def xmlschema2Storage(self, elem, text_as_atrributes=True):
         elemdict = Storage()

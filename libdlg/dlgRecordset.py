@@ -10,9 +10,7 @@ from libdlg.dlgUtilities import noneempty, bail, ALLLOWER
 from libdlg.dlgFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
 from libdlg.dlgQuery_and_operators import (
-                                    AND, OR,
-                                    is_fieldType,
-                                    is_field_tableType
+    AND, OR, is_fieldType, is_field_tableType
 )
 from libjnl.jnlFile import JNLFile
 
