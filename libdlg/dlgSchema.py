@@ -665,3 +665,48 @@ class SchemaXML(object):
             else:
                 elemdict = text
         return elemdict
+
+def generate_schema_history(ver='latest'):
+    def get_schema_history(objSchema):
+        for item in ('server_versions', 'releases'):
+            if (objSchema[item] is not None):
+                hist = objSchema[item].release
+                return hist
+
+    history = []
+    objSchema = None
+    oSchema = SchemaXML(version=ver)
+    if (oSchema is not None):
+        objSchema = oSchema.p4schema
+
+    if (objSchema is not None):
+        schema_history = get_schema_history(objSchema)
+        EOH = False
+        filtered_history = filter(lambda hrec: hrec.version or hrec.release_id, schema_history)
+        while (EOH is False):
+            try:
+                histrecord = next(filtered_history)
+                recversion = histrecord.version or histrecord.release_id
+                if (recversion is not None):
+                    if (is_versionname(recversion) is True):
+                        release = to_releasename(recversion)
+                        history_record = Storage(
+                            {
+                                'version': recversion,
+                                'release': release
+                            }
+                        )
+                        for key in (
+                                'added',
+                                'changed',
+                                'removed'
+                        ):
+                            actions = histrecord(key)
+                            if (actions is not None):
+                                if (isinstance(actions, str) is True):
+                                    factions = Lst(re.split('\s', actions)).clean()
+                                    history_record.merge({key: factions})
+                        history.append(history_record)
+            except StopIteration:
+                EOH = True
+        return history
