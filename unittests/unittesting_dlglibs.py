@@ -65,7 +65,7 @@ class TestDLG(unittest.TestCase):
         oDateTime.to_p4date(*[2019, 8, 19])
         oDateTime.to_p4date('1547856000.0')
         res = oDateTime.to_p4date(1547856000.0)
-        print(f'DLGDateTime: {res}')
+        print(f'DLGDateTime - to_p4date: {res}')
 
 if (__name__ == '__main__'):
     (

@@ -13,7 +13,7 @@ from libjnl.jnlIO import P4Jnl
 from libdlg.dlgSchema import SchemaXML, to_releasename
 
 
-class TestSQL(unittest.TestCase):
+class TestJNL(unittest.TestCase):
     schemadir = dirname(schemaxml.__file__)                     # where the schemaxml files live
     journaldir = dirname(journals.__file__)                     # default journal location
     journalfile = 'journal.8'                                   # the journalfile name
@@ -28,6 +28,20 @@ class TestSQL(unittest.TestCase):
     '''                                                                                                              '''
     ''' test functions should run twice (once for p4 & again for jnl)                                                '''
     '''--------------------------------------------------------------------------------------------------------------'''
+
+    def testDatatypeConverters(self):
+        oJnl = self.oJnl
+        oSchemaType = oJnl.oSchemaType
+        count = 0
+        for (key, value) in {
+            oSchemaType.convert_flagvalue_to_flagname(oJnl.domain.type.type, '99'): 'client',
+            oSchemaType.convert_flagname_to_flagvalue(oJnl.domain.type.type, 'client'): '99',
+            oSchemaType.convert_maskvalue_to_maskname(oJnl.protect.perm.type, '0x0040'): 'Super',
+            oSchemaType.convert_maskname_to_maskvalue(oJnl.protect.perm.type, 'Super'): '0x0040'
+        }.items():
+            count += (key == value)
+
+        self.assertTrue(count == 4)
 
     def testSimpleQuery(self):
         oJnl = self.oJnl
@@ -111,7 +125,7 @@ class TestSQL(unittest.TestCase):
             command), attributes. As opposed to Py4, the references are table
             related only.
         '''
-        oJnl.domain                                                                 # access table `domain`
+        #oJnl.domain                                                                 # access table `domain`
         jnl_tabledata = oJnl.memoizetable('domain')                                 # retrieve the table's data
 
         jnl_assertion = (len(jnl_tabledata.getkeys().intersect(                     # once accessed, tabledata should
@@ -140,6 +154,6 @@ if (__name__ == '__main__'):
             unittest.TestSuite()
         )
     for item in (
-            loader.loadTestsFromTestCase(TestSQL),
+            loader.loadTestsFromTestCase(TestJNL),
     ):
         suite.addTests(item)

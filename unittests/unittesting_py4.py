@@ -9,7 +9,7 @@ from libpy4.py4IO import Py4
 from libdlg.dlgSchema import SchemaXML, to_releasename
 
 
-class TestSQL(unittest.TestCase):
+class TestPy4(unittest.TestCase):
     schemadir = dirname(schemaxml.__file__)  # where the schemaxml files live
     default_schema_version = 'r16.2'  # if none is provided, use this default p4 release
     schemaversion = to_releasename(default_schema_version)  # format the given p4 release version
@@ -108,7 +108,7 @@ class TestSQL(unittest.TestCase):
             to force / trigger the Py4 object to define the table (aka the 
             command), attributes as well as it's cmd option references.
         '''
-        oP4.reconcile                                                               # access the `reconcile` table
+        #oP4.reconcile                                                               # access the `reconcile` table
         py4_tabledata = oP4.memoizetable('reconcile')                               # retrieve the table's data
         py4_assertion = (len(py4_tabledata.tableoptions.optionsmap) > 0)
         self.assertTrue(py4_assertion)                                              # once accessed, tabledata should
@@ -131,6 +131,6 @@ if (__name__ == '__main__'):
             unittest.TestSuite()
         )
     for item in (
-            loader.loadTestsFromTestCase(TestSQL),
+            loader.loadTestsFromTestCase(TestPy4),
     ):
         suite.addTests(item)

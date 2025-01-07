@@ -485,7 +485,7 @@ class DLGDateTime(object):
                  >>> oP4QDT.to_p4date(1547856000.0)
                  '2019/8/1'
         '''
-        args = Lst(args)
+        args = Lst(args).clean()
         if (len(args) == 1):
             arg = args[0]
             if (type(arg) in (date, datetime, time)):
@@ -555,8 +555,11 @@ class DLGDateTimeConvert(object):
     def update_datefields(self, record, fieldnames, datetype='datetime'):
         for name in fieldnames:
             try:
-                if (record[name] != '0'):
-                    dtstamp = self.oDateTime.to_p4date(record[name], datetype=datetype)
+                if (not record[name] in ('', '0')):
+                    dtstamp = self.oDateTime.to_p4date(
+                        record[name],
+                        datetype=datetype
+                    )
                     record.merge({name: dtstamp})
             except Exception as err:
                 print(f'Failed to convert Date/Time field ({name}) from epoch to datestamp.\n{err}')
