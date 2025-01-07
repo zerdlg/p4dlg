@@ -7,7 +7,9 @@ from libdlg.dlgUtilities import (
 from libdlg.dlgStore import Lst, Storage
 from libdlg.dlgQuery_and_operators import BELONGS, AND, OR
 
-__all__ = ['SchemaType']
+__all__ = [
+    'SchemaType'
+]
 
 class SchemaType(object):
 
@@ -637,3 +639,77 @@ class SchemaType(object):
         values = self.values_bydatatype(oField.type)
         value = next(filter(lambda rec: rec.desc.startswith(flag), values)).value
         return value
+
+"""
+def get_schema_history(objSchema):
+    for item in ('server_versions', 'releases'):
+        if (objSchema(item) is not None):
+            return objSchema[item].release
+
+def iter_schema_history(histrecord, local_releases):
+    recversion = histrecord.version or histrecord.release_id
+    history_record = Storage()
+    if (recversion is not None):
+        release = to_releasename(recversion)
+        if (release in local_releases):
+            history_record.merge(
+                {
+                    'version': recversion,
+                    'release': release,
+                }
+            )
+            # sometimes tables don't change between schema versions...
+            # if need, we can expand each table and their respective
+            # RecordType to compare fields between schema versions.
+            oSchema = SchemaXML(version=release)#define_schema(release)
+            tables = oSchema.p4schema.tables.table
+            tables_count = len(tables)
+            history_record.merge(
+                {
+                    'tables_count': tables_count,
+                    'p4schema': oSchema.p4schema
+                }
+            )
+            del oSchema
+            for key in (
+                    'added',
+                    'changed',
+                    'removed'
+            ):
+                actions = histrecord(key) or Lst(())
+                if (isinstance(actions, str) is True):
+                    actions = Lst(re.split('\s', actions)).clean()
+                history_record.merge({key: actions})
+        return history_record
+
+def generate_release_history(objSchema=None, version='latest'):
+    ''' the idea is to get the latest a history from the latest schema available,
+        which should cntains all the elements needed to guess the target release...
+    '''
+    schemaxml = SchemaXML(version=version)#define_schema(version=version)
+    try:
+        objSchema = objSchema.p4schema
+    except:
+        objSchema = schemaxml.p4schema
+    local_releases = schemaxml.listreleases_local()
+    history = Lst()
+    if (objSchema is not None):
+        schema_history = get_schema_history(objSchema)
+        EOH = False
+        ''' staring with r19.1, a new top level element has been added to the schema
+                `server_versions`, then later renamed to `releases`
+            (admittedly, a good idea - even for those bozos at Perforce)
+            
+            TODO: calculate comparable data from previous schema versions
+        '''
+        filtered_history = filter(lambda hrec: hrec.version or hrec.release_id, schema_history)
+        while (EOH is False):
+            try:
+                histrecord = next(filtered_history)
+                history_record = iter_schema_history(histrecord, local_releases)
+                if (len(history_record) > 0):
+                    history.append(history_record)
+            except StopIteration:
+                EOH = True
+        return history
+"""

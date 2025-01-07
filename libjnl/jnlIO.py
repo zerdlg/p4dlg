@@ -236,10 +236,10 @@ class P4Jnl(object):
         '''
         if (isinstance(self.excludetables, str)):
             self.excludetables = Lst([tbl for tbl in self.excludetables.split(',')])
-        if (not 'have' in self.excludetables):
-            self.excludetables.append('have')
-        self.tables = [tblname for tblname in self.oSchema.p4model.getkeys() \
-                       if (not tblname in self.excludetables)]
+        #if (not 'have' in self.excludetables):
+        #    self.excludetables.append('have')
+        self.tables = Lst(tblname for tblname in self.oSchema.p4model.getkeys() \
+                       if (not tblname in self.excludetables))
         self.tablenames = self.tables
         self.reader = kwargs.reader or 'csv'
         self.recordchunks = kwargs.recordchunks or 15000

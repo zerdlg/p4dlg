@@ -44,7 +44,7 @@ __all__ = [
            'AVG', 'MIN', 'MAX', 'BELONGS', 'IN', 'TRUEDIV', 'COUNT',
            'YEAR', 'MONTH', 'DAY', \
  \
-            'DLGQuery', 'DLGExpression',
+            'DLGQuery', 'DLGExpression', 'query_is_reference',
 \
             'qtypes',
             'is_dictType', 'is_queryType', 'is_expressionType',

@@ -246,16 +246,12 @@ class Py4Model(object):
                 the post at the end of this loop... add missing attributes
                 to all tables with a 'None' value (for consistency)    
             '''
-            [self.common_table_attributes.update(**{tableatt: None}) \
-             for tableatt in self.p4tables[table].keys() \
-             if (not tableatt in self.common_table_attributes)]
-            ''' define the name of the record type 
-            '''
-            recordtype = tbl_attributes.type
-            recordDefinition = self.p4recordtypes[recordtype]
+            [self.common_table_attributes.update(**{tableatt: None})
+                for tableatt in self.p4tables[table].keys()
+                if (not tableatt in self.common_table_attributes)]
             ''' set the current record 
             '''
-            currentrecord = Storage(tbl_attributes)#.copy())
+            currentrecord = tbl_attributes#Storage(tbl_attributes)#.copy())
             ''' we need to add extra default fields to each table! 
             '''
             tablefields = objectify(
@@ -302,15 +298,34 @@ class Py4Model(object):
                     }
                 ]
             )
-            try:
-                ''' adding a check and recordDefinition.column type update
-                    because perforce appears to have forgotten to set the 
-                    column type as a list. This breaks the flow.
+            ''' define the record type.
+
+                Although, perforce let a bug pass them by...: `String` is not 
+                a valid RecordType! However, some older schema versions (eg. 
+                2006.1) don't appear to be aware of that... Bad new-perforce 
+                devs!!! - sigh :(  
+
+                Let's just change that now by since those older schema versions are 
+                likely not still in use.
+            '''
+            if (tbl_attributes.type != 'String'):
+                ''' perforce has failed to enforce their own case practices... 
+                    Recordtypes are supposed to be capitalized... but, alas, 
+                    not all are :(
+                '''
+                if (tbl_attributes.type.lower() == tbl_attributes.type):
+                    tbl_attributes.type = tbl_attributes.type.capitalize()
+                recordDefinition = self.p4recordtypes[tbl_attributes.type]
+                ''' YAB (yet another bug) perforce appears to have forgotten, here 
+                    and there, to set the column type as a list. This breaks the 
+                    workflow.
                     
                     I.e. check db.streamq
                 '''
                 if (isinstance(recordDefinition.column, list) is False):
                     recordDefinition.column = Lst([recordDefinition.column])
+                ''' moving on...
+                '''
                 for colatt in recordDefinition.column:
                     colatt.update(
                         **{
@@ -322,20 +337,17 @@ class Py4Model(object):
                         }
                     )
                     tablefields.append(colatt)
-                self.modelized_tablefields.update(objectify(OrderedDict({table: tablefields})))
-                currentrecord.update(
-                    **{
-                        'fields': tablefields,
-                        'tablename': normalized_tablename,
-                        'version': self.version
-                    }
-                )
-                ''' add the fields key to current record 
-                '''
-                model.update(**{normalized_tablename: currentrecord})
-            except Exception as err:
-                bail(err)
-
+            self.modelized_tablefields.update(**objectify(OrderedDict({table: tablefields})))
+            currentrecord.update(
+                **{
+                    'fields': tablefields,
+                    'tablename': normalized_tablename,
+                    'version': self.version
+                }
+            )
+            ''' add the fields key to current record 
+            '''
+            model.merge(**{normalized_tablename: currentrecord})
         self.update_commonfields_on_tables()
         return objectify(model)
 

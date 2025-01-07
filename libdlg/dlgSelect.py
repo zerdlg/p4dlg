@@ -1213,44 +1213,17 @@ class Select(DLGControl):
                                         | time     | '00:00:00'            |
                                         +----------+-----------------------+
                                 '''
+                                fnames = fieldnames.getvalues() \
+                                    if (type(fieldnames).__name__ == 'StorageIndex') \
+                                    else fieldnames
                                 record = (DLGDateTimeConvert(self.objp4)
                                           (
-                                    *fieldnames,
+                                    *fnames,
                                     record=record,
                                     tablename=tablename,
                                     datetype=datetype
                                     )
                                 )
-                                """
-                                fieldlist = Lst(fieldnames[fidx] \
-                                                    if (isinstance(fvalue, str) is True) \
-                                                    else fieldnames[fidx].fieldname for (fidx, fvalue)
-                                                in fieldnames.items())
-                                ''' convert epoch datetime stamps to an ISO standard (like p4' flavour).
-    
-                                    eg. '2024/09/17 00:00:00'
-                                '''
-                                if (len(datetime_fields) > 0):
-                                    ''' some datetime fields are missing from the full fields list
-                                        (eg. user has passed in a custom list fields list - let's 
-                                        check those we have (if any)
-                                    '''
-                                    updateable_fields = datetime_fields \
-                                        if (len(fieldlist.intersect(datetime_fields)) == len(datetime_fields)) \
-                                        else [dtitem for dtitem in datetime_fields if (dtitem in fieldlist)]
-                                    ''' re-define the record, yet again.
-                                
-                                        the `datetype` kwarg value is 'datetime' which, you guessed it,
-                                        has the effect of forcing p4dlg to output the full date/time 
-                                        stamp. `datetype` accepted values are:
-                                            datetime    ->  '2024/09/17 00:00:00'
-                                            date        ->  '2024/09/17'
-                                            time        ->  '00:00:00'
-                                    '''
-                                    if (len(updateable_fields) > 0):
-                                        record = self.update_datefields(record, updateable_fields, datetype=datetype)
-                                """
-
                                 ''' check if any other field values need to be converted from 
                                     field flags or masks (as per the p4 schema definition) 
                                     

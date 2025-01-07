@@ -37,16 +37,16 @@ __all__ = [
     'version_to_xmlfilename',
     'fullxmlpath',
     'SchemaMatch'
-]
+    ]
 
 ''' an re to match against a version number ('2014.2')
         ** not specifying start/end
 '''
-version_re = '\d{4}\.\d+'
+version_re = '^\d{2,4}\.\d+'
 
 ''' an re to match against the release number (r'14.2')
 '''
-release_re = 'r(\d){2}.\d+'
+release_re = 'r(\d){2,4}.\d+'
 
 ''' an re to match against a version number ('2014.2')
         ** specifying start/end (strict)
@@ -98,14 +98,24 @@ def to_releasename(ver):
     ''' quick versionname to releasename function
         * however, both 'r16.2' & '2016.2' result in 'r16.2'
     '''
-    return re.sub('^(\d){0,2}', 'r', ver) \
-        if (is_versionname(ver) is True) \
-        else ver
+    if (re.match('^r', ver) is not None):
+        ver = re.sub('^r', '', ver)
+
+    if (re.match('^\d{4}\.\d*$', ver) is not None):
+        return re.sub('^(\d){0,2}', 'r', ver) \
+            if (is_versionname(ver) is True) \
+            else ver
+    elif (re.match('^\d{2}\.\d*$', ver) is not None):
+        return f'r{ver}'
+    else:
+        return ver
 
 def to_versionname(ver):
     ''' quick releasename to versionname function
         * however, both '2016.2' & 'r16.2' result in '2016.2'
     '''
+    if (ver.startswith('r')):
+        ver = re.sub('^r', '' , ver)
     return re.sub(r'^r', '20', ver) \
         if (is_releasename(ver) is True) \
         else ver
@@ -665,48 +675,3 @@ class SchemaXML(object):
             else:
                 elemdict = text
         return elemdict
-
-def generate_schema_history(ver='latest'):
-    def get_schema_history(objSchema):
-        for item in ('server_versions', 'releases'):
-            if (objSchema[item] is not None):
-                hist = objSchema[item].release
-                return hist
-
-    history = []
-    objSchema = None
-    oSchema = SchemaXML(version=ver)
-    if (oSchema is not None):
-        objSchema = oSchema.p4schema
-
-    if (objSchema is not None):
-        schema_history = get_schema_history(objSchema)
-        EOH = False
-        filtered_history = filter(lambda hrec: hrec.version or hrec.release_id, schema_history)
-        while (EOH is False):
-            try:
-                histrecord = next(filtered_history)
-                recversion = histrecord.version or histrecord.release_id
-                if (recversion is not None):
-                    if (is_versionname(recversion) is True):
-                        release = to_releasename(recversion)
-                        history_record = Storage(
-                            {
-                                'version': recversion,
-                                'release': release
-                            }
-                        )
-                        for key in (
-                                'added',
-                                'changed',
-                                'removed'
-                        ):
-                            actions = histrecord(key)
-                            if (actions is not None):
-                                if (isinstance(actions, str) is True):
-                                    factions = Lst(re.split('\s', actions)).clean()
-                                    history_record.merge({key: factions})
-                        history.append(history_record)
-            except StopIteration:
-                EOH = True
-        return history

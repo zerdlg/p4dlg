@@ -126,7 +126,7 @@ __all__ = [
            'storageIndexToList', 'Casttype', 'BSTypeConvert', 'is_int_hex_or_str', 'itemgrouper_filler',
            'itemgrouper', 'containschars', 'sqOperators', 'getTableOpKeyValue', 'getOpKeyValue',
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
-           'ALLLOWER', 'ALLUPPER', 'PY2',
+           'ALLLOWER', 'ALLUPPER', 'PY2', 'fix_tablename',
     #
            'SQLType', 'objecttypes', 'tabletypes', 'fieldtypes', 'table_alias',
     #
@@ -1623,6 +1623,11 @@ class fix_name(object):
         # if (table_or_field=='table'):
         #    name=self.normalizeTableName(name)
         # return name if (self.is_reserved(name) is False) else self.reserved_keywords[name]
+
+''' just a quicker, no-hassle shortcut func to class fix_name)
+'''
+def fix_tablename(name):
+    return fix_name().normalizeTableName(name)
 
 class Plural(object):
     '''     a bit of an overkill, but still -
