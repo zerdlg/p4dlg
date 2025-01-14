@@ -1,8 +1,8 @@
 from os.path import dirname
-from pprint import pprint
+
 from libdlg.dlgQuery_and_operators import AND
 from libjnl.jnlIO import P4Jnl
-from libdlg import SchemaXML, to_releasename, DLGRecord, DLGRecords
+from libdlg import SchemaXML, to_releasename, DLGRecord
 from libdlg.dlgStore import Storage, Lst
 import resc.journals as journals
 

@@ -1,5 +1,5 @@
-from libdlg import *
 from libdlg.dlgError import *
+from libdlg.dlgQuery_and_operators import *
 
 __all__ = ['invert']
 

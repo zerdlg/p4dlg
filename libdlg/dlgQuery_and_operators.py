@@ -1132,6 +1132,7 @@ class clsINVERT(QClass):
                 qres = Storage({'op': INVERT, 'left': left, 'right': right})
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'DLGQuery')):
                 qres = DLGExpression(left.objp4, INVERT, left, right)
+
             elif ((isinstance(left, (bool, int)))):
                 qres = not left
             elif (isinstance(left, str) is True):
@@ -1181,7 +1182,7 @@ class clsNOT(QClass):
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': NOT, 'left': left, 'right': right, 'inversion': True})
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'DLGQuery')):
-                qres = DLGExpression(left.objp4, NOT, left, right, inversion=True)
+                qres = DLGQuery(left.objp4, NOT, left, right, inversion=True)
             elif ((isinstance(left, (bool, int)))):
                 qres = not left
             elif (isinstance(left, str) is True):

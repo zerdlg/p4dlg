@@ -1,5 +1,5 @@
 
-from libdlg import bail
+from libdlg.dlgUtilities import bail
 from libdlg.dlgStore import Storage, Lst, objectify
 from libdlg.dlgControl import DLGControl
 

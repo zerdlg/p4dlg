@@ -6,6 +6,7 @@ from libdlg.dlgUtilities import (
 )
 from libdlg.dlgStore import Lst, Storage
 from libdlg.dlgQuery_and_operators import BELONGS, AND, OR
+from libdlg.dlgSchema import SchemaXML
 
 __all__ = [
     'SchemaType'
@@ -16,15 +17,27 @@ class SchemaType(object):
     flagnames = lambda self: Lst(dtype.name for dtype in self.datatypes_flags())
     bitmasknames = lambda self: Lst(dtype.name for dtype in self.datatypes_bitmasks())
 
-    def __init__(self, objJnl):
-        self.objJnl = objJnl
-        self.oP4Schema = objJnl.oSchema.p4schema
+    def __init__(self, objJnl=None, oSchema=None, version='latest'):
+        oSchema = objJnl.oSchema \
+            if (objJnl is not None) \
+            else oSchema \
+            if (oSchema is not None) \
+            else SchemaXML(version=version)
+        oP4Schema = oSchema.p4schema
+        (
+            self.oSchema,
+            self.oP4schema
+        ) = \
+            (
+                oSchema,
+                oP4Schema
+            )
         ''' shortcuts
         '''
-        self.version = self.oP4Schema.version
-        self.datatypes = self.oP4Schema.datatypes.datatype
-        self.recordtypes = self.oP4Schema.recordtypes.record
-        self.tables = self.oP4Schema.tables.table
+        self.version = oP4Schema.version
+        self.datatypes = oP4Schema.datatypes.datatype
+        self.recordtypes = oP4Schema.recordtypes.record
+        self.tables = oP4Schema.tables.table
 
     ''' RECORDTYPES
     '''

@@ -339,17 +339,17 @@ class SchemaXML(object):
                     p4version = re.sub('\/">.*$', '', re.sub('href="', '', found.group()))
                     if (re.match(r'^r[0-9]+(\.).*$', p4version) is not None):
                         releases.append(p4version)
-        return sorted(releases)
+        return Lst(sorted(releases))
 
     def listreleases_local(self):
         try:
-            releases = [
+            releases = Lst(
                     getversion_from_filename(schema) for schema \
                         in self.listxmlfiles_local()
-                    ]
+            )
         except Exception as err:
             releases = Lst()
-        return sorted(releases)
+        return Lst(sorted(releases))
 
     def listxmlfiles_local(self):
         try:

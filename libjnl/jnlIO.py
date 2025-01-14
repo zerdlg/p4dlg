@@ -311,6 +311,41 @@ class P4Jnl(object):
             (
                 op,
                 left,
+                right,
+                inversion
+            ) = \
+                (
+                    q.op,
+                    q.left,
+                    q.right,
+                    q.inversion
+            )
+            opname = op.__name__ \
+                if (callable(op) is True) \
+                else op
+            if OR(
+                  OR(
+                      AND(
+                        (hasattr(left, 'left')),
+                        (is_query_or_expressionType(left.left) is True)),
+                      (is_query_or_expressionType(left) is True))
+                  ,
+                    (opname in (andops + orops + xorops))
+            ):
+                left = getleft(left)
+            return left
+        left = getleft(qry)
+        if (left.tablename is not None):
+            return (left.tablename, left.fieldname)
+
+    def get_tablename_fieldname_from_qry_old(self, qry):
+        ''' Like self.breakdown_query(qry) but
+            returns only tablename & fieldname.
+        '''
+        def getleft(q):
+            (
+                op,
+                left,
                 right
             ) = \
                 (
@@ -362,15 +397,19 @@ class P4Jnl(object):
         if (isnum(right) is True):
             right = str(right)
 
-        (
-            tablename,
-            fieldname
-        ) \
-            = \
+        try:
             (
-                left.tablename,
-                left.fieldname
-            )
+                tablename,
+                fieldname
+            ) \
+                = \
+                (
+                    left.tablename,
+                    left.fieldname
+                )
+        except:
+            (tablename, fieldname) = (None, None)
+
 
         if (
                 (tablename, fieldname) == (None, None)

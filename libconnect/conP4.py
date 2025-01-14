@@ -6,9 +6,9 @@ from pprint import pprint
 
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgFileIO import is_writable, make_writable
-from libdlg.dlgUtilities import bail, decode_bytes
+from libdlg.dlgUtilities import decode_bytes, set_localport
 from libpy4.py4IO import Py4
-from libdlg.dlgUtilities import set_localport
+from libdlg import bail
 
 __all__ = ['ObjP4']
 
@@ -32,7 +32,7 @@ class ObjP4(object):
         'p4': {'client': 'gc.pycharm',
         'p4droot': '/Users/gc/p4dinst/2015.2',
         'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-        'user': 'mart'}}
+        'user': 'mart'}
 
         oSchema = schema('r15.2')
         {'oP4': {'client': 'gc.pycharm',

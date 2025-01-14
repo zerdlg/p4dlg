@@ -1,6 +1,6 @@
 import re
 
-from libdlg import *
+from libdlg.dlgStore import *
 
 __all__ = ['DLGHelp']
 

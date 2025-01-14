@@ -41,7 +41,7 @@ from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgInvert import invert
 from libhelp.hlpCmds import DLGHelp
 from libdlg.dlgSchemaTypes import SchemaType
-from libdlg import SchemaXML
+from libdlg.dlgSchema import SchemaXML
 import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)

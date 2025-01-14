@@ -868,6 +868,25 @@ class Select(DLGControl):
             grecords = DLGRecords(grecords, Lst(), self.objp4)
         return grecords
 
+    def tablenames_no_dbprefix(oSchema):
+        tables = oSchema.p4schema.tables.table
+        eor = False
+        tfilter = filter(lambda rec: (re.match('^db.', rec.name) is None), tables)
+        while (eor is False):
+            try:
+                print(next(tfilter).name)
+            except StopIteration:
+                eor = True
+
+    def getfields_len(oSchema, tablename):
+        if (re.match('^db.', tablename) is None):
+            tablename = f'db.{tablename}'
+        tables = oSchema.p4schema.tables.table
+        recordtypes = oSchema.p4schema.recordtypes.record
+        datatype = next(filter(lambda rec: rec.name == tablename, tables)).type
+        recordtype = next(filter(lambda rec: rec.name == datatype, recordtypes))
+        return (len(recordtype.column) + 4)
+
     def get_records_datetime_fields(self, tablename):
         ''' promote fields that looks like date/time fields &
             them to p4 formatted date/time stamps (yyyy/mm/dd)

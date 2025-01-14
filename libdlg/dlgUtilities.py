@@ -955,9 +955,9 @@ def set_localport(p4droot):
                             subsys
                         ]
     )
-    localport = reg_escape.sub('', strPort) \
-        if (reg_escape.match(strPort) is not None) \
-        else 'unset'
+    ''' remove extra ' chars within the actual localport str.
+    '''
+    localport = reg_escape.sub('', strPort)
     try:
         os.makedirs(serverlog)
     except:

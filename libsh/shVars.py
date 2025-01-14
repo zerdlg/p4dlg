@@ -506,7 +506,7 @@ class clsVars:
             Vars = self.obj.varsdata[self.varsname].Vars
             for varname in record:
                 configvalue = record[varname]
-                if (hasattr(configvalue, 'action')):
+                if (isinstance(configvalue, Storage) is True):#if (hasattr(configvalue, 'action')):
                     if (configvalue.action == 'set'):
                         self.obj.clsVars(
                             self.obj,

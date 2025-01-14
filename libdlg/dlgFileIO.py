@@ -24,6 +24,7 @@ from libdlg.dlgStore import Storage, Lst, StorageIndex
 from libdlg.dlgQuery_and_operators import AND,OR, XOR, NOT
 from libdlg.dlgError import LockingError
 
+
 '''  [$File: //dev/p4dlg/libdlg/dlgFileIO.py $] [$Change: 467 $] [$Revision: #10 $]
      [$DateTime: 2024/08/24 08:15:42 $]
      [$Author: mart $]
@@ -88,7 +89,7 @@ __all__ = [
             'get_fileobject', 'fileopen', 'readlines', 'readfile', 'writefile',
             'readwrite', 'readwritepickle', 'loadpickle', 'loadspickle', 'dumppickle', 'dumpspickle',
             'Hash', 'guessfilemode', 'is_readable', 'is_writable', 'make_writable',
-            'lopen', 'definemode', 'loadconfig', 'dumpconfig', 'loaddumpconfig'
+            'lopen', 'force_binmode', 'loadconfig', 'dumpconfig', 'loaddumpconfig'
 ]
 
 def readwritepickle(filename, value=None):
@@ -108,7 +109,7 @@ def readwritepickle(filename, value=None):
 def loadpickle(filename):
     if (os.path.exists(filename) is False):
         return Storage()
-    pFile = get_fileobject(filename, 'rb')
+    pFile = fileopen(filename, 'rb')
     try:
         out = pickle.load(pFile)
         return Storage(out) \
@@ -139,7 +140,7 @@ def dumppickle(obj, filename):
     pFile = get_fileobject(filename, 'wb')
     try:
         obj = dict(obj) \
-            if (type(obj) in (Storage, StorageIndex)) \
+            if (type(obj).__name__ in ('Storage', 'StorageIndex')) \
             else obj
         pickle.dump(obj, pFile)
     finally:
@@ -147,13 +148,13 @@ def dumppickle(obj, filename):
 
 def dumpspickle(obj):
     obj = dict(obj) \
-        if (type(obj) in (Storage, StorageIndex)) \
+        if (type(obj).__name__ in ('Storage', 'StorageIndex')) \
         else list(obj) \
         if (type(obj) is Lst) \
         else obj
     return pickle.dumps(obj)
 
-def definemode(mode):
+def force_binmode(mode):
     for m in (
                 'wr',
                 'r',
@@ -220,7 +221,7 @@ class lopen(object):
         self.locking = 'posix' \
             if (os.name == "posix") \
             else 'windows'
-        mode = definemode(mode)
+        mode = force_binmode(mode)
 
         openfile = gzip.GzipFile \
             if (is_compressed(filename) is True) \
@@ -509,15 +510,16 @@ def get_fileobject(filename, mode='rb', lock=False):
         except Exception as err:
             print(err)
 
-        openfile = lopen \
+        opener = lopen \
             if (lock is True) \
             else gzip.GzipFile \
             if (is_compressed(filename) is True) \
             else open
+
         #else tarfile.TarFile if (filename.endswith('.tar') is True) \
         #else open
         try:
-            return openfile(filename, mode)
+            return opener(filename, mode)
         except Exception as err:
             error = f"No such file '{filename}.\n{err}'"
     if AND(

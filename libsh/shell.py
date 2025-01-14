@@ -33,6 +33,10 @@ from IPython.core.debugger import Pdb
 ''' p4dlg import
 '''
 from libdlg import *
+#from libdlg.dlgStore import *
+#from libdlg.dlgSchema import *
+#from libdlg.dlgUtilities import *
+
 from libjnl.jnlInit import JnlInitialize
 from libsh.shVars import *
 ''' connectors to objects P4, JNL, DB & NO
@@ -53,7 +57,7 @@ from os.path import dirname
 import schemaxml
 from resc import journals, db
 
-default_xmlschema_version = 'r16.2'
+default_xmlschema_version = 'r15.2'
 schemadir = dirname(schemaxml.__file__)
 journaldir = dirname(journals.__file__)
 projectdir = dirname(schemadir)
@@ -376,8 +380,8 @@ class DLGShell(object):
         keys = '\n'.join([key for key in self.__dict__.keys() \
                           if (not key.startswith('__'))])
         for varskey in self.varsdata:
-            varspath = os.path.join(self.var_varsdir, varskey)
-            self.varsdata[varskey].merge({'path': varspath})
+            #varspath = os.path.join(self.var_varsdir, varskey)
+            #self.varsdata[varskey].merge({'path': varspath})
             prefix = self.varsdata[varskey].prefix
             self.varsdata[varskey].merge({'objvars': VARSObject(self, varskey)})
             if (prefix in self.prefixes):
