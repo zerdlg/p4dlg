@@ -4,8 +4,6 @@
 
 I am making 2 Perforce Abstractions available for public use, though, depending on interest, more may be released. My thinking is that a more complete toolset would not only extend the versionning capabilities and experience that SQL brings to this exercise, but that it would also provide some exposure, even if just a little, to the fun that can be had when applying a new (ish) perspective & mindset on a versioning engine's relatively unchanging set of practices and uses. I don't just mean mechanically, though in its self, there is definitely some awsomeness in pushing the limitations of a technology's proprietory design (eg. the mighty P4 DB), but also philosophically so as to elevate or broaden the perception we may have of a versionning engine's traditional role in application design. 
 
-At some point, Perforce had the idea that we should be "Version[ing] Everything!" - which was really quite telling at the time. Now, unfortunately, that `p4 enthusiasm` & `p4 vision` is basically rendered mut given Perforce's fascination and childlike hero worship for GIT. Actually, sooner or later, I would expect Perforce to quite sadly end up getting pimped out to service GIT's larger client base in one way or another (aka. `p4 whoring`). But, I digrace...
-
 ### Abstractions:
 + P4Jnl (Interact with your metadata, without without having to rely on a Perforce client)
 + Py4 (you can put away the p4 cmd line (and mercifully, p4v!). Interact with your Perforce instance using SQL)
