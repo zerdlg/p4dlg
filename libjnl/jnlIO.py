@@ -17,7 +17,7 @@ from libdlg.dlgUtilities import (
 from libdlg.dlgRecordset import *
 from libdlg.dlgSchemaTypes import *
 from libdlg.dlgFileIO import loadpickle
-from libdlg.dlgSchema import SchemaXML
+from libdlg.dlgSchema import getObjSchema
 from libdlg.dlgInvert import invert
 from libjnl.jnlFile import JNLFile
 #from libjnl.jnlGuess import GuessRelease
@@ -110,7 +110,7 @@ __all__ = [
             'P4Jnl',
             'journal_actions',
             'ignore_actions',
-            'fixep4names'
+            'fixep4names',
 ]
 
 ''' Notes:
@@ -207,14 +207,14 @@ class P4Jnl(object):
 
         ''' Journal and SchemaXML class reference
         '''
-        if AND((oSchema is None), (version is not None)):
-            oSchema = SchemaXML(schemadir, version)
-        self.journal = journal
+        (oSchema, version) = getObjSchema(journal, oSchema, version)
         (
+            self.journal,
             self.oSchema,
             self.version
         ) = \
             (
+                journal,
                 oSchema,
                 version
             )

@@ -108,10 +108,6 @@ class DLGDateTime(object):
             return False
         return True
 
-    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    ''' date/time validators
-    '''
-    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     def is_string(self, value):
         return len(value) in (0, len([i for i in value if (isinstance(i, str))]))
 
@@ -153,10 +149,6 @@ class DLGDateTime(object):
             return True
         return False
 
-    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    ''' time to start guessing                                                                      
-    '''
-    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     def guesstime(self, gvalue, typed=True):
         if (re.match(':', gvalue) is not None):
             for hms in self.hour_min_sec:

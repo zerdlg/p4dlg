@@ -516,6 +516,12 @@ class clsVars:
                                         configvalue.vartype,
                                         prefix
                         )
+                        #self.set(
+                        #                varname,
+                        #                configvalue.varvalue,
+                        #                configvalue.vartype,
+                        #                prefix
+                        #)
                         Vars.merge(
                             {
                                 varname: {
@@ -527,6 +533,7 @@ class clsVars:
                         )
                     elif (configvalue.action == 'unset'):
                         self.obj.clsVars(self, self.varsname).unset(varname, prefix)
+                        #self.unset(varname, prefix)
                         [Vars.delete(name) for name in (varname, \
                             configvalue.prefixname) if (name in Vars)]
         return record

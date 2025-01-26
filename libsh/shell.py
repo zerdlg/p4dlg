@@ -38,6 +38,7 @@ from libdlg import *
 #from libdlg.dlgUtilities import *
 
 from libjnl.jnlInit import JnlInitialize
+from libsh import varsdata
 from libsh.shVars import *
 ''' connectors to objects P4, JNL, DB & NO
 '''
@@ -51,24 +52,36 @@ from libconnect import (
 
 #from libsh.shModules.shQuery import RunQuery
 
-''' absolute path to schemaxml directory
-'''
-from os.path import dirname
-import schemaxml
-from resc import journals, db
-
-default_xmlschema_version = 'r15.2'
-schemadir = dirname(schemaxml.__file__)
-journaldir = dirname(journals.__file__)
-projectdir = dirname(schemadir)
-dbdir = dirname(db.__file__)
-varsdir = os.path.join(
-    *[
-        projectdir,
-        'libsh',
-        'Vars'
-    ]
+from libsh import (
+    varsdata,
+    default_xmlschema_version,
+    dbdir,
+    schemadir,
+    journaldir,
+    projectdir,
+    journals,
+    varsdir,
+    db
 )
+
+#''' absolute path to schemaxml directory
+#'''
+#from os.path import dirname
+#import schemaxml
+#from resc import journals, db
+
+#default_xmlschema_version = 'r15.2'
+#schemadir = dirname(schemaxml.__file__)
+#journaldir = dirname(journals.__file__)
+#projectdir = dirname(schemadir)
+#dbdir = dirname(db.__file__)
+#varsdir = os.path.join(
+#    *[
+#        projectdir,
+#        'libsh',
+#        'Vars'
+#    ]
+#)
 
 ''' Steph's braider program
 '''
@@ -118,7 +131,7 @@ def createdir(directory):
 
 class DLGShell(object):
     cmd_schema = lambda self, version: self.memoize_schema(version)
-    cmd_initializeenv = lambda self: self.cmd_initialize_jnlENV()
+    #cmd_initializeenv = lambda self: self.cmd_initialize_jnlENV()
     cmd_updatelocals = lambda self: self.instlocals()
 
     def __new__(cls, *args, **kwargs):
@@ -127,10 +140,10 @@ class DLGShell(object):
     def __call__(self, *args, **kwargs):
         return self
 
-    def cmd_initialize_jnlENV(self):
-        oInit = JnlInitialize(schemadir, default_xmlschema_version)
-        print("JNL INITIALIZE - Done.")
-        return oInit
+    #def cmd_initialize_jnlENV(self):
+        #oInit = JnlInitialize(schemadir, default_xmlschema_version)
+        #print("JNL INITIALIZE - Done.")
+        #return oInit
 
     def __init__(self, *args, **kwargs):
         self.clsVars = clsVars
@@ -139,17 +152,19 @@ class DLGShell(object):
         self.locals_cfg = Storage()
         self.schemaMemo = {}
 
-        self.varsdata = objectify(
-            {
-             'configvars': {'prefix': 'var', 'Vars': {}, 'objvars': None},
-             'jnlvars':    {'prefix': 'jnl', 'Vars': {}, 'objvars': None},
-             'p4vars':     {'prefix': 'p4', 'Vars': {}, 'objvars': None},
-             'p4dbvars':   {'prefix': 'p4db', 'Vars': {}, 'objvars': None},
-             'qtvars':     {'prefix': 'qt', 'Vars': {}, 'objvars': None},
-             'dbvars':     {'prefix': 'db', 'Vars': {}, 'objvars': None},
-             'novars':     {'prefix': 'no', 'Vars': {}, 'objvars': None}
-             }
-        )
+        self.varsdata = objectify(varsdata)
+
+        #self.varsdata = objectify(
+        #    {
+        #     'configvars': {'prefix': 'var', 'Vars': {}, 'objvars': None},
+        #     'jnlvars':    {'prefix': 'jnl', 'Vars': {}, 'objvars': None},
+        #     'p4vars':     {'prefix': 'p4', 'Vars': {}, 'objvars': None},
+        #     'p4dbvars':   {'prefix': 'p4db', 'Vars': {}, 'objvars': None},
+        #     'qtvars':     {'prefix': 'qt', 'Vars': {}, 'objvars': None},
+        #     'dbvars':     {'prefix': 'db', 'Vars': {}, 'objvars': None},
+        #     'novars':     {'prefix': 'no', 'Vars': {}, 'objvars': None}
+        #     }
+        #)
 
         self.ignoredvars = []
         (

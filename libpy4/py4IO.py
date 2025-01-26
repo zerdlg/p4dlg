@@ -137,13 +137,16 @@ class Py4(object):
     def __iter__(self):
         iter(self)
 
+    #__shared__ = Storage()
     def __init__(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
+        #super(Py4, self).__init__(*args, **kwargs)
+        #self.__dict__ = self.__shared__
 
         loglevel = kwargs.pop('loglevel') \
             if (kwargs.loglevel is not None) \
             else 'DEBUG'
-        loglevel = loglevel
+        #loglevel = loglevel
         logfile = kwargs.logfile
         loggername = Lst(__name__.split('.'))(-1)
         self.logger = DLGControl(
@@ -151,6 +154,7 @@ class Py4(object):
             loglevel=loglevel,
             logfile=logfile
             )
+        #self.logger = self.__shared__.logger
         [
             setattr(
                 self,
@@ -168,6 +172,11 @@ class Py4(object):
             'critical'
             )
         ]
+
+        self.loginfo('info blablabla')
+        self.logwarning('warning blablabla')
+        self.logerror('error blablabla')
+        self.logcritical('critical blablabla')
         (
             self.p4credential_globals,
             self.supglobals
@@ -182,7 +191,7 @@ class Py4(object):
         version = kwargs.version
         oSchema = kwargs.oSchema
         if (oSchema is None):
-            for vername in ('version', 'relaese'):
+            for vername in ('version', 'release'):
                 if (kwargs[vername] is not None):
                     oSchema = SchemaXML(schemadir, kwargs[vername])
 
@@ -417,7 +426,7 @@ class Py4(object):
                         right,              # the right side of the query (or of the right side of 2 queries)
                         op,                 # the operator
                         tablename,          # the name of the target table
-                        options,
+                        options,            # cmd line options, etc.
                         lastarg,            # the lastarg (AKA a field)
                         inversion,          # bool -> if True, invert the query's result
                         specifier,          # revision specifier can be `#`, `@`

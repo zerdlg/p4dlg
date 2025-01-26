@@ -1,27 +1,13 @@
 import re
 
 from libdlg.dlgStore import *
+from libdlg.dlgUtilities import bail
 
 __all__ = ['DLGHelp']
 
 class DLGHelp(object):
     def __init__(self, objp4):
         self.objp4 = objp4
-        [
-            setattr(
-                self,
-                f'log{logitem}',
-                getattr(
-                    self.objp4.logger,
-                    f'log{logitem}'
-                )
-            ) for logitem in (
-            'info',
-            'warning',
-            'error',
-            'critical'
-        )
-        ]
 
     def helpusage(self):
         return self.objp4.help('--explain')

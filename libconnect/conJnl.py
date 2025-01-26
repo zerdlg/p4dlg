@@ -3,7 +3,17 @@ from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgQuery_and_operators import AND
 from libdlg.dlgFileIO import is_writable, make_writable
+from libdlg.dlgSchema import SchemaXML, guessversion, to_releasename, getObjSchema
 
+
+from libsh import (
+    varsdir,
+    projectdir,
+    schemadir,
+    journaldir,
+    journals,
+
+)
 
 '''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 476 $] [$Revision: #12 $]
      [$DateTime: 2024/09/13 01:55:06 $]
@@ -11,6 +21,7 @@ from libdlg.dlgFileIO import is_writable, make_writable
 '''
 
 __all__ = ['ObjJnl']
+
 
 class ObjJnl(DLGControl):
     helpstr = """
@@ -124,6 +135,24 @@ Manage connections to journals and checkpoints.
         self.loglevel = loglevel.upper() or self.loglevel
         return self
 
+    def getObjSchemax(self, journal, oSchema,  version):
+        if (oSchema is not None):
+            if (version is None):
+                version = oSchema.version
+            return (oSchema, version)
+        if (version is None):
+            try:
+                version = guessversion(journal)
+                if (version is not None):
+                    if (len(version) == 2):
+                        version = to_releasename(version[1])
+                        oSchema = (SchemaXML(version), version)
+                        return (oSchema, version)
+            except Exception as err:
+                print(f'Could not guess the release that create this journal `{journal}`. bailing...', err)
+        return (None, None)
+        #return (self.shellObj.cmd_schema(version), version)
+
     def create(
             self,
             name,
@@ -133,16 +162,14 @@ Manage connections to journals and checkpoints.
     ):
         if (journal is None):
             return
-        if AND(
-                (oSchema is None),
-                (version is not None)
-        ):
-            oSchema = self.shellObj.cmd_schema(version)
-        value = Storage({'journal': journal, 'oSchema': oSchema})
-        self.varsdef(name, value)
-        ojnl = P4Jnl(journal, oSchema, loglevel=self.loglevel)
-        self.shellObj.kernel.shell.push({name: ojnl})
-        print(f'Reference ({name}) created')
+        (oSchema, version) = getObjSchema(journal, oSchema, version)
+        if (oSchema is not None):
+            value = Storage({'journal': journal, 'oSchema': oSchema})
+            self.varsdef(name, value)
+            ojnl = P4Jnl(journal, oSchema, loglevel=self.loglevel)
+            self.shellObj.kernel.shell.push({name: ojnl})
+            print(f'Reference ({name}) created')
+        print('Missing reference to class SchemaXML and/or version, bailing... ')
 
     def update(self, name, **kwargs):
         if (len(kwargs) > 0):

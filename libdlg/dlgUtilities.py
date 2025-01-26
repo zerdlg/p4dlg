@@ -317,6 +317,7 @@ journal_actions = [
     "ver",
     #Null
 ]
+
 ignore_actions = [
     "ex",
     "mx",

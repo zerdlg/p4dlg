@@ -19,6 +19,7 @@ from libdlg.dlgFileIO import (
     is_writable,
     fileopen
 )
+from libdlg.dlgDateTime import DLGDateTime
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSchema.py $] [$Change: 467 $] [$Revision: #14 $]
      [$DateTime: 2024/08/24 08:15:42 $]
@@ -36,7 +37,10 @@ __all__ = [
     'schemaxmlversion',
     'version_to_xmlfilename',
     'fullxmlpath',
-    'SchemaMatch'
+    'SchemaMatch',
+    'guessversion',
+    'getLatestCheckpointAction',
+    'getObjSchema'
     ]
 
 ''' an re to match against a version number ('2014.2')
@@ -289,13 +293,133 @@ class SchemaMatch(object):
                 return (self.extract and match_group or value, True)
         return (value, False)
 
+def guessversion(jnlfile):
+    ''' returns tuple
+        ('r15.2',
+         {'index': '24',
+          'release_id': '2015.2',
+          'desc': 'Move LDAP specs into db.ldap'})
+
+        Given a checkpoint, guess the server version that created it...
+
+        for now, guessversion will likely not get results on journal file.
+        In which case, best to specify & pass in the version.
+
+        No real sorcery here... on p4d install/upgrade, a record
+        si inserted in the db.counters table that references
+        the server's upgrade level.
+
+        eg.: When searching a checkpoint for db.counters records (excluding
+        transaction markers), you would get something  like this:
+
+        '@pv@ 1 @db.counters@ @change@ @538@',
+        '@pv@ 1 @db.counters@ @job@ @4@',
+        '@pv@ 1 @db.counters@ @journal@ @14@',
+        '@pv@ 1 @db.counters@ @lastCheckpointAction@ @1736740861 (2025/01/12 20:01:01 -0800 PST) checkpoint completed@',
+        '@pv@ 1 @db.counters@ @maxCommitChange@ @538@',
+        '@pv@ 1 @db.counters@ @upgrade@ @24@'
+
+        Clearly, the last record is the `upgrade` counter, indicating, in this case,
+        upgrade level `24`.
+
+        With that, we simply need to reference the schema to associate that upgrade level
+        to the release/version it points to.
+
+        In this example, it would relate directly to the following <SchemaXML>.upgrades.upgrade
+        definition:
+
+            [...
+            {'desc': 'Create db.templatesx and db.templatewx',
+            'index': '24',
+            'release_id': '2015.2'},
+            ...]
+
+            so, upgrade `24` indicates release `2015.2` or 'r15.2'
+    '''
+    jnlfile = os.path.abspath(jnlfile)
+    oSchemaxml = SchemaXML(version='latest')
+    reg_upgrade = re.compile(r'^@[pdrv]v@\s\d+\s@db.counters@\s@upgrade@\s@\d+@$')
+    upgrades = []
+    oFile = open(jnlfile, 'r')
+    try:
+        lines = enumerate(oFile.readlines())
+        EOL = False
+        while (EOL is False):
+            try:
+                (lineno, line) = next(lines)
+                smatch = reg_upgrade.match(line.rstrip())
+                if (smatch is not None):
+                    upgrades.append(int(re.sub('@', '', re.split('\s', smatch.string)[-1])))
+            except StopIteration:
+                EOL = True
+            except Exception  as err:
+                print(err)
+    finally:
+        oFile.close()
+    if (len(upgrades) > 0):
+        upgrade = str(max(upgrades))
+        schema_upgrades = oSchemaxml.p4schema.upgrades.upgrade
+        rec = Storage(next(filter(lambda rec: rec.index == upgrade, schema_upgrades)))
+        release = to_releasename(rec.release_id)
+        return (release, rec)
+
+def getLatestCheckpointAction(jnlfile):
+    ''' returns  tuple
+        ('1628211713', '2021/08/05 18:01:53')
+    '''
+    jnlfile = os.path.abspath(jnlfile)
+    reg_lastcheckpoint = re.compile(r'^@[pdrv]v@\s\d+\s@db.counters@\s@lastCheckpointAction@\s@.*completed@$')
+    checkpoints = []
+    oFile = open(jnlfile, 'r')
+    try:
+        lines = enumerate(oFile.readlines())
+        EOL = False
+        while (EOL is False):
+            try:
+                (lineno, line) = next(lines)
+                smatch = reg_lastcheckpoint.match(line.rstrip())
+                if (smatch is not None):
+                    checkpoints.append(smatch.string)
+            except StopIteration:
+                EOL = True
+            except Exception as err:
+                print(err)
+    finally:
+        oFile.close()
+    if (len(checkpoints) > 0):
+        chkpoint = checkpoints[-1]
+        ckpt_epoch = Lst(re.split('\s',chkpoint))(4).lstrip('@')
+        ckpt_datetime = DLGDateTime().to_p4date(ckpt_epoch)
+        return (ckpt_epoch, ckpt_datetime)
+
+
+def getObjSchema(jnlfile, oSchema=None, version=None):
+    if (oSchema is not None):
+        if (version is None):
+            version = oSchema.version
+        return (oSchema, version)
+    elif (version is not None):
+        oSchema = SchemaXML(version=version)
+        return (oSchema, version)
+    else:
+        try:
+            version = guessversion(jnlfile)
+            if (version is not None):
+                if (len(version) == 2):
+                    version = to_releasename(version[0])
+                    oSchema = SchemaXML(version)
+                    return (oSchema, version)
+        except Exception as err:
+            print(f'Could not guess the release that create this journal `{jnlfile}`. bailing...', err)
+    return (None, None)
+
 ''' parse, download, load & store xml schemas
 '''
 class SchemaXML(object):
     def __init__(
             self,
+            version=None,
             schemadir=None,
-            version=None
     ):
         ''' local
         '''

@@ -42,11 +42,13 @@ class Lst(list):
         (
             value,
             cast
-        ) = self.getvalue(
-            len(self),
-            idx,
-            default,
-            cast
+        ) = \
+            (self.getvalue(
+                len(self),
+                idx,
+                default,
+                cast
+            )
         )
         if (value is not None):
             try:

@@ -33,6 +33,9 @@ class LogHandler(object):
     %(funcName)s
     %(lineno)d
     '''
+
+
+
     def __init__(
             self,
             loggername,
@@ -135,6 +138,7 @@ class LogHandler(object):
         return self
 
 class DLGControl(object):
+    #__shared__ = Storage()
     def __init__(
             self,
             loggername='P4DLG',
@@ -143,6 +147,7 @@ class DLGControl(object):
             *args,
             **kwargs
     ):
+        #self.__dict__ = self.__shared__
         (args, kwargs) = (Lst(args), Storage(kwargs))
         if (logfile is None):
             dateitems = datetime.datetime.now().ctime().split()
@@ -160,17 +165,18 @@ class DLGControl(object):
         self.logger = self.oLogger.logger
         ''' log levels
         '''
+
         self.loginfo = self.logger.info \
-            if (self.loglevel == 'DEBUG') \
+            if (self.loglevel in ('DEBUG', 'INFO')) \
             else self.logcollector
         self.logwarning = self.logger.warning \
-            if (self.loglevel == 'DEBUG') \
+            if (self.loglevel in ('DEBUG', 'WARNING')) \
             else self.logcollector
         self.logerror = self.logger.error \
-            if (self.loglevel == 'DEBUG') \
+            if (self.loglevel in ('DEBUG', 'ERROR')) \
             else self.logcollector
         self.logcritical = self.logger.critical \
-            if (self.loglevel == 'DEBUG') \
+            if (self.loglevel in ('DEBUG', 'CRITICAL')) \
             else self.logcollector
 
     def logcollector(self, msg):

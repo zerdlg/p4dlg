@@ -40,7 +40,7 @@ def create_p4connect_Py4(version):
 
 
 def main():
-    (name, version) = ('oP4', 'r16.2')
+    (name, version) = ('oP4', 'r15.2')
 
     shell_p4 = create_p4connect_p4qshell(name, version)
     print(shell_p4)

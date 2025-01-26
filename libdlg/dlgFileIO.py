@@ -3,8 +3,17 @@ import io, platform
 import ast
 import json
 from pprint import pformat
-from stat import (S_IREAD, S_IRGRP, S_IROTH, S_IWUSR,
-                  S_IXGRP, S_IXUSR, S_ISDIR, S_ISREG)
+from stat import (
+    S_IREAD,
+    S_IRGRP,
+    S_IROTH,
+    S_IWUSR,
+    S_IXGRP,
+    S_IXUSR,
+    S_ISDIR,
+    S_ISREG
+)
+
 import mimetypes
 import hashlib
 import gzip, tarfile
@@ -23,7 +32,6 @@ except ImportError:
 from libdlg.dlgStore import Storage, Lst, StorageIndex
 from libdlg.dlgQuery_and_operators import AND,OR, XOR, NOT
 from libdlg.dlgError import LockingError
-
 
 '''  [$File: //dev/p4dlg/libdlg/dlgFileIO.py $] [$Change: 467 $] [$Revision: #10 $]
      [$DateTime: 2024/08/24 08:15:42 $]
@@ -88,8 +96,9 @@ __all__ = [
             'isfile', 'isfsfile', 'isrecursive', 'iswildcard',
             'get_fileobject', 'fileopen', 'readlines', 'readfile', 'writefile',
             'readwrite', 'readwritepickle', 'loadpickle', 'loadspickle', 'dumppickle', 'dumpspickle',
-            'Hash', 'guessfilemode', 'is_readable', 'is_writable', 'make_writable',
-            'lopen', 'force_binmode', 'loadconfig', 'dumpconfig', 'loaddumpconfig'
+            'Hash', 'guessfilemode', 'is_readable', 'is_writable', 'is_exec', 'make_writable',
+            'make_readable', 'make_executable', 'assure_writable', 'assure_readable', 'assure_executable',
+            'lopen', 'force_binmode', 'loadconfig', 'dumpconfig', 'loaddumpconfig',
 ]
 
 def readwritepickle(filename, value=None):
@@ -285,6 +294,8 @@ class lopen(object):
         if (self.locking == 'posix'):
             fcntl.flock(self.ofile.fileno(), self.get_flag('LOCK_UN'))
         else:
+            ''' I don't know how/if this next bit works - needs verifying on a windows system.
+            '''
             win32file.UnlockFileEx(
                                     win32file._get_osfhandle(self.ofile.fileno()),
                                     0,
@@ -360,7 +371,7 @@ class lopen(object):
     S_IRWXG     read, write, execute by group
     S_IRGRP     read by group
     S_IWGRP     write by group
-    S_IXGRP     execute by group0
+    S_IXGRP     execute by group
 
     S_IRWXO     read, write, execute by others
     S_IROTH     read by others
@@ -402,6 +413,21 @@ def make_executable(filename):
         os.chmod(filename, S_IXUSR | S_IXGRP)
     except OSError as err:
         pass
+
+def assure_readable(filename):
+    if (os.path.exists(filename)):
+        if (is_readable(filename is False)):
+            make_readable(filename)
+
+def assure_writable(filename):
+    if (os.path.exists(filename)):
+        if (is_writable(filename) is False):
+            make_writable(filename)
+
+def assure_executable(filename):
+    if (os.path.exists(filename)):
+        if (is_exec(filename) is False):
+            make_executable(filename)
 
 def recurse(root, callback):
     for filename in os.listdir(root):
