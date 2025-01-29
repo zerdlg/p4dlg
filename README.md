@@ -5,8 +5,8 @@
 I am making 2 Perforce Abstractions available for public use, though, depending on interest, more may be released. My thinking is that a more complete toolset would not only extend the versionning capabilities and experience that SQL brings to this exercise, but that it would also provide some exposure, even if just a little, to the fun that can be had when applying a new (ish) perspective & mindset on a versioning engine's relatively unchanging set of practices and uses. I don't just mean mechanically, though in its self, there is definitely some awsomeness in pushing the limitations of a technology's proprietory design (eg. the mighty P4 DB), but also philosophically so as to elevate or broaden the perception we may have of a versionning engine's traditional role in application design. 
 
 ### Abstractions:
-+ P4Jnl (Interact with your metadata, without without having to rely on a Perforce client)
-+ Py4 (you can put away the p4 cmd line (and mercifully, p4v!). Interact with your Perforce instance using SQL)
++ P4Jnl (Interact with all of your metadata, without without having to rely on a Perforce client)
++ Py4 (you can put away the p4 cmd line, P4Python & p4v. Interact with your Perforce instance using SQL)
 
 ### How do we use it and what SQL functionality does it support?
 
@@ -24,77 +24,27 @@ I am making 2 Perforce Abstractions available for public use, though, depending 
 + I generally install Anaconda as my defualt distribution - if you don't and p4dlg complains about missing dependencies, please do let me know.
 
 ### Where do we use *p4dlg*?
-``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Just type the following cmdline to start it up!``
-
-```Python
-%> python dlg.py shell
-```
-
-![run_shell](https://github.com/user-attachments/assets/14825c81-ada0-48d4-a0e6-834f9b8090c1)
+``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Mor on this below``
 
 ### Create a new or load an existing connection to a Perforce Journal (or checkpoint).
 ```Python
-# Use `jnlconnect` to manage connections to journals and checkpoints.
-# methods:    create - load - update - unload - destroy - purge - show
-# `jnlconnect` attributes: create    create and store a connection to a journal
-#                          load      load an existing connector
-#                          update    update a connector's values
-#                          unload    unload a connectior from the current scope
-#                          destroy   destroy an existing connector
-#                          purge     combines unload/destroy
-#                          show      display the the data that defined the object
-#                          
-# Create a connection to a journal with jnlconnect.create
-# parameters: args[0]  -> name,
-#             keyword  -> journal = journal_path
-#             keyword  -> version = release of the p4d instance
-#                                   that created the journal
-#             keyword  -> oSchema = the schema that that defines the p4db
-#
-#             Note that keywords `version` & `oSchema` are mutually exclusive.
-#             Pass in one or the orther.
-#             * a bit more on schemas further down. 
-In [17]: jnlconnect.create('jnl',
-                        **{
-                           'journal': './resc/journals/checkpoint.rasp',
-                           'version': 'r16.2'
-                           }
-                       )
+from libjnl.jnlIO import jnlconnector
 
-# the connectors are persistent & p4dlg keeps track to make them available for reuse. Once created, they can be loaded at any time.
-In [18]: jnlcon.load('jnl')
-Reference (jnl) loaded
-Out[18]: <P4Jnl ./resc/journals/journal.8>
+jnlfile = 'Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.14'
+version = 'r15.2' 
+
+jnl = jnlconnector(jnlfile, version=version)
 ```
 
 ### Create a new or load an existing connection to a Perforce Server instance .
 ```Python
-# Use `p4connect` to manage connections to a Perforce Server Instance.
-# methods:    create - load - update - unload - destroy - purge - show
-# `p4connect` attributes:  create    create and store a connection to a Server instance
-#                          load      load an existing connector
-#                          update    update a connector's values
-#                          unload    unload a connectior from the current scope
-#                          destroy   destroy an existing connector
-#                          purge     combines unload/destroy
-#                          show      display the the data that defined the object
-#                          
-# Create a connection to a Server instance with p4connect.create
-In [17]: p4connect.create('p4',                            # a name for your connection
-                        **{
-                           oSchema=oSchema,                # a perforce schema (don't worry
-                                                           # about this, they are already
-                                                           # included in the package)              
-                           user='bigbird',                 # a p4 user to access P4D
-                           port='anastasia.local:1777',    # the port to a p4d instance
-                           client='my_client'              # the clientspec that defines your workspace
-    )
-                           }
-                       )
-# As above, once created you can easily reload it
-In [18]: p4connect.load('p4')
-Reference (oP4) loaded & connected to anastasia.local:1777
-<Py4 anastasia.local:1777 >
+from libpy4.py4IO import p4connector
+
+p4globals = {'user': 'bigbird',
+             'port': 'anastasia.local:1777',
+             'client': 'bigbird_workspace'}     # any valid p4global
+
+p4 = p4connector(**p4globals)
 ```
 
 ## SQL features
@@ -342,6 +292,15 @@ linuxclient 2021/12/01
 
 #### Other samples & examples
 + Please see working samples & example in /p4q/libsample.
+
+## p4dlg in an interactive shell
+
+```Python
+%> python dlg.py shell
+```
+
+![run_shell](https://github.com/user-attachments/assets/14825c81-ada0-48d4-a0e6-834f9b8090c1)
+
 
 ## RCS <under_construction>
 ## P4DB <under_construction>
