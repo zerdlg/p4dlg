@@ -41,7 +41,7 @@ from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgInvert import invert
 from libhelp.hlpCmds import DLGHelp
 from libdlg.dlgSchemaTypes import SchemaType
-from libdlg.dlgSchema import SchemaXML
+from libdlg.dlgSchema import SchemaXML, to_releasename
 import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
@@ -97,7 +97,7 @@ schemadir = dirname(schemaxml.__file__)
             >>> clients
 '''
 
-__all__ = ['Py4']
+__all__ = ['Py4', 'p4connector']
 
 class Py4(object):
     '''
@@ -137,16 +137,11 @@ class Py4(object):
     def __iter__(self):
         iter(self)
 
-    #__shared__ = Storage()
     def __init__(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
-        #super(Py4, self).__init__(*args, **kwargs)
-        #self.__dict__ = self.__shared__
-
         loglevel = kwargs.pop('loglevel') \
             if (kwargs.loglevel is not None) \
             else 'DEBUG'
-        #loglevel = loglevel
         logfile = kwargs.logfile
         loggername = Lst(__name__.split('.'))(-1)
         self.logger = DLGControl(
@@ -154,7 +149,6 @@ class Py4(object):
             loglevel=loglevel,
             logfile=logfile
             )
-        #self.logger = self.__shared__.logger
         [
             setattr(
                 self,
@@ -173,10 +167,6 @@ class Py4(object):
             )
         ]
 
-        self.loginfo('info blablabla')
-        self.logwarning('warning blablabla')
-        self.logerror('error blablabla')
-        self.logcritical('critical blablabla')
         (
             self.p4credential_globals,
             self.supglobals
@@ -194,17 +184,8 @@ class Py4(object):
             for vername in ('version', 'release'):
                 if (kwargs[vername] is not None):
                     oSchema = SchemaXML(schemadir, kwargs[vername])
-
-        (
-            self.oSchema,
-            self.version,
-            self.release
-        ) = \
-            (
-                oSchema,
-                version,
-                release
-            )
+        ''' oSchema is still None? no worry, we'll resolve that below :) 
+        '''
 
         self.user_defined_globals = Lst()
         [kwargs.delete(kw) for kw in self.define_p4globals(**kwargs)]
@@ -314,6 +295,33 @@ class Py4(object):
                 (
                     {}, {}, {}
                 )
+
+        if (oSchema is None):
+            try:
+                inforecord = Py4Run(self, tablename='info')()(0)
+                version = '.'.join(
+                    re.split('\.',
+                             Lst(re.split(
+                                 '/',
+                                 inforecord.serverVersion
+                             ))(2))[0:2]
+                )
+                release = to_releasename(version)
+                oSchema = SchemaXML(release)
+            except Exception as err:
+                print(err)
+
+        (
+            self.oSchema,
+            self.version,
+            self.release
+        ) = \
+            (
+                oSchema,
+                version,
+                release
+            )
+
         ''' help info
         '''
         self.oHelp = DLGHelp(self)
@@ -323,7 +331,6 @@ class Py4(object):
         self.recordchunks = kwargs.recordchunks or 1500
         self.maxrows = kwargs.maxrows or 0
         configpairs = self.p4configs()
-        self.loginfo(f'user globals: {configpairs}')
         for configkey in configpairs.keys():
             attname = f'_{configkey}' \
                 if (re.match(r'^_[az]?$', configkey) is None) \
@@ -451,10 +458,6 @@ class Py4(object):
         ''' Have we picked up any queries?
         '''
         if (len(p4Queries) > 0):
-            #if (tablename is None):
-            #    bail(
-            #        'tablename may not be None!\n'
-            #    )
             if (not tablename in self.tablememo.keys()):
                 self.memoizetable(tablename)
             ''' lastarg (| filename | specname)
@@ -1625,3 +1628,9 @@ class Py4(object):
 
     def parseundoc(self):
         return self.oHelp.parseundoc()
+
+def p4connector(*args, **kwargs):
+    try:
+        return Py4(**kwargs)
+    except Exception as err:
+        print(err)

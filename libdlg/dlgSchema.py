@@ -392,7 +392,6 @@ def getLatestCheckpointAction(jnlfile):
         ckpt_datetime = DLGDateTime().to_p4date(ckpt_epoch)
         return (ckpt_epoch, ckpt_datetime)
 
-
 def getObjSchema(jnlfile, oSchema=None, version=None):
     if (oSchema is not None):
         if (version is None):

@@ -33,13 +33,18 @@ class Py4Run(object):
                 Storage(tabledata)
             )
 
+        ''' Py4 does provide its own logger, if objp4 IS iinstance of Py4, then use it.
+            other keep appending any msg to loglist (until time is made available to do 
+            something not quite as dumb!
+        '''
+        self.loglist = []
         logger = self.objp4.logger \
             if (hasattr(self.objp4, 'logger')) \
             else self.tabledata.logger
-        self.loginfo = logger.loginfo
-        self.logwarning = logger.logwarning
-        self.logerror = logger.logerror
-        self.logcritical = logger.logcritical
+        self.loginfo = logger.loginfo if (logger is not None) else self.loglist.append
+        self.logwarning = logger.logwarning if (logger is not None) else self.loglist.append
+        self.logerror = logger.logerror if (logger is not None) else self.loglist.append
+        self.logcritical = logger.logcritical if (logger is not None) else self.loglist.append
 
     def __call__(self, *cmdargs, **cmdkwargs):
         (cmdargs, cmdkwargs) = (Lst(cmdargs), Storage(cmdkwargs))
@@ -47,7 +52,7 @@ class Py4Run(object):
         ''' tablename should exist in tablememo
         '''
         tablename = self.tabledata.tablename
-        is_spec = self.tabledata.is_spec
+        is_spec = self.tabledata.is_spec or False
         if AND(
                 (is_spec is True),
                 (tablename in self.objp4.spec_takes_no_lastarg)

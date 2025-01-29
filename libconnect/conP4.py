@@ -9,6 +9,8 @@ from libdlg.dlgFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import decode_bytes, set_localport
 from libpy4.py4IO import Py4
 from libdlg import bail
+from libpy4.py4Run import Py4Run
+from libdlg.dlgSchema import SchemaXML, to_releasename
 
 __all__ = ['ObjP4']
 
@@ -221,21 +223,36 @@ class ObjP4(object):
         except Exception as err:
             print(err)
 
+    def getSchemaInstance(self, **kwargs):
+        kwargs = Storage(kwargs)
+        if (kwargs.oSchema is not None):
+            return kwargs.oSchema
+        if (kwargs.version is None):
+            try:
+                objp4 = Py4(**kwargs)
+                if (not hasattr(objp4, 'oSchema')):
+                    cmdargs = ['--user', kwargs.user, '--port', kwargs.port]
+                    inforecord = Py4Run(objp4, *cmdargs, tablename='info')()(0)
+                    version = '.'.join(
+                        re.split('\.',
+                                 Lst(re.split(
+                                     '/',
+                                     inforecord.serverVersion
+                                ))(2))[0:2]
+                    )
+            except Exception as err:
+                print(err)
+            finally:
+                del objp4
+        release = to_releasename(version)
+        return SchemaXML(release)
+
     def create(self, name, *args, **kwargs):
         if (self.varsdef(name) is not None):
             print(f'CreateError:\n Name already exists "{name}" - use op4.update({name}) instead')
         try:
             (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
-            oSchema = kwargs.oSchema
-            if (
-                    (oSchema is None)
-                    & (kwargs.version is not None)
-            ):
-                oSchema = self.shellObj.memoize_schema(kwargs.version)
-                kwargs.oSchema = oSchema
-            if (kwargs.version is not None):
-                kwargs.delete('version')
-            StopError = None
+            (objp4, StopError) = (None, None)
             if (False in (
                     (kwargs.user is not None),
                     (kwargs.port is not None)
@@ -260,18 +277,24 @@ class ObjP4(object):
                                 StopError = f"p4droot path is invalid {p4droot}"
                         else:
                             StopError = f"A RSH port requires p4droot to be set"
+
+            oSchema = kwargs.oSchema
+            if (oSchema is None):
+                if (kwargs.version is not None):
+                    oSchema = self.shellObj.memoize_schema(kwargs.version)
+                    kwargs.delete('version')
+                else:
+                    objp4 = Py4(**kwargs)#self.getSchemaInstance(**kwargs)
+                    oSchema = objp4.oSchema
+            kwargs.oSchema = oSchema
         except Exception as err:
             StopError = f"Error: {err}"
-
         if (StopError is not None):
             print(f'Error:\n{StopError}')
         else:
             self.varsdef(name, kwargs)
             self.setstored()
-            '''  time to load the thing
-            '''
-            objp4 = self.load(name)
-            return objp4
+            return self.load(name, objp4=objp4)
 
     def is_connected(self, p4port):
         failure = f"""Perforce client error:\n\tConnect to server failed; check $P4PORT."""
@@ -291,7 +314,7 @@ class ObjP4(object):
                 if (p4opener.closed is False):
                     p4opener.close()
 
-    def load(self, name):
+    def load(self, name, objp4=None):
         if (self.varsdef(name) is None):
             print(f'KeyError:\n No such key "{name}"')
         else:
@@ -301,7 +324,8 @@ class ObjP4(object):
                 p4port = kwargs.port
                 (connected, connect_msg) = self.is_connected(p4port)
                 if (connected is True):
-                    objp4 = Py4(**kwargs)
+                    if (objp4 is None):
+                        objp4 = Py4(**kwargs)
                     self.shellObj.kernel.shell.push({name: objp4})
                     self.setstored()
                     print(f'Reference ({name}) loaded & connected to {p4port}')

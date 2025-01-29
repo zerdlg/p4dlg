@@ -111,6 +111,7 @@ __all__ = [
             'journal_actions',
             'ignore_actions',
             'fixep4names',
+            'jnlconnector'
 ]
 
 ''' Notes:
@@ -243,6 +244,7 @@ class P4Jnl(object):
         self.tablenames = self.tables
         self.reader = kwargs.reader or 'csv'
         self.recordchunks = kwargs.recordchunks or 15000
+        self.maxrows = kwargs.maxrows or 0
         self.recCounter = Storage(
             {
                 'threshhold': self.recordchunks,
@@ -749,3 +751,10 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             if (os.path.exists(self.serialtables)) \
             else self.tablememo
         return sTables
+
+def jnlconnector(jnlfile, oSchema=None, version=None, **kwargs):
+    (oSchema, version) = getObjSchema(jnlfile, oSchema=oSchema, version=version)
+    try:
+        return P4Jnl(jnlfile, oSchema, version, **kwargs)
+    except Exception as err:
+        print(err)

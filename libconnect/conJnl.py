@@ -151,7 +151,6 @@ Manage connections to journals and checkpoints.
             except Exception as err:
                 print(f'Could not guess the release that create this journal `{journal}`. bailing...', err)
         return (None, None)
-        #return (self.shellObj.cmd_schema(version), version)
 
     def create(
             self,
