@@ -6,7 +6,7 @@
 
 ### Abstractions:
 + P4Jnl - Interact with all of your metadata, without having to rely on a Perforce client.
-+ Py4   - You can put away the p4 cmd line, P4Python & p4v. Try P4dlg to nteract with your Perforce instance!
++ Py4   - You can put away the p4 cmd line, P4Python & p4v. Try P4dlg to interact with your Perforce instance!
 
 ### Intsallation:
 + drop p4dlg on your system somewhere.
@@ -127,9 +127,9 @@
  'type': 'text'}>
 ```
 
-## As you can see, P4Jnl and Py4 share the same API. As for Py4, you just need to modify your mindset a little bit... Instead of commands (```%> p4 command arg1 arg2```), think of them as tables.
+## As you can see, P4Jnl and Py4 share the same API. As for Py4, you just need to modify your mindset a little bit... Instead of thinking p4 commands (```%> p4 command arg1 arg2```), think of them as tables.
 
-# SQL features (queries, aggregators, operators, expressions...)
+# SQL features (queries, aggregators, operators, expressions, etc.)
 
 ## Queries (the where clause)
 
@@ -170,7 +170,7 @@ eg. just some list of imaginary requirements:
 
 + Retrieve all clientspec records. 
 + Fields should be imited to 'name', 'extra', 'owner' & ''accessDate'. 
-+ Group client records by 'Host" ("extra") & order them by "accessDate".
++ Group client records by 'Host" (aka. "extra") & order them by "accessDate".
 + Let's limit the number of records to 25.
 
 ```Python
@@ -209,9 +209,16 @@ eg. just some list of imaginary requirements:
 +--------------------+----------------+-------+---------------------+
 ```
 
+# Inner join, outer join and merging records (braidng):
+
+
+
+
+
+
 + Please see working samples & examples in /p4q/libsample.
 
-## p4dlg in an interactive shell
+## p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
 
 ```Python
 %> python dlg.py shell
