@@ -1,5 +1,5 @@
 # ``p4dlg``
-*this readme is under construction*
+
 #### P4dlg is a set of *abstractions* written in Python that lets you take full advantage of SQL features and functionality to access - & interact with - your Perforce server instances and their resources. 
 
 ``Note: Though I don't know how/if this runs on Windows, it does however work as expected on both MacOS and Linux. ``
