@@ -16,7 +16,7 @@
 ### Where do we use *p4dlg*?
 ``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. More on this below``
 
-### Create a new or load an existing connection to a Perforce Journal (or checkpoint).
+### Create a connection to a Perforce Journal or checkpoint.
 ```Python
 >>> from libjnl.jnlIO import jnlconnector
 
@@ -27,29 +27,72 @@
 >>> pprint(jnl.tables)
 ['config', 'counters', 'nameval', 'logger', 'ldap', 'server', 'svrview', 'remote', 'rmtview', 'stash', 'userrp', 'user', 'group', 'groupx', 'depot', 'stream', 'domain', 'template', 'templatesx', 'templatewx', 'viewrp', 'view', 'review', 'integed', 'integtx', 'resolve', 'resolvex', 'haverp', 'havept', 'have', 'label', 'locks', 'excl', 'archmap', 'rev', 'revtx', 'revcx', 'revdx', 'revhx', 'revpx', 'revsx', 'revsh', 'revbx', 'revux', 'working', 'workingx', 'traits', 'trigger', 'change', 'changex', 'changeidx', 'desc', 'job', 'fix', 'fixrev', 'bodresolve', 'bodtext', 'bodtextcx', 'bodtexthx', 'bodtextsx', 'bodtextwx', 'ixtext', 'ixtexthx', 'uxtext', 'protect', 'property', 'message', 'sendq', 'jnlack', 'monitor', 'rdblbr', 'tiny']
 
-
 >>> jnl.rev
 <libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
 
 >>> jnl.rev.fieldnames
 ['idx', 'db_action', 'table_revision', 'table_name', 'depotFile', 'depotRev', 'type', 'action', 'change', 'date', 'modTime', 'digest', 'size', 'traitLot', 'lbrIsLazy', 'lbrFile', 'lbrRev', 'lbrType']
 
+>>> jnl.rev.depotfile
+<JNLField depotFile>
+
 >>> query = (jnl.rev.depotFile.contains('test'))
 >>> testfiles = jnl(query).select()
 >>> testfiles
 <DLGRecords (18013)>
 
+>>> testfiles.first()
+<DLGRecord {'action': '0',
+ 'change': '3',
+ 'date': '2021/03/12 03:00:42',
+ 'db_action': 'pv',
+ 'depotFile': '//depot/anyschema_2db/lib/sql/pymysql/tests/__init__.py',
+ 'depotRev': '1',
+ 'digest': '5BC0C5616DFAAE172F0495510B7BB41E',
+ 'idx': 115,
+ 'lbrFile': '//depot/anyschema_2db/lib/sql/pymysql/tests/__init__.py',
+ 'lbrIsLazy': '0',
+ 'lbrRev': '1.3',
+ 'lbrType': '0',
+ 'modTime': '2016/02/12 21:14:40',
+ 'size': '363',
+ 'table_name': 'db.rev',
+ 'table_revision': '9',
+ 'traitLot': '0',
+ 'type': '0'}>
 ```
 
-### Create a new or load an existing connection to a Perforce Server instance .
+### Create a connection to a Perforce Server instance .
 ```Python
-from libpy4.py4IO import p4connector
+>>> from libpy4.py4IO import p4connector
+>>> p4globals = {'user': 'bigbird', 'port': 'anastasia.local:1777', 'client': 'bigbird_workspace'}
+>>> p4 = p4connector(**p4globals)
 
-p4globals = {'user': 'bigbird',
-             'port': 'anastasia.local:1777',
-             'client': 'bigbird_workspace'}     # any valid p4global
+>>> print(p4.tables)
+['where', 'change', 'fixes', 'jobspec', 'have', 'status', 'renameuser', 'unshelve', 'delete', 'counter', 'clients', 'jobs', 'users', 'resolve', 'dbstat', 'key', 'protects', 'verify', 'streams', 'workspace', 'logtail', 'dbschema', 'rename', 'add', 'ldap', 'filelog', 'labels', 'stream', 'login', 'copy', 'client', 'archive', 'groups', 'sizes', 'user', 'flush', 'diff', 'integrate', 'sync', 'dbverify', 'changelists', 'attribute', 'zip', 'branches', 'help', 'populate', 'export', 'branch', 'logschema', 'edit', 'unzip', 'merge', 'typemap', 'tickets', 'clean', 'dirs', 'changelist', 'passwd', 'property', 'logparse', 'rec', 'obliterate', 'annotate', 'workspaces', 'admin', 'interchanges', 'unlock', 'unload', 'counters', 'list', 'depot', 'prune', 'review', 'journals', 'diff2', 'logger', 'changes', 'reopen', 'diskspace', 'opened', 'logappend', 'license', 'files', 'set', 'fstat', 'ldapsync', 'keys', 'logstat', 'print', 'lockstat', 'restore', 'tag', 'group', 'istat', 'submit', 'logrotate', 'describe', 'cachepurge', 'integrated', 'label', 'reviews', 'resolved', 'revert', 'depots', 'grep', 'logout', 'ping', 'protect', 'labelsync', 'info', 'triggers', 'ldaps', 'update', 'lock', 'reconcile', 'cstat', 'reload', 'job', 'fix', 'move', 'configure', 'shelve', 'monitor']
 
-p4 = p4connector(**p4globals)
+>>> p4.files
+<libpy4.py4Sqltypes.Py4Table at 0x130398890>
+
+>>> p4.fiels.fieldnames
+['code', 'depotFile', 'rev', 'change', 'action', 'type', 'time']
+
+>>> p4.files.depotfile
+<Py4Field depotFile>
+
+>>> query = (p4.files.depotfile.contains('test'))
+>>> testfiles = p4(query).select()
+>>> testfiles
+<DLGRecords (8)>
+
+>>> testfiles,.last()
+<DLGRecord {'action': 'edit',
+ 'change': '538',
+ 'depotFile': '//dev/p4dlg/unittests/unittesting_py4.py',
+ 'idx': 584,
+ 'rev': '3',
+ 'time': '2025/01/07 12:31:54',
+ 'type': 'text'}>
 ```
 
 ## SQL features
