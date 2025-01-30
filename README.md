@@ -30,7 +30,8 @@
 >>> jnl.rev
 <libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
 
-# fields vs. fieldnames = the `fields` attribute retrieves the field objects, while the `fieldnames` attribute retrieves strings.
+# fields vs. fieldnames:
+# They are both attributes of a table object, but the `fields` attribute retrieves field objects, while the `fieldnames` attribute retrieves strings.
 >>> jnl.rev.fieldnames
 ['idx', 'db_action', 'table_revision', 'table_name', 'depotFile', 'depotRev', 'type', 'action', 'change', 'date', 'modTime', 'digest', 'size', 'traitLot', 'lbrIsLazy', 'lbrFile', 'lbrRev', 'lbrType']
 
@@ -94,7 +95,8 @@
 >>> p4.files
 <libpy4.py4Sqltypes.Py4Table at 0x130398890>
 
-# fields vs. fieldnames = the `fields` attribute retrieves the field objects, while the `fieldnames` attribute retrieves strings.
+# fields vs. fieldnames:
+# They are both attributes of a table object, but the `fields` attribute retrieves field objects, while the `fieldnames` attribute retrieves strings.
 >>> p4.files.fieldnames
 ['code', 'depotFile', 'rev', 'change', 'action', 'type', 'time']
 
