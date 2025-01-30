@@ -5,7 +5,7 @@
 ``Note: Though I don't know how/if this runs on Windows, it does however work as expected on both MacOS and Linux. ``
 
 ### Abstractions:
-+ P4Jnl - Interact with all of your metadata, without without having to rely on a Perforce client)
++ P4Jnl - Interact with all of your metadata, without having to rely on a Perforce client.
 + Py4   - You can put away the p4 cmd line, P4Python & p4v. Try P4dlg to nteract with your Perforce instance!
 
 ### Intsallation:
@@ -14,7 +14,7 @@
 + I generally install Anaconda as my defualt distribution - if you don't and p4dlg complains about missing dependencies, please do let me know.
 
 ### Where do we use *p4dlg*?
-``Import P4dlg and use it in script or broader programs or use it interactively in an IPython QT shell (included in this package). It's OK, P4dlg is fully baked into it. More on this below``
+``Import P4dlg and use it in script or broader programs or, use it interactively in an IPython QT shell (included in this package). It's OK, P4dlg is fully baked into it. More on this below``
 
 ### Create a connection to a Perforce Journal or checkpoint.
 ```Python
@@ -74,7 +74,7 @@
 >>> p4.files
 <libpy4.py4Sqltypes.Py4Table at 0x130398890>
 
->>> p4.fiels.fieldnames
+>>> p4.files.fieldnames
 ['code', 'depotFile', 'rev', 'change', 'action', 'type', 'time']
 
 >>> p4.files.depotfile
@@ -85,7 +85,7 @@
 >>> testfiles
 <DLGRecords (8)>
 
->>> testfiles,.last()
+>>> testfiles.last()
 <DLGRecord {'action': 'edit',
  'change': '538',
  'depotFile': '//dev/p4dlg/unittests/unittesting_py4.py',
