@@ -5,7 +5,7 @@
 ``Note: Though I don't know how/if this runs on Windows, it does however work as expected on both MacOS and Linux. ``
 
 ### Abstractions:
-+ P4Jnl - Interact with all of your metadata, without having to rely on a Perforce client.
++ P4Jnl - Interact with all of your metadata, without having to rely on a perforce client or admin program.
 + Py4   - You can put away the p4 cmd line, P4Python & p4v. Try P4dlg to interact with your Perforce instance!
 
 ### Intsallation:
