@@ -208,8 +208,15 @@ eg. just some list of imaginary requirements:
 | gc_p4dlg           | gc             | mart  | 2024/10/20 05:17:28 |
 +--------------------+----------------+-------+---------------------+
 ```
-+ Please see more working samples & examples in /p4q/libsample.
-+ 
++ Though such things as aggregators can be set as keyword arguments, they can just as well be accessed as DLGRecords object attributes.
+  I.e.:
+  - my_records.groupby(jnl.changes.owner)
+  - my_records.limitby((1, 25))
+  - etc.
+ 
+   
++ Please see more working samples & examples in /p4q/libsample. 
+
 # Inner joins, outer joins and merging records (braidng)
 `` ``
 `` ``
