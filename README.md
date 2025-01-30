@@ -220,7 +220,7 @@ I.e.:
 >>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby(jnl.change.date)).find(lambda rec: ('test\n' not in rec.description))
 ```
    
-+ Please see more working samples & examples in /p4q/libsample. 
++ Please see more working samples & examples in /p4dlg/libsample. 
 
 # Inner joins, outer joins and merging records (braidng)
 `` ``
