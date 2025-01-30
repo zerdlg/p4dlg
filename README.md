@@ -127,7 +127,7 @@
  'type': 'text'}>
 ```
 
-## As you can see, P4Jnl and Py4 share the same API. As for Py4, you just need to modify your mindset a little bit... Instead of thinking p4 commands (```%> p4 command arg1 arg2```), think of them as tables.
+## As you can see, P4Jnl and Py4 share the same features, functionality and usage. As for Py4, you just need to modify your mindset a little bit... Instead of thinking p4 commands (```%> p4 command arg1 arg2```), think of them as tables.
 
 # SQL features (queries, aggregators, operators, expressions, etc.)
 
