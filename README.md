@@ -123,7 +123,6 @@
 <DLGRecords (188)>                             # The target journal defines 188 `clientspec` records.
 ```
 
-### groupby / orderby / sortby / limitby / distinct / having
 ### P4dlg supports:
 + groupby
 + orderby
@@ -133,58 +132,78 @@
 + limitby
 + exclude
 + find
-+ and more
++ etc.
 
-eg. Group client (domain) records by `name` & order them by `accessDate`.
+eg. just some simple list of requirements:
+
++ Retrieve all clientspec records. 
++ Fields should be imited to 'name', 'extra', 'owner' & ''accessDate'. 
++ Group client records by 'Host" ("extra") & order them by "accessDate".
++ Let's limit the number of records to 25.
+
 ```Python
->>> clients = jnl(jnl.domain.type == 'client').select()
->>> client_groups = clients.groupby('name', orderby=jnl.domain.accessdate
+>>> clients = jnl(jnl.domain.type == 'client').select('name', 'extra', 'owner', 'accessDate')
+>>> client_groups = clients.groupby('extra', orderby='accessDate')
 
 # you can output results as a grid.
 >>> client_groups.as_grid()
 
-
-# The `groupdict` attribute modifies groupby's return type. When set to True (False is the default),
-# it will not return the set of records, as we would expect, but instead, a dict where the keys are the 
-# field values that make up the tagret group names. The values are the records belonging to the field 
-# that groups the the records.
-
-In [37]: client_groups
-Out[37]: 
-{'bert_workspace': <DLGRecords (2)>,
- 'p4vtest': <DLGRecords (23)>,
- 'pycharm_client': <DLGRecords (1)>,
- 'lpycharm_client': <DLGRecords (32)>,
- 'linux_client': <DLGRecords (4)>,
- 'lx_ernie_pycharm': <DLGRecords (10)>,
- 'p4grover': <DLGRecords (1)>,
- 'thecount_workspace': <DLGRecords (3)>,
- 'upycharm_client': <DLGRecords (13)>,
- 'test': <DLGRecords (3)>,
- 'bsclient': <DLGRecords (2)>,
- 'bigbirdclient': <DLGRecords (1)>,
- 'anastasia': <DLGRecords (9)>,
- 'bert_pycharm': <DLGRecords (36)>,
- 'computer.depot': <DLGRecords (29)>,
- 'miscclient': <DLGRecords (1)>,
- 'projclient': <DLGRecords (8)>,
- 'gc_local': <DLGRecords (4)>,
- 'gc_bob': <DLGRecords (1)>,
- 'gc.fred': <DLGRecords (3)>,
- 'ux_pycharm': <DLGRecords (1)>,
- 'computer_bck': <DLGRecords (1)>}
-
-In [38]: for client in client_groups.linuxclient:
-    print(client.name, client.accessdate)
-    
-linuxclient 2021/11/24                # Though perforce stores datetime values in linux time, p4dlg converts them 
-linuxclient 2021/11/27                # to the more readable ISO format, apparently favoured by their own client 
-linuxclient 2021/12/01                # programs.
-linuxclient 2021/12/01
++---------------------+-----------------+-------+---------------------+
+| name                | extra           | owner | accessDate          |
++---------------------+-----------------+-------+---------------------+
+| anyschema           |                 | mart  | 2021/03/12 03:05:36 |
+| client.protodev     |                 | mart  | 2021/04/14 08:14:43 |
+| lxcharlotte.pycharm |                 | mart  | 2021/11/28 22:30:23 |
+| mscharlotte         |                 | mart  | 2021/12/06 17:57:19 |
+| upycharmclient      |                 | mart  | 2021/12/08 18:56:31 |
+| linuxclient         |                 | mart  | 2022/02/23 12:24:56 |
+| pycharmclient       |                 | mart  | 2022/07/19 13:54:21 |
+| anastasia           |                 | mart  | 2023/07/17 21:19:43 |
+| gc.charlotte        | computer.local  | mart  | 2022/02/15 12:36:11 |
+| gitfusion           | computer.local  | mart  | 2022/06/01 15:21:32 |
+| gc.fred             | computer.local  | fred  | 2022/07/19 13:58:41 |
+| pyforce             | computer.local  | mart  | 2022/07/28 02:50:54 |
+| dummy               | computer.local  | mart  | 2023/01/10 18:25:03 |
+| swerve.client       | computer.local  | mart  | 2023/07/17 20:52:04 |
+| gc.computer         | computer.local  | mart  | 2023/07/19 16:05:38 |
+| stagingclient       | computer.local  | mart  | 2023/12/05 00:29:01 |
+| gc.pycharm          | computer.local  | mart  | 2024/01/11 07:24:23 |
+| p4query_dev_mac     | computer.local  | mart  | 2024/01/11 08:06:20 |
+| anastasia_dev       | computer.local  | mart  | 2024/01/22 00:12:11 |
+| gcrelease           | computer.local  | mart  | 2024/01/22 06:29:48 |
+| gcstable            | computer.local  | mart  | 2024/02/07 03:48:57 |
+| cvs_conversion      | computer.local  | mart  | 2024/03/03 00:38:18 |
+| databraid_main      | computer.local  | mart  | 2024/06/13 04:27:54 |
+| p4qgit              | computer.local  | mart  | 2024/06/27 04:09:08 |
+| computer_dev        | computer.local  | mart  | 2024/07/27 20:09:06 |
+| computer_scea       | computer.local  | mart  | 2024/07/27 20:17:11 |
+| computer_py4        | computer.local  | mart  | 2024/08/30 18:25:46 |
+| bla                 | computer.local  | mart  | 2024/09/08 07:17:57 |
+| computer_p4q        | computer.local  | mart  | 2024/09/20 23:51:52 |
+| computer_git_p4dlg  | computer.local  | mart  | 2024/09/29 16:17:58 |
+| computer.depot      | computer.local  | mart  | 2024/11/18 09:00:18 |
+| computer.bck        | computer.local  | mart  | 2024/11/27 16:29:54 |
+| gcdev               | computer.local  | mart  | 2024/12/21 06:48:11 |
+| computer_p4dlg      | computer.local  | mart  | 2025/01/07 12:31:47 |
+| p4source            | uxcharlotte     | mart  | 2021/12/01 01:01:08 |
+| bsclient            | uxcharlotte     | mart  | 2021/12/14 02:55:44 |
+| lpycharmclient      | uxcharlotte     | mart  | 2022/02/02 17:42:11 |
+| uxcharlotte.p4src   | uxcharlotte     | mart  | 2022/02/23 12:29:50 |
+| uxcharlotte.pycharm | uxcharlotte     | mart  | 2022/02/24 12:01:12 |
+| uxcharlotte.mart    | uxcharlotte     | mart  | 2022/04/07 15:25:57 |
+| gcclient            | gc              | mart  | 2024/01/16 05:40:31 |
+| gc_p4dlg            | gc              | mart  | 2024/10/20 05:17:28 |
+| gcp4src             | minou           | mart  | 2024/01/16 05:39:42 |
+| gcdev_minou         | minou           | mart  | 2024/05/14 01:29:33 |
+| localclient         | raspberrypi     | mart  | 2021/04/14 08:05:57 |
+| mart.win            | LAPTOP-I424S433 | mart  | 2021/11/18 03:03:09 |
+| p4vtest             | LAPTOP-I424S433 | mart  | 2021/11/18 11:40:11 |
+| p4client            | gareth.local    | mart  | 2021/10/25 15:00:50 |
+| martclient          | gareth.local    | mart  | 2022/01/05 12:33:57 |
+| miscclient          | gareth.local    | mart  | 2022/02/02 17:46:43 |
++---------------------+-----------------+-------+---------------------+
 ```
-### More examples below on the use of aggregators, operators, queries, expressions, etc., as well as p4dlg's take on using SQL mechanics to drive interactions with a Perforce instance.
 
-#### Other samples & examples
 + Please see working samples & example in /p4q/libsample.
 
 ## p4dlg in an interactive shell
@@ -194,9 +213,5 @@ linuxclient 2021/12/01
 ```
 
 ![run_shell](https://github.com/user-attachments/assets/14825c81-ada0-48d4-a0e6-834f9b8090c1)
-
-
-## RCS <under_construction>
-## P4DB <under_construction>
 
 
