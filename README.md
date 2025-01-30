@@ -101,24 +101,6 @@
 
 ## Queries (the where clause)
 
-P4Jnl
-```Python 
-#               table     op    value
-#                 ^        ^      ^
->>> qry = (jnl.domain.type == 'client')
-#            v           v
-#        connector    column
-```
-
-Py4
-```Python
-#              table        op    value
-#               ^            ^      ^
->>> qry = (p4.clients.client == 'client')
-#          v            v
-#       connector    column
-```
-
 ### Building a query.
 ```Python
 >>> qry = (jnl.domain.type == 'client')          # A simple query.
@@ -141,10 +123,26 @@ Py4
 <DLGRecords (188)>                             # The target journal defines 188 `clientspec` records.
 ```
 
-### groupby / orderby / sortby / limitby / 
+### groupby / orderby / sortby / limitby / distinct / having
+### P4dlg supports:
++ groupby
++ orderby
++ sortby
++ distint
++ having
++ limitby
++ exclude
++ find
++ and more
+
 eg. Group client (domain) records by `name` & order them by `accessDate`.
 ```Python
-In [36]: client_groups = clients.groupby('name', orderby=jnl.domain.accessdate, groupdict=True)
+>>> clients = jnl(jnl.domain.type == 'client').select()
+>>> client_groups = clients.groupby('name', orderby=jnl.domain.accessdate
+
+# you can output results as a grid.
+>>> client_groups.as_grid()
+
 
 # The `groupdict` attribute modifies groupby's return type. When set to True (False is the default),
 # it will not return the set of records, as we would expect, but instead, a dict where the keys are the 
