@@ -134,7 +134,7 @@
 + find
 + etc.
 
-eg. just some simple list of requirements:
+eg. just some list of imaginary requirements:
 
 + Retrieve all clientspec records. 
 + Fields should be imited to 'name', 'extra', 'owner' & ''accessDate'. 
