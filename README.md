@@ -169,7 +169,7 @@
 eg. just some list of imaginary requirements:
 
 + Retrieve all clientspec records. 
-+ Fields should be imited to 'name', 'extra', 'owner' & ''accessDate'. 
++ Fields should be limited to 'name', 'extra', 'owner' & ''accessDate'. 
 + Group client records by 'Host" (aka. "extra") & order them by "accessDate".
 + Let's limit the number of records to 25.
 
@@ -213,11 +213,17 @@ Or do both...
 
 I.e.:
 ```Python
->>> change_records = jnl(jnl.change).select()  # instead of passing in a query, specify a table object which begets all available records
->>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby(jnl.change.date))
+# Instead of passing in a query, specify a table object which begets all available records.
+# .select() also takes aggregators.
 
-# or why not, be even more specific and exclude any record that has the string 'test\n' in its description:
->>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby(jnl.change.date)).find(lambda rec: ('test\n' not in rec.description))
+>>> change_records = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description))
+>>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby=jnl.change.date)
+
+# which is equivalent to
+>>> grouped_changes = change_records.limitby=(1, 250).groupby('client').sortby('date')
+
+# or all together in a oneliner ?
+>>> grouped_changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description)).limitby=(1, 250).groupby('client').sortby('date')
 ```
    
 + Please see more working samples & examples in /p4dlg/libsample. 
