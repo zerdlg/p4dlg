@@ -109,7 +109,6 @@
  <Py4Field type>,
  <Py4Field time>]
 
-
 >>> p4.files.depotfile
 <Py4Field depotFile>
 
