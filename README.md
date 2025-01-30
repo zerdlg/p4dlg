@@ -24,14 +24,34 @@
 >>> version = 'r15.2' 
 >>> jnl = jnlconnector(jnlfile, version=version)
 
->>> pprint(jnl.tables)
+>>> jnl.tables
 ['config', 'counters', 'nameval', 'logger', 'ldap', 'server', 'svrview', 'remote', 'rmtview', 'stash', 'userrp', 'user', 'group', 'groupx', 'depot', 'stream', 'domain', 'template', 'templatesx', 'templatewx', 'viewrp', 'view', 'review', 'integed', 'integtx', 'resolve', 'resolvex', 'haverp', 'havept', 'have', 'label', 'locks', 'excl', 'archmap', 'rev', 'revtx', 'revcx', 'revdx', 'revhx', 'revpx', 'revsx', 'revsh', 'revbx', 'revux', 'working', 'workingx', 'traits', 'trigger', 'change', 'changex', 'changeidx', 'desc', 'job', 'fix', 'fixrev', 'bodresolve', 'bodtext', 'bodtextcx', 'bodtexthx', 'bodtextsx', 'bodtextwx', 'ixtext', 'ixtexthx', 'uxtext', 'protect', 'property', 'message', 'sendq', 'jnlack', 'monitor', 'rdblbr', 'tiny']
 
 >>> jnl.rev
 <libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
 
+# fields vs. fieldnames = the `fields` attribute retrieves the field objects, while the `fieldnames` attribute retrieves strings.
 >>> jnl.rev.fieldnames
 ['idx', 'db_action', 'table_revision', 'table_name', 'depotFile', 'depotRev', 'type', 'action', 'change', 'date', 'modTime', 'digest', 'size', 'traitLot', 'lbrIsLazy', 'lbrFile', 'lbrRev', 'lbrType']
+
+>>> jnl.rev.fields
+[<JNLField db_action>,
+ <JNLField table_revision>,
+ <JNLField table_name>,
+ <JNLField depotFile>,
+ <JNLField depotRev>,
+ <JNLField type>,
+ <JNLField action>,
+ <JNLField change>,
+ <JNLField date>,
+ <JNLField modTime>,
+ <JNLField digest>,
+ <JNLField size>,
+ <JNLField traitLot>,
+ <JNLField lbrIsLazy>,
+ <JNLField lbrFile>,
+ <JNLField lbrRev>,
+ <JNLField lbrType>]
 
 >>> jnl.rev.depotfile
 <JNLField depotFile>
@@ -68,14 +88,25 @@
 >>> p4globals = {'user': 'bigbird', 'port': 'anastasia.local:1777', 'client': 'bigbird_workspace'}
 >>> p4 = p4connector(**p4globals)
 
->>> print(p4.tables)
+>>> p4.tables
 ['where', 'change', 'fixes', 'jobspec', 'have', 'status', 'renameuser', 'unshelve', 'delete', 'counter', 'clients', 'jobs', 'users', 'resolve', 'dbstat', 'key', 'protects', 'verify', 'streams', 'workspace', 'logtail', 'dbschema', 'rename', 'add', 'ldap', 'filelog', 'labels', 'stream', 'login', 'copy', 'client', 'archive', 'groups', 'sizes', 'user', 'flush', 'diff', 'integrate', 'sync', 'dbverify', 'changelists', 'attribute', 'zip', 'branches', 'help', 'populate', 'export', 'branch', 'logschema', 'edit', 'unzip', 'merge', 'typemap', 'tickets', 'clean', 'dirs', 'changelist', 'passwd', 'property', 'logparse', 'rec', 'obliterate', 'annotate', 'workspaces', 'admin', 'interchanges', 'unlock', 'unload', 'counters', 'list', 'depot', 'prune', 'review', 'journals', 'diff2', 'logger', 'changes', 'reopen', 'diskspace', 'opened', 'logappend', 'license', 'files', 'set', 'fstat', 'ldapsync', 'keys', 'logstat', 'print', 'lockstat', 'restore', 'tag', 'group', 'istat', 'submit', 'logrotate', 'describe', 'cachepurge', 'integrated', 'label', 'reviews', 'resolved', 'revert', 'depots', 'grep', 'logout', 'ping', 'protect', 'labelsync', 'info', 'triggers', 'ldaps', 'update', 'lock', 'reconcile', 'cstat', 'reload', 'job', 'fix', 'move', 'configure', 'shelve', 'monitor']
 
 >>> p4.files
 <libpy4.py4Sqltypes.Py4Table at 0x130398890>
 
+# fields vs. fieldnames = the `fields` attribute retrieves the field objects, while the `fieldnames` attribute retrieves strings.
 >>> p4.files.fieldnames
 ['code', 'depotFile', 'rev', 'change', 'action', 'type', 'time']
+
+>>> p4.files.fields
+[<Py4Field code>,
+ <Py4Field depotFile>,
+ <Py4Field rev>,
+ <Py4Field change>,
+ <Py4Field action>,
+ <Py4Field type>,
+ <Py4Field time>]
+
 
 >>> p4.files.depotfile
 <Py4Field depotFile>
