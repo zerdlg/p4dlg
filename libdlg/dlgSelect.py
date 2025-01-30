@@ -741,20 +741,20 @@ class Select(DLGControl):
         (orderby,
          limitby,
          groupby,
-         sort,
+         sortby,
          find,
          filter,
          exclude,
-         search
+         search,
          ) = (
             kwargs.orderby,
             kwargs.limitby,
             kwargs.groupby,
-            kwargs.sort,
+            kwargs.sortby,
             kwargs.find,
             kwargs.filter,
             kwargs.exclude,
-            kwargs.search
+            kwargs.search,
         )
 
         if (orderby is not None):
@@ -793,7 +793,7 @@ class Select(DLGControl):
             '''  find
             '''
             records = records.find(find)
-        if (sort is not None):
+        if (sortby is not None):
             '''  sort
 
                         >>> records = oJnl(oJnl.rev).select()
@@ -809,7 +809,7 @@ class Select(DLGControl):
                         Catmart_client
                         Charotte_client
         '''
-            records = records.sort(sort)
+            records = records.sort(sortby)
         if (search is not None):
             for record in records:
                 if (record.depotFile is not None):

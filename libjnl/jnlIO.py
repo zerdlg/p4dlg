@@ -413,9 +413,7 @@ class P4Jnl(object):
             (tablename, fieldname) = (None, None)
 
 
-        if (
-                (tablename, fieldname) == (None, None)
-        ):
+        if ((tablename, fieldname) == (None, None)):
             (tablename, fieldname) = (self.get_tablename_fieldname_from_qry(qry))
         if (not tablename in self.tables):
             bail(
@@ -492,7 +490,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 qry.op
             )
 
-        if (not None in (left, right)):
+        if AND((left != None), (right != None)):
             ''' There is a left & a right side, 
                 so definitely not a table.
             '''
@@ -509,9 +507,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 if (self.oSchemaType.validate_datatype_name(fieldtype) is not None):
                     if (fieldtype in self.oSchemaType.flagnames()):
                         right = self.oSchemaType.datatype_flag(right, fieldtype)
-                        if (isinstance(right, int)):
-                            right = str(right)
-                        qry.right = right
+                        qry.right = str(right)
                     if AND(
                             (hasattr(right, 'left')),
                             (hasattr(right, 'right'))
@@ -594,6 +590,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
 
             for qry in qries:
                 if (is_query_or_expressionType(qry) is True):
+                    qry = self.resolve_datatype_value(qry)
                     if (tablename is None):
                         ''' grab the tablename and move on!
                         '''

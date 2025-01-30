@@ -392,7 +392,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             records = self
         if (len(records) == 0):
             return records
-
         if (limitby is not None):
             if (isinstance(limitby, tuple) is True):
                 records = records.limitby(limitby)
@@ -463,7 +462,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             *fields,
             limitby=None,
             orderby=None,
-            having=None,
+            sortby=None,
             reverse=False,
             groupdict=False,
             records=None
@@ -548,6 +547,17 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             records_by_group[groupname] = DLGRecords(records_by_group[groupname])
             if (orderby is not None):
                 recordgroup = self.orderby(orderby, reverse=reverse, records=records_by_group[groupname])
+                records_by_group.update(
+                    **{
+                        groupname: DLGRecords(
+                            recordgroup,
+                            self.cols,
+                            self.objp4
+                        )
+                    }
+                )
+            if (sortby is not None):
+                recordgroup = self.sortby(sortby, limitby=limitby, reverse=reverse, records=records_by_group[groupname])
                 records_by_group.update(
                     **{
                         groupname: DLGRecords(
