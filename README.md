@@ -1,22 +1,12 @@
 ## ``p4dlg``
 *this readme is under construction*
-#### P4dlg is a set of *abstractions* written in Python that lets you take full advantage of SQL features and functionality to access & interact with your Perforce instances and their resources. 
+#### P4dlg is a set of *abstractions* written in Python that lets you take full advantage of SQL features and functionality to access - & interact with - your Perforce server instances and their resources. 
 
-I am making 2 Perforce Abstractions available for public use, though, depending on interest, more may be released. My thinking is that a more complete toolset would not only extend the versionning capabilities and experience that SQL brings to this exercise, but that it would also provide some exposure, even if just a little, to the fun that can be had when applying a new (ish) perspective & mindset on a versioning engine's relatively unchanging set of practices and uses. I don't just mean mechanically, though in its self, there is definitely some awsomeness in pushing the limitations of a technology's proprietory design (eg. the mighty P4 DB), but also philosophically so as to elevate or broaden the perception we may have of a versionning engine's traditional role in application design. 
+``Note: Though I don't know how/if this runs on Windows, it does however work as expected on both MacOS and Linux. ``
 
 ### Abstractions:
-+ P4Jnl (Interact with all of your metadata, without without having to rely on a Perforce client)
-+ Py4 (you can put away the p4 cmd line, P4Python & p4v. Interact with your Perforce instance using SQL)
-
-### How do we use it and what SQL functionality does it support?
-
-[a few details and examples ... add here]
-
-
-[more stuff here ...]
-
-
-``Note: Though I don't know how this runs on Windows, it does however work as expected on both MacOS and Linux. ``
++ P4Jnl - Interact with all of your metadata, without without having to rely on a Perforce client)
++ Py4   - You can put away the p4 cmd line, P4Python & p4v. Try P4dlg to nteract with your Perforce instance!
 
 ### Intsallation:
 + drop p4dlg on your system somewhere.
@@ -24,16 +14,31 @@ I am making 2 Perforce Abstractions available for public use, though, depending 
 + I generally install Anaconda as my defualt distribution - if you don't and p4dlg complains about missing dependencies, please do let me know.
 
 ### Where do we use *p4dlg*?
-``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. Mor on this below``
+``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. More on this below``
 
 ### Create a new or load an existing connection to a Perforce Journal (or checkpoint).
 ```Python
-from libjnl.jnlIO import jnlconnector
+>>> from libjnl.jnlIO import jnlconnector
 
-jnlfile = 'Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.14'
-version = 'r15.2' 
+>>> jnlfile = 'Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.14'
+>>> version = 'r15.2' 
+>>> jnl = jnlconnector(jnlfile, version=version)
 
-jnl = jnlconnector(jnlfile, version=version)
+>>> pprint(jnl.tables)
+['config', 'counters', 'nameval', 'logger', 'ldap', 'server', 'svrview', 'remote', 'rmtview', 'stash', 'userrp', 'user', 'group', 'groupx', 'depot', 'stream', 'domain', 'template', 'templatesx', 'templatewx', 'viewrp', 'view', 'review', 'integed', 'integtx', 'resolve', 'resolvex', 'haverp', 'havept', 'have', 'label', 'locks', 'excl', 'archmap', 'rev', 'revtx', 'revcx', 'revdx', 'revhx', 'revpx', 'revsx', 'revsh', 'revbx', 'revux', 'working', 'workingx', 'traits', 'trigger', 'change', 'changex', 'changeidx', 'desc', 'job', 'fix', 'fixrev', 'bodresolve', 'bodtext', 'bodtextcx', 'bodtexthx', 'bodtextsx', 'bodtextwx', 'ixtext', 'ixtexthx', 'uxtext', 'protect', 'property', 'message', 'sendq', 'jnlack', 'monitor', 'rdblbr', 'tiny']
+
+
+>>> jnl.rev
+<libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
+
+>>> jnl.rev.fieldnames
+['idx', 'db_action', 'table_revision', 'table_name', 'depotFile', 'depotRev', 'type', 'action', 'change', 'date', 'modTime', 'digest', 'size', 'traitLot', 'lbrIsLazy', 'lbrFile', 'lbrRev', 'lbrType']
+
+>>> query = (jnl.rev.depotFile.contains('test'))
+>>> testfiles = jnl(query).select()
+>>> testfiles
+<DLGRecords (18013)>
+
 ```
 
 ### Create a new or load an existing connection to a Perforce Server instance .
