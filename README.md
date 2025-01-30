@@ -228,7 +228,7 @@ I.e.:
    
 + Please see more working samples & examples in /p4dlg/libsample. 
 
-# Inner joins, outer joins and merging records (braidng)
+# Inner joins, outer joins and merging records (braiding)
 `` ``
 `` ``
 `` ``
