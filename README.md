@@ -208,12 +208,17 @@ eg. just some list of imaginary requirements:
 | gc_p4dlg           | gc             | mart  | 2024/10/20 05:17:28 |
 +--------------------+----------------+-------+---------------------+
 ```
-+ Though such things as aggregators can be set as keyword arguments, they can just as well be accessed as DLGRecords object attributes.
-  I.e.:
-  - my_records.groupby(jnl.changes.owner)
-  - my_records.limitby((1, 25))
-  - etc.
- 
+Though such things as aggregators can be set as keyword arguments, they can just as well be accessed as DLGRecords object attributes.
+Or do both...
+
+I.e.:
+```Python
+>>> change_records = jnl(jnl.change).select()  # instead of passing in a query, specify a table object which begets all available records
+>>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby(jnl.change.date))
+
+# or why not, be even more specific and exclude any record that has the string 'test\n' in its description:
+>>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby(jnl.change.date)).find(lambda rec: ('test\n' not in rec.description))
+```
    
 + Please see more working samples & examples in /p4q/libsample. 
 
