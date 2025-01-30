@@ -14,7 +14,7 @@
 + I generally install Anaconda as my defualt distribution - if you don't and p4dlg complains about missing dependencies, please do let me know.
 
 ### Where do we use *p4dlg*?
-``Though *p4dlg* can be imported and used in script or broader programs, it can also be used interactively in an IPython QT shell (included in this package) where p4dlg is fully baked into it. More on this below``
+``Import P4dlg and use it in script or broader programs or use it interactively in an IPython QT shell (included in this package). It's OK, P4dlg is fully baked into it. More on this below``
 
 ### Create a connection to a Perforce Journal or checkpoint.
 ```Python
@@ -62,7 +62,7 @@
  'type': '0'}>
 ```
 
-### Create a connection to a Perforce Server instance .
+### Create a connection to a Perforce Server instance.
 ```Python
 >>> from libpy4.py4IO import p4connector
 >>> p4globals = {'user': 'bigbird', 'port': 'anastasia.local:1777', 'client': 'bigbird_workspace'}
@@ -95,16 +95,29 @@
  'type': 'text'}>
 ```
 
-## SQL features
+## As you can see, P4Jnl and Py4 share the same API. As for Py4, you just need to modify your mindset a little bit... Instead of commands (```%> p4 command arg1 arg2```), think of them as tables.
 
+# SQL features (queries, aggregators, operators, expressions...)
+
+## Queries (the where clause)
 ### Query syntax
-#### P4Jnl
- ```Python
-#                     table     op    value
-#                      ^        ^      ^
-In [19]: qry = (jnl.domain.type == 'client')
-#                v           v
-#             connector    column
+
+P4Jnl
+```Python 
+#                table     op    value
+#                  ^        ^      ^
+>>> qry = (jnl.domain.type == 'client')
+#           v           v
+#        connector    column
+```
+
+Py4
+```
+#               table         op    value
+#                ^            ^     ^
+>>> qry = (p4.clients.client == 'client')
+#          v            v
+#       connector    column
 ```
 
 
