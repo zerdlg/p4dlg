@@ -1,4 +1,4 @@
-## ``p4dlg``
+# ``p4dlg``
 *this readme is under construction*
 #### P4dlg is a set of *abstractions* written in Python that lets you take full advantage of SQL features and functionality to access - & interact with - your Perforce server instances and their resources. 
 
@@ -208,15 +208,15 @@ eg. just some list of imaginary requirements:
 | gc_p4dlg           | gc             | mart  | 2024/10/20 05:17:28 |
 +--------------------+----------------+-------+---------------------+
 ```
++ Please see more working samples & examples in /p4q/libsample.
++ 
+# Inner joins, outer joins and merging records (braidng)
+`` ``
+`` ``
+`` ``
+`` ``
 
-# Inner join, outer join and merging records (braidng):
 
-
-
-
-
-
-+ Please see working samples & examples in /p4q/libsample.
 
 ## p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
 
