@@ -246,6 +246,25 @@ I.e.:
 >>> clientrecords = jnl(belongs_expression).select()
 >>> clientrecords
 <DLGRecords (6)>
+>>> clientrecords.first()
+<DLGRecord {'accessDate': '2021/12/14 02:55:44',
+ 'db_action': 'pv',
+ 'description': 'Created by bigbird.\n',
+ 'extra': 'uxcharlotte',
+ 'idx': 5,
+ 'mount': '/home/gc',
+ 'mount2': '',
+ 'mount3': '',
+ 'name': 'bsclient',
+ 'options': '0',
+ 'owner': 'bigbird',
+ 'partition': '0',
+ 'serverid': '',
+ 'stream': '',
+ 'table_name': 'db.domain',
+ 'table_revision': '6',
+ 'type': '99',
+ 'updateDate': '2021/12/14 02:50:36'}>
 ```
 
 ### P4dlg supports inner & outer joins:
