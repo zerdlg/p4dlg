@@ -170,7 +170,7 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 
 Example: just some list of imaginary requirements:
 + Retrieve all clientspec records. 
-+ Fields should be limited to 'name', 'extra', 'owner' & ''accessDate'. 
++ Fields should be limited to 'name', 'extra' (Host:), 'owner' & ''accessDate'. 
 + Group client records by 'Host" (aka. "extra") & order them by "accessDate".
 + Let's limit the number of records to 25.
 
