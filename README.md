@@ -133,7 +133,7 @@
 'right': 'test',
 'inversion': False}>
 
-#jnl is a callable and takes a query.
+#p4 is a callable and takes a query.
 >>> my_recordset = p4(query)                           # Connector + query = recordset
 >>> my_recordset                                       # It returns a set of records (DLGRecordSet()).
 <DLGRecordSet (<class 'libpy4.py4Run.Py4Run'>) >
