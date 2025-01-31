@@ -170,7 +170,7 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 
 Example: just some list of imaginary requirements:
 + Retrieve all clientspec records. 
-+ Fields should be limited to 'name', 'extra' (Host:), 'owner' & ''accessDate'. 
++ Fields should be limited to 'name', 'extra' (Host:), 'owner' & 'accessDate'. 
 + Group client records by 'Host" (aka. "extra") & order them by "accessDate".
 + Let's limit the number of records to 25.
 
@@ -227,15 +227,28 @@ I.e.:
 >>> grouped_changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description)).limitby=(1, 250).groupby('client').sortby('date')
 ```
 
-### `belongs` equivalent to a SQL `in` 
+### SQL `IN` belongs
 
 ### P4dlg supports expressions:
 + belongs
-+ on
+  
+```Python
+# belongs example
+>>> clientnames = ('p4client', 'computer_p4dlg', 'computer_dev')
+>>> clientrecords = jnl(jnl.domain.name.belongs(clientnames)).select()
+>>> clientrecords
+<DLGRecords (3)>
+
+# An example of a nested belongs
+>>> qry = ((jnl.domain.type == 'client') & (jnl.domain.extra == 'uxcharlotte'))
+>>> targetclients = jnl(qry)._select(jnl.domain.name)
+>>> belongs_expression = (jnl.domain.name.belongs(targetclients))
+>>> clientrecords = jnl(belongs_expression).select()
+>>> clientrecords
+<DLGRecords (6)>
+```
 
 ### P4dlg supports inner & outer joins:
-
-
    
 + Please see more working samples & examples in /p4dlg/libsample. 
 
