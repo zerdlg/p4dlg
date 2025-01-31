@@ -16,7 +16,7 @@
 ### Where do we use *p4dlg*?
 ``Import P4dlg and use it in script or broader programs or, use it interactively in an IPython QT shell (included in this package). It's OK, P4dlg is fully baked into it. More on this below``
 
-### Create a connection to a Perforce Journal or checkpoint.
+### Create a connection to a Perforce Journal (or checkpoint) and a quick example.
 ```Python
 >>> from libjnl.jnlIO import jnlconnector
 
@@ -57,12 +57,25 @@
 >>> jnl.rev.depotfile
 <JNLField depotFile>
 
->>> query = (jnl.rev.depotFile.contains('test'))
->>> testfiles = jnl(query).select()
->>> testfiles
-<DLGRecords (18013)>
+>>> query = (jnl.rev.depotFile.contains('test'))       # A simple query. -> <connector>.<table>.<field> <operator> <value>
+>>> query                                              # A query is a reference to class DLGQuery.
+<DLGQuery {'objp4': <P4Jnl ./resc/journals/checkpoint.14>,
+'op': <function CONTAINS at 0x10593f1a0>,
+'left': <JNLField depotFile>,
+'right': 'test',
+'inversion': False}>
 
->>> testfiles.first()
+# jnl is a callable and takes a query.
+>>> my_recordset = jnl(query)                          # Connector + query = recordset
+>>> my_recordset                                       # It returns a set of records (DLGRecordSet()).
+<DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>) >     
+
+>>> testfiles = jnl(query).select()                    # A recordset has usefull attributes needed to complete a SQL statement.
+                                                       # Attributes like: ```select```, ```fetch```, etc.
+>>> testfiles                                          # The selected records (DLGRecords).
+<DLGRecords (18013)>                                   # found 18013 records
+
+>>> testfiles.first()                                  # the very first record
 <DLGRecord {'action': '0',
  'change': '3',
  'date': '2021/03/12 03:00:42',
@@ -83,7 +96,7 @@
  'type': '0'}>
 ```
 
-### Create a connection to a Perforce Server instance.
+### Create a connection to a Perforce Server instance and a quick usage example.
 ```Python
 >>> from libpy4.py4IO import p4connector
 >>> p4globals = {'user': 'bigbird', 'port': 'anastasia.local:1777', 'client': 'bigbird_workspace'}
@@ -112,12 +125,25 @@
 >>> p4.files.depotfile
 <Py4Field depotFile>
 
->>> query = (p4.files.depotfile.contains('test'))
->>> testfiles = p4(query).select()
->>> testfiles
-<DLGRecords (8)>
+>>> query = (p4.files.depotfile.contains('test'))      # A simple query. -> <connector>.<table>.<field> <operator> <value>
+>>> query
+<DLGQuery {'objp4': <Py4 anastasia.local:1777 >,
+'op': <function CONTAINS at 0x10593f1a0>,
+'left': <Py4Field depotFile>,
+'right': 'test',
+'inversion': False}>
 
->>> testfiles.last()
+#jnl is a callable and takes a query.
+>>> my_recordset = p4(query)                           # Connector + query = recordset
+>>> my_recordset                                       # It returns a set of records (DLGRecordSet()).
+<DLGRecordSet (<class 'libpy4.py4Run.Py4Run'>) >
+
+>>> testfiles = p4(query).select()                     # A recordset has usefull attributes needed to complete a SQL statement.
+                                                       # Attributes like: ```select```, ```fetch```, etc.
+>>> testfiles                                          # The selected records (DLGRecords).
+<DLGRecords (8)>                                       # found 8 records
+
+>>> testfiles.last()                                   # the very last record
 <DLGRecord {'action': 'edit',
  'change': '538',
  'depotFile': '//dev/p4dlg/unittests/unittesting_py4.py',
@@ -127,35 +153,11 @@
  'type': 'text'}>
 ```
 
-## As you can see, P4Jnl and Py4 share the same features, functionality and usage. As for Py4, you just need to modify your mindset a little bit... Instead of thinking p4 commands (```%> p4 command arg1 arg2```), think of them as tables.
+Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. However, in the case of Py4, you need to modify your mindset a little bit... Instead of thinking `p4 commands` (```%> p4 command arg1 arg2```), think of them as tables. In other words, the same syntax over the same mechanics. So, going forward in this README, I will use either P4Jnl or Py4 in examples, but not both (unless stated otherwise).
 
-# SQL features (queries, aggregators, operators, expressions, etc.)
+# SQL features (aggregators, operators, expressions, inner join, outer join, etc.)
 
-## Queries (the where clause)
-
-### Building a query.
-```Python
->>> qry = (jnl.domain.type == 'client')          # A simple query.
->>> qry 
-<DLGQuery {'inversion': False,                   # A query is a reference to class `DLGQuery`.
- 'left': <JNLField type>,
- 'objp4': <P4Jnl ./resc/journals/journal.8>,     
- 'op': <function EQ at 0x104d32700>,
- 'right': 'client'}>
-```
-
-### Connector + query = recordset
-```Python
->>> my_recordset = jnl(qry)                    # Connection objects are callable, take queries and expose useful attributes such as `select`, `fetch`, update, etc.
->>> my_recordset                               # It returns a set of records
-<DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>)>
-
->>> clients = recordset.select()               # equivalent to `SELECT * FROM domain WHERE type = client`
->>> clients
-<DLGRecords (188)>                             # The target journal defines 188 `clientspec` records.
-```
-
-### P4dlg supports:
+### P4dlg supports aggregators:
 + groupby
 + orderby
 + sortby
@@ -225,6 +227,16 @@ I.e.:
 # or all together in a oneliner ?
 >>> grouped_changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description)).limitby=(1, 250).groupby('client').sortby('date')
 ```
+
+### `belongs` equivalent to a SQL `in` 
+
+### P4dlg supports expressions:
++ belongs
++ on
+
+### P4dlg supports inner & outer joins:
+
+
    
 + Please see more working samples & examples in /p4dlg/libsample. 
 
