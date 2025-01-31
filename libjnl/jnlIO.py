@@ -489,39 +489,37 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 qry.right,
                 qry.op
             )
-
-        if AND((left != None), (right != None)):
-            ''' There is a left & a right side, 
-                so definitely not a table.
-            '''
-            if (is_fieldType(left) is True):
-                if (is_fieldType(right) is True):
-                    ''' Both left AND right sides are fields,
-                        nothing for us here, just get out.
-                    '''
-                    return qry
-                ''' a query | expression, let's make 
-                    sure the datatype is correct.
+        #if AND((left is not None), (right is not None)):
+        ''' There is a left & a right side, 
+            so definitely not a table.
+        '''
+        if (is_fieldType(left) is True):
+            if (is_fieldType(right) is True):
+                ''' Both left AND right sides are fields,
+                    nothing for us here, just get out.
                 '''
-                fieldtype = left.type
-                if (self.oSchemaType.validate_datatype_name(fieldtype) is not None):
-                    if (fieldtype in self.oSchemaType.flagnames()):
-                        right = self.oSchemaType.datatype_flag(right, fieldtype)
-                        qry.right = str(right)
-                    if AND(
-                            (hasattr(right, 'left')),
-                            (hasattr(right, 'right'))
-                    ):
-                        if (right.left is not None):
-                            qry = self.resolve_datatype_value(right)
-            elif (
-                    (left.tablename, left.fieldname) != (None, None)
-            ):
+                return qry
+            ''' a query | expression, let's make 
+                sure the datatype is correct.
+            '''
+            fieldtype = left.type
+            if (self.oSchemaType.validate_datatype_name(fieldtype) is not None):
+                if (fieldtype in self.oSchemaType.flagnames()):
+                    right = self.oSchemaType.datatype_flag(right, fieldtype)
+                    qry.right = str(right)
+                if AND(
+                        (hasattr(right, 'left')),
+                        (hasattr(right, 'right'))
+                ):
+                    if (right.left is not None):
+                        qry = self.resolve_datatype_value(right)
+        elif AND((hasattr(left, 'tablename')), (hasattr(left, 'fieldname'))):
+            if ((left.tablename is not None), (left.fieldname is not None)):
                 ''' Left is well formed, moving on.
                 '''
                 if (isinstance(left, dict) is True):
-                    if (type(left).__name__ != 'Storage'):
-                        left = Storage(left)
+                    #if (type(left).__name__ != 'Storage'):
+                    left = Storage(left)
                     if (isnum(right) is True):
                         right = int(right)
                         left.type = 'Int'
@@ -544,6 +542,16 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         (hasattr(left, 'right'))
                 ):
                     qry = self.resolve_datatype_value(left)
+        elif (is_query_or_expressionType(left) is True):
+                left = self.resolve_datatype_value(left)
+                qry.left = left
+                right = self.resolve_datatype_value(right)
+                qry.right = right
+        elif AND(
+                (hasattr(left, 'left')),
+                (hasattr(left, 'right'))
+        ):
+            qry = self.resolve_datatype_value(left)
         return qry
 
     def __call__(
@@ -590,7 +598,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
 
             for qry in qries:
                 if (is_query_or_expressionType(qry) is True):
-                    qry = self.resolve_datatype_value(qry)
+                    #qry = self.resolve_datatype_value(qry)
                     if (tablename is None):
                         ''' grab the tablename and move on!
                         '''

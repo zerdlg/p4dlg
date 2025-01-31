@@ -2853,6 +2853,7 @@ class DLGQuery(object):
         self.inversion=kwargs.inversion or inversion
         self.oDate = DLGDateTime()
 
+        # WTF? please follow up!
         if OR(
                 (is_field_tableType(self) is False),
                 (is_field_tableType(right) is False)
