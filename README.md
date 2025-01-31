@@ -71,7 +71,7 @@
 <DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>) >     
 
 >>> testfiles = jnl(query).select()                    # A recordset has usefull attributes needed to complete a SQL statement.
-                                                       # Attributes like: ```select```, ```fetch```, etc.
+                                                       # Attributes like: select, fetch, etc.
 >>> testfiles                                          # The selected records (DLGRecords).
 <DLGRecords (18013)>                                   # found 18013 records
 
@@ -139,7 +139,7 @@
 <DLGRecordSet (<class 'libpy4.py4Run.Py4Run'>) >
 
 >>> testfiles = p4(query).select()                     # A recordset has usefull attributes needed to complete a SQL statement.
-                                                       # Attributes like: ```select```, ```fetch```, etc.
+                                                       # Attributes like: select, fetch, etc.
 >>> testfiles                                          # The selected records (DLGRecords).
 <DLGRecords (8)>                                       # found 8 records
 
@@ -155,7 +155,7 @@
 
 Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. However, in the case of Py4, you need to modify your mindset a little bit... Instead of thinking `p4 commands` (```%> p4 command arg1 arg2```), think of them as tables. In other words, the same syntax over the same mechanics. So, going forward in this README, I will use either P4Jnl or Py4 in examples, but not both (unless stated otherwise).
 
-# SQL features (aggregators, operators, expressions, inner join, outer join, etc.)
+## SQL features (aggregators, operators, expressions, inner join, outer join, etc.)
 
 ### P4dlg supports aggregators:
 + groupby
@@ -168,8 +168,7 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 + find
 + etc.
 
-eg. just some list of imaginary requirements:
-
+Example: just some list of imaginary requirements:
 + Retrieve all clientspec records. 
 + Fields should be limited to 'name', 'extra', 'owner' & ''accessDate'. 
 + Group client records by 'Host" (aka. "extra") & order them by "accessDate".
