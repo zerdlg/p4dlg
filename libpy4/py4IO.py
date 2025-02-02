@@ -177,15 +177,15 @@ class Py4(object):
             )
         self.usage_items = []
 
-        release = kwargs.release
-        version = kwargs.version
-        oSchema = kwargs.oSchema
-        if (oSchema is None):
-            for vername in ('version', 'release'):
-                if (kwargs[vername] is not None):
-                    oSchema = SchemaXML(schemadir, kwargs[vername])
-        ''' oSchema is still None? no worry, we'll resolve that below :) 
-        '''
+        #(version, oSchema) = (kwargs.version, kwargs.oSchema)
+        #if AND(
+        #        (oSchema is None),
+        #        (version is not None)
+        #):
+        #    oSchema = SchemaXML(schemadir, version)
+        #''' oSchema is still None? no worry, we'll resolve that below :)
+        #'''
+
 
         self.user_defined_globals = Lst()
         [kwargs.delete(kw) for kw in self.define_p4globals(**kwargs)]
@@ -296,30 +296,49 @@ class Py4(object):
                     {}, {}, {}
                 )
 
-        if (oSchema is None):
+        ''' we may need the server version and, definitively, the schema
+        '''
+        (
+            version,
+            oSchema
+        ) = \
+            (
+                kwargs.version,                                 # the user may have passed in either (or both)
+                kwargs.oSchema
+            )
+        if AND(
+                (oSchema is None),
+                (version is not None)
+        ):
+            oSchema = SchemaXML(schemadir, version)
+        if (version is None):                                   # the user provided no such thing
             try:
-                inforecord = Py4Run(self, tablename='info')()(0)
-                version = '.'.join(
-                    re.split('\.',
-                             Lst(re.split(
-                                 '/',
-                                 inforecord.serverVersion
-                             ))(2))[0:2]
+                info = Py4Run(self, tablename='info')()(0)      # do p4 info
+                strServerversion = info.serverVersion           # we just need the version string
+                version = (                                     # the version string has way too much info
+                    '.'.join(                                   # start breaking it up
+                        re.split(
+                            '\.',
+                            Lst(
+                                re.split(
+                                    '/',
+                                    strServerversion
+                                )
+                            )(2)
+                        )[0:2]
+                    )
                 )
-                release = to_releasename(version)
-                oSchema = SchemaXML(release)
+                if (oSchema is None):                           # we have the version!
+                    oSchema = SchemaXML(version)                # create an instance of SchemaXML
             except Exception as err:
                 print(err)
-
         (
             self.oSchema,
-            self.version,
-            self.release
+            self.version
         ) = \
             (
                 oSchema,
-                version,
-                release
+                version
             )
 
         ''' help info
@@ -1282,6 +1301,8 @@ class Py4(object):
 
     def parseInputKeys(self, tabledata, specname, **specinput):
         specinput = Storage(specinput)
+        if (type(specname).__name__ == 'Py4Table'):
+            specname = specname.tablename
         try:
             altarg = tabledata.altarg
             speckeys = specinput.getkeys()
@@ -1304,8 +1325,8 @@ class Py4(object):
             if (altarg is not None):
                 if (specname is None):
                     specname = specinput[altarg] or specinput[altarg.lower()]
-                if (specname is not None):
-                    specinput[tabledata.fieldsmap[altarg.lower()]] = specname
+                #if (specname is not None):
+                #    specinput[tabledata.fieldsmap[altarg.lower()]] = specname
             self.loginfo(f'parsing input for spec {specname}: {specinput}')
             return (specname, specinput, altarg)
         except Exception as err:

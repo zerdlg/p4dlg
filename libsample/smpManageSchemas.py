@@ -10,9 +10,9 @@ schemadir = dirname(schemaxml.__file__)
 ''' a few ut & samples on xmlschemas
 '''
 def testmisc(schemaObj):
-    version = 'r16.2'
+    version = schemaObj.version
 
-    schemaObj = SchemaXML()
+    #schemaObj = SchemaXML()
 
     ''' remote p4 schemas & locally stored schemas
     '''
@@ -36,20 +36,22 @@ def testmisc(schemaObj):
     xmlfilename = schemaObj.xmlfilename_local(version)
     loadedschema = schemaObj.loadxmlschema_local(version)
 
-    ''' version names: yyyy.xx -> 2016.2
-        release name:  ryy.xx  -> r16.2
+
+
+    ''' version names: yyyy.xx -> 2015.2
+        release name:  ryy.xx  -> r15.2
     '''
     versionnames = set()
     filenames = set()
-    for name in ('r16.2', '2016.2'):
+    for name in ('r15.2', '2015.2'):
         ver = to_releasename(name)
         versionnames.add(ver)
         filename = version_to_xmlfilename(ver)
         filenames.add(filename)
     if (len(versionnames) == 1):
-        print(f'PASSED versionnames: {versionnames}')
+        print(f'PASSED version names: {versionnames}')
     else:
-        print(f'FAILED versionnames (expected 1 name, got  {len(versionnames)}: {versionnames}')
+        print(f'FAILED version names (expected 1 name, got  {len(versionnames)}: {versionnames}')
 
     if (len(filenames) ==1):
         print(f'PASSED filenames: {filenames}')
@@ -143,7 +145,7 @@ if (__name__ == '__main__'):
     ''' USAGE:
             >>> schemaObj = SchemaXML('r16.2') 
     '''
-    schemaObj = SchemaXML('r16.2')
-    #testmisc(schemaObj)
-    #update_xmlschema_files(schemaObj)
+    schemaObj = SchemaXML('r15.2')
+    testmisc(schemaObj)
+    update_xmlschema_files(schemaObj)
 

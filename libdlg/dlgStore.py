@@ -287,20 +287,19 @@ class Storage(dict):
     def __and__(self, other):
         return self.merge(other)
 
-    def _keynames(self):
-        return self.getkeys()
-
-    def _keysmap(self):
-        return Storage(zip([f.lower() for f in self._keynames()], self._keynames()))
+    def keysmap(self):
+        keynames = self.getkeys()
+        return Storage(zip([f.lower() for f in keynames], keynames))
 
     def __getattr__(self, key):
-        if (str(key).lower() in self._keysmap()):
-            key = self._keysmap()[str(key).lower()]
+        keysmap = self.keysmap()
+        if (str(key).lower() in keysmap):
+            key = keysmap[str(key).lower()]
             return self[key]
 
     def get(self, key, default=None):
-        if (str(key).lower() in self._keynames()):
-            key = self._keysmap()[str(key).lower()]
+        if (str(key).lower() in self.getkeys()):
+            key = self.keysmap()[str(key).lower()]
         try:
             return self.__getitem__(key)
         except(

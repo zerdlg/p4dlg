@@ -936,7 +936,9 @@ class DLGRecordSet(object):
 
         if (tablename is not None):
             if (len(fieldnames) == 0):
-                fieldnames = self.objp4.tablememo[tablename].fieldnames
+                fieldnames = self.fieldnames \
+                    if (hasattr(self, 'fieldnames')) \
+                    else self.objp4.tablememo[tablename].fieldnames
             if (noneempty(fieldsmap) is True):
                 if (len(self.fieldsmap) > 0):
                     fieldsmap = self.fieldsmap

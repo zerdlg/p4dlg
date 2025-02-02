@@ -12,7 +12,8 @@ from libdlg.dlgUtilities import (
     isnum,
     noneempty,
     queryStringToStorage,
-    fix_name
+    fix_name,
+    getTableOpKeyValue
 )
 from libdlg.dlgRecordset import *
 from libdlg.dlgSchemaTypes import *
@@ -340,34 +341,96 @@ class P4Jnl(object):
         if (left.tablename is not None):
             return (left.tablename, left.fieldname)
 
-    def get_tablename_fieldname_from_qry_old(self, qry):
-        ''' Like self.breakdown_query(qry) but
-            returns only tablename & fieldname.
+    def build(self, qry):
+        ''' for building / rebuilding queries passed in as strings.
         '''
-        def getleft(q):
-            (
-                op,
-                left,
-                right
-            ) = \
-                (
-                    q.op,
-                    q.left,
-                    q.right
-                )
-            operators = andops + orops + xorops + notops
+        (op, left, right) = getTableOpKeyValue(qry) \
+            if (isinstance(qry, str)) \
+            else (qry.op, qry.left, qry.right)
+        built = None
+        if (op in andops + orops + xorops + notops):
+            (buildleft, buildright) = (self.build(left), self.build(right))
+            if (op in andops):
+                built = {'op': AND, 'left': buildleft, 'right': buildright}
+            elif (op in orops):
+                built = {'op': OR, 'left': buildleft, 'right': buildright}
+            elif (op in xorops):
+                built = {'op': XOR, 'left': buildleft, 'right': buildright}
+            elif (op in notops):
+                if (left is None):
+                    bail('Invalid Query')
+                buildleft = self.build(left)
+                built = ~buildleft
+        else:
+            attdict = objectify({"left": left, "right": right})
+            for (akey, avalue) in attdict.items():
+                if (is_dictType(avalue) is True):
+                    tablename = avalue.tablename
+                    fieldname = avalue.fieldname
+                    tabledata = self.memoizetable(tablename)
+                    try:
+                        oCmdTable = JNLTable(
+                            self,
+                            tablename,
+                            self.oSchema,
+                            **tabledata
+                        )
+                        setattr(self, tablename, oCmdTable)
+                    except TypeError:
+                        if (hasattr(self, tablename)):
+                            pass
+                    avalue = getattr(self, tablename)[fieldname]
+                if (is_query_or_expressionType(avalue) is True):
+                    if (hasattr(avalue, 'op') is True):
+                        if (avalue.op is not None):
+                            avalue = self.build(avalue)
+                    if (hasattr(avalue, 'tablename')) & (hasattr(avalue, 'fieldname')):
+                        if (avalue.tablename is not None) & (avalue.fieldname is not None):
+                            (
+                                fieldname,
+                                tablename
+                            ) = \
+                                (
+                                    avalue.fieldname,
+                                    avalue.tablename
+                                )
+                            if (hasattr(avalue.objp4, tablename) is True):
+                                oTable = getattr(avalue.objp4, tablename)
+                                if (hasattr(oTable, fieldname)):
+                                    avalue = getattr(oTable, fieldname)
+                                else:
+                                    bail(f"field `{fieldname}` does not beliong to table `{tablename}`.")
+                if (akey == "left"):
+                    left = avalue
+                else:
+                    right = avalue
             opname = op.__name__ \
-                if (not isinstance(op, str)) \
+                if (callable(op) is True) \
                 else op
-            if (opname in operators):
-                left = getleft(left)
-            return left
-        left = getleft(qry)
-        return (left.tablename, left.fieldname) \
-            if (left.tablename is not None) \
-            else (None, None)
+            op = all_ops_table(opname)
+            if (op is not None):
+                built = {'op': op, 'left': left, 'right': right}
+            elif not (left or right):
+                built = {'op': op}
+            else:
+                bail(f"Operator not supported: {opname}")
+        if (callable(op) is False):
+            op = all_ops_table(op)
+        inversion = qry.inversion
+        built = DLGQuery(
+            self,
+            op,
+            left,
+            right,
+            inversion
+        )
+        return objectify(built)
+
 
     def breakdown_query(self, qry, tabledata=None):
+        if (isinstance(qry, (dict, str)) is True):
+            qry = self.build(qry)
+
         (
             op,
             left,
@@ -489,7 +552,6 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 qry.right,
                 qry.op
             )
-        #if AND((left is not None), (right is not None)):
         ''' There is a left & a right side, 
             so definitely not a table.
         '''
@@ -518,8 +580,6 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 ''' Left is well formed, moving on.
                 '''
                 if (isinstance(left, dict) is True):
-                    #if (type(left).__name__ != 'Storage'):
-                    left = Storage(left)
                     if (isnum(right) is True):
                         right = int(right)
                         left.type = 'Int'
@@ -597,46 +657,46 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 qries = objectify(Lst(query))
 
             for qry in qries:
-                if (is_query_or_expressionType(qry) is True):
-                    #qry = self.resolve_datatype_value(qry)
-                    if (tablename is None):
-                        ''' grab the tablename and move on!
-                        '''
-                        (
-                            q,
-                            left,
-                            right,
-                            op,
-                            tablename,
-                            inversion,
-                            tabledata
-                        ) = (
-                            self.breakdown_query(qry, tabledata=tabledata)
-                        )
-                    inversion = False
-                    ''' we can't all remember obscure datatype values
-                        jnl.domain.type == 'client' --> will replace 
-                        'client' with its expected value of '99' for us.
-                    '''
-                    qry = self.resolve_datatype_value(qry)
+                if (isinstance(qry, str)):
+                    qry = queryStringToStorage(qry)
+                ''' grab the tablename and move on!
+                '''
+                (
+                    q,
+                    left,
+                    right,
+                    op,
+                    tablename,
+                    inversion,
+                    tabledata
+                ) = (
+                    self.breakdown_query(qry, tabledata=tabledata)
+                )
+                if (q != qry):
+                    qry = q
+                ''' we can't all remember obscure datatype values
+                    jnl.domain.type == 'client' --> will replace 
+                    'client' with its expected value of '99' for us.
+                '''
+                qry = self.resolve_datatype_value(qry)
 
-                    if (isinstance(qry, dict) is True):
-                        if (not 'inversion' in qry):
-                            qry.inversion = inversion
-                        qry = DLGQuery(
-                            self,
-                            qry.op,
-                            qry.left,
-                            qry.right,
-                            qry.inversion
-                        )
-                    ''' try to invert, otherwise leave a is.
-                    '''
-                    qry = invert(qry)
-                    ''' as of this point, all queries (except for Table 
-                        or contraint) should be membe rof jnlQueries.
-                    '''
-                    jnlQueries.append(qry)
+                if (isinstance(qry, dict) is True):
+                    if (not 'inversion' in qry):
+                        qry.inversion = inversion
+                    qry = DLGQuery(
+                        self,
+                        qry.op,
+                        qry.left,
+                        qry.right,
+                        qry.inversion
+                    )
+                ''' try to invert, otherwise leave a is.
+                '''
+                qry = invert(qry)
+                ''' as of this point, all queries (except for Table 
+                    or contraint) should be membe rof jnlQueries.
+                '''
+                jnlQueries.append(qry)
 
         if (tablename is not None):
             tabledata.merge(kwargs)

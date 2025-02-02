@@ -10,6 +10,14 @@ from libpy4.py4SpecIO import SpecIO
      [$Author: mart $]
 '''
 
+''' Usage example:
+
+    objp4 = Py4(**kwargs)
+    cmdargs = ['--user', 'bigbird', '--port', 'anastasia.local:1777']
+    inforecord = Py4Run(objp4, *cmdargs, tablename='info')()(0)
+'''
+
+
 __all__ = ['Py4Run']
 
 class Py4Run(object):
@@ -109,6 +117,17 @@ class Py4Run(object):
                         **cmdkwargs
                     )
                 )
+                if (len(specinput) > 0):
+                    cmdkwdict = {ckey.lower(): ckey for ckey in cmdkwargs.keys()}
+                    ''' for whatever its worth... the same key can't exist in 
+                        both cmdkwargs and in specinput. Delete from cmdkwargs
+                        as needed
+                    '''
+                    for skey in specinput.keys():
+                        if (skey.lower() in cmdkwdict.keys()):
+                            rkey = cmdkwdict[skey.lower()]
+                            cmdkwargs.delete(rkey)
+
                 if AND(
                         (is_spec is True),
                         AND(
@@ -132,11 +151,14 @@ class Py4Run(object):
                                     }
                             }
                 )
+                ''' at this time, let's remove -o/-i from cmdargs
+                '''
                 for sparg in specargs.keys():
-                    if (specargs[sparg].short in cmdargs):
-                        cmdargs.pop(cmdargs.index(specargs[sparg].short))
-                    elif (specargs[sparg].keyword in cmdargs):
-                        cmdargs.pop(cmdargs.index(specargs[sparg].keyword))
+                    poparg = cmdargs.index(specargs[sparg].short) \
+                        if (specargs[sparg].short in cmdargs) \
+                        else cmdargs.index(specargs[sparg].keyword) if (specargs[sparg].keyword in cmdargs) else None
+                    if (poparg is not None):
+                        cmdargs.pop(poparg)
                 ''' specname *should* be cmdargs(-1) by now, 
                     otherwise we'll let the env deal with it.
                 '''

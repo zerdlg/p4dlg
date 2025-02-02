@@ -20,37 +20,6 @@ __all__ = ['ObjP4']
 '''
 
 class ObjP4(object):
-    """
-        {'fred': {'client': 'gc.pycharm',
-        'p4droot': '/Users/gc/p4dinst/2015.2/',
-        'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-        'user': 'mart'},
-
-        'oP4': {'client': 'gc.pycharm',
-        'password': '3Sour.Sn4kes...!',
-        'port': 'anastasia.local:1777',
-        'user': 'mart'},
-
-        'p4': {'client': 'gc.pycharm',
-        'p4droot': '/Users/gc/p4dinst/2015.2',
-        'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-        'user': 'mart'}
-
-        oSchema = schema('r15.2')
-        {'oP4': {'client': 'gc.pycharm',
-          'p4droot': '/Users/gc/p4dinst/2015.2',
-          'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-          'user': 'gc',
-          'oSchema': oSchema}}
-
-        oSchema = schema('r16.2')
-        {'oP4': {'client': 'computer_p4q',
-                 'port': 'anastasia.local:1777',
-                 'user': 'gc',
-                 'oSchema': oSchema}}
-
-    """
-
     helpstr = """
         Manage connections to journals and checkpoints.
 
@@ -77,64 +46,53 @@ class ObjP4(object):
                                             
                                  help      display help about p4connect 
 
-        Create a connection to a journal with jnlconnect.create
+        Create a connection to a p4d instance (or to a RSH port) with p4connect.create
         parameters: args[0]  -> name,
-                    keyword  -> journal = journal_path
-                    keyword  -> version = release of the p4d instance
-                                          that created the journal
-                    keyword  -> oSchema = the schema that that defines the p4db
-
-                    Note that keywords `version` & `oSchema` are mutually exclusive.
-                    Pass in one or the orther.
-                    * a bit more on schemas further down. 
+                    keyword  -> user=USERNAME
+                    keyword  -> port = P4PORT
+                    or any valid global
 
         eg.
-
-        -- requires a name, a journal file & a reference to a schema object (or a p4 release number)
             >>> user = 'bigbird'
             >>> port = 'anastasia.local:1777'
             >>> client = 'my_client'
-            >>> oSchema = schema('r16.2')
 
         -- create
-            >>> p4connect.create('p4', 
+            >>> p4connect.create('oP4', 
                     **{
-                        'oSchema': oSchema
                         'user': user,
                         'port': port,
                         'client': client
                         }
                 )
-            >>> p4
+            >>> oP4
             <Py4 anastasia.local:1777 >
 
         -- load
-            >>> p4connect.load('oJnl')
-            >>> oJnl
-            <P4Jnl ./resc/journals/journal2>
+            >>> p4connect.load('oP4')
+            >>> oP4
+            <Py4 anastasia.local:1777 >
 
         -- update
-            >>> p4connect.update('oJnl', **{'jounral': '../../resc/journals/checkpoint.24'})
-            >>> oJNl
-            <P4Jnl ./resc/journals/journal.24>
+            >>> p4connect.update('oP4', **{''user': 'bert'})
+            >>> oP4
+            <Py4 anastasia.local:1777 >
 
         -- unload
-            >>> p4connect.unload('oJnl')
-            >>> oJnl
+            >>> p4connect.unload('oP4')
+            >>> oP4
             None
 
         -- destroy
-            >>> p4connect.unload('oJnl')
+            >>> p4connect.unload('oP4')
 
         -- purge
-            >>> p4connect.purge('oJnl')
+            >>> p4connect.purge('oP4')
 
         -- show
             * with name argument
 
-            >>> p4connect.show('oJnl')
-            {'journal': './resc/journals/journal.24',
-             'oSchema': <libdlg.dlgSchema.SchemaXML at 0x10773da50>}
+            >>> p4connect.show('oP4')
 
             * without name argument ( equivalent to p4connect.help() )
 
@@ -147,7 +105,7 @@ class ObjP4(object):
 
         -- get list of stored jnlconnect objects
             >>> p4connect.stored
-            [oJnl, other_jnlobject, freds_jnlobject,]
+            [oP4, other_p4object, freds_p4object,]
             """
 
     def help(self):
@@ -223,33 +181,9 @@ class ObjP4(object):
         except Exception as err:
             print(err)
 
-    def getSchemaInstance(self, **kwargs):
-        kwargs = Storage(kwargs)
-        if (kwargs.oSchema is not None):
-            return kwargs.oSchema
-        if (kwargs.version is None):
-            try:
-                objp4 = Py4(**kwargs)
-                if (not hasattr(objp4, 'oSchema')):
-                    cmdargs = ['--user', kwargs.user, '--port', kwargs.port]
-                    inforecord = Py4Run(objp4, *cmdargs, tablename='info')()(0)
-                    version = '.'.join(
-                        re.split('\.',
-                                 Lst(re.split(
-                                     '/',
-                                     inforecord.serverVersion
-                                ))(2))[0:2]
-                    )
-            except Exception as err:
-                print(err)
-            finally:
-                del objp4
-        release = to_releasename(version)
-        return SchemaXML(release)
-
     def create(self, name, *args, **kwargs):
         if (self.varsdef(name) is not None):
-            print(f'CreateError:\n Name already exists "{name}" - use op4.update({name}) instead')
+            print(f'CreateError:\nName already exists "{name}" - use op4.update({name}) instead')
         try:
             (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
             (objp4, StopError) = (None, None)
@@ -284,7 +218,7 @@ class ObjP4(object):
                     oSchema = self.shellObj.memoize_schema(kwargs.version)
                     kwargs.delete('version')
                 else:
-                    objp4 = Py4(**kwargs)#self.getSchemaInstance(**kwargs)
+                    objp4 = Py4(**kwargs)
                     oSchema = objp4.oSchema
             kwargs.oSchema = oSchema
         except Exception as err:

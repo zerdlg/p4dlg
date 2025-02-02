@@ -9,8 +9,7 @@ def create_reference(version):
                            schema suited for building a DB model of
                            the p4 db.
     '''
-    oSchema = SchemaXML(version)
-    return oSchema
+    return SchemaXML(version)
 
 if (__name__ == '__main__'):
-    create_reference('r16.2')
+    oSchema = create_reference('r16.2')
