@@ -21,67 +21,6 @@ __all__ = ['DLGRecordSet']
      [$Author: mart $]
 '''
 
-'''
-    RECORD PARSING USAGE:
-
-            SOURCE = file/path or file object or a list of records or a set of DLGRecords
-
-                    * a list of records can be a list of dicts
-                      or a list of lists --> in this case record[0] MUST be the column names
-
-                    * if source is a file, the file can be a CSV file or a p4journal (a checkpoint)
-                    
-                    * same goes for file objects
-
-                        although... a CSV "Reader()" is also welcome, the proper dialect must be set!
-
-    String Queries... conditions used to select or filter records.
-
-
-            syntax:  ['id > 0', 'age >= 8']
-
-                        or 'id>0 age>=8'
-
-            query operators: = / !=
-                             >
-                             >=
-                             <
-                             <=
-
-            find len fields:
-
-            all fields:
-                recs = oP4('users.user#[1-9aA-zZ]').select()
-                target_recs = list(filter(lambda i: (len(i.User) > 5), recs))
-
-
-            customized operators:
-
-                    # / !#       -> contains / not contains
-                    # is also used to announce a regex
-
-                    >>> animal#c        -> the value of field 'animal' contains a c
-                    >>> animal#^[bB]    -> the value of field 'animal' starts with a 'b' or a 'B'
-                    >>> owner#.*t$ kind=dog|cow age<=2 -> find records where:
-                    
-                                the owner endswith a 't'
-                                the animal can be either a 'dog' or a 'cow'
-                                the animal must be 2 years old, or less
-
-                    *multiple queries can also be passed in a *args or a list
-                     eg.:
-                        >>> myList = oQuery('owner#.*t$', 'kind=dog|cow', 'age<=2')
-
-                        or
-
-                        >>> query = ['owner#.*t$', 'kind=dog|cow', 'age<=2']
-                        >>> myList = oQuery(*query)
-
-            queries can also be expressions | regular expression
-
-    Records
-'''
-
 class DLGRecordSet(object):
     __hash__ = lambda self: hash(
         (frozenset(self),
@@ -204,7 +143,7 @@ class DLGRecordSet(object):
             'user.name=bigbird'            
 
                     *   ' ' a space (\s) between queries means __and__
-                    *   # signals a regex (or 'contains')
+                    *   # signals a regex (search) (or 'contains')
                     *   !# not / 'not contains')
     '''
     '''      (op in ('#^', '#$', '#')) / (op == '!#')
@@ -265,21 +204,7 @@ class DLGRecordSet(object):
         self.oSchemaType = self.objp4.oSchemaType \
             if (hasattr(self.objp4, 'oSchemaType') is True) \
             else None
-        ''' queryformat         -> should we decide to force a query format 
-                                   *before* we iterate through record set ?
-                                                                               
-            +-----------------+------------------------------------------------+----------------------+
-            | Query Type      | Query Statement                                | Requires tablename   |
-            +=================+================================================+======================+
-            | recQuery        | query = lambda record: record.User=='gc'       |     <tablename>      |
-            +-----------------+------------------------------------------------+----------------------+
-            | funcQuery       | query = lambda record: EQ(record.User, 'gc')   |     <tablename>      |
-            +-----------------+------------------------------------------------+----------------------+
-            | strQuery        | query = "change.User=gc"                       |      *optional       |
-            +-----------------+------------------------------------------------+----------------------+
-            | attQuery        | query = oP4.change.User == 'gc'                |      *optional       | 
-            +-----------------+------------------------------------------------+----------------------+
-        '''
+
         compute = tabledata.compute or []
         self.compute = Lst(item.strip().split('=') for item \
                 in Lst(compute.split(';')).clean()).clean() \
@@ -502,7 +427,6 @@ class DLGRecordSet(object):
                 perhaps attributes to compliment actions on changes/revs
 
                 as well, actions on specs & particularly on spec IO
-
             '''
 
     def sync(
@@ -869,12 +793,6 @@ class DLGRecordSet(object):
                 (),
                 Lst(fields)
             )
-        if AND(
-                (len(fields) > 0),
-                (is_fieldType(fields(0)) is True)
-        ):
-                objField = fields.pop(0)
-
         outrecords = self.select(
                                     *fields,
                                     query=query,
@@ -883,19 +801,18 @@ class DLGRecordSet(object):
                                     close_session=False,
                                     **kwargs
         )
-
-        if (objField is not None):
-            try:
-                key = objField.fieldname
-                fieldvalues = tuple(
-                    set(
-                        record[key] for record in outrecords
-                    )
-                )
-                self.loginfo(f"fieldvalues: {fieldvalues}")
-            except Exception as err:
-                self.logerror(err)
-            return fieldvalues
+        if (len(fields) == 0):
+            fields = self.cols
+        sifields = Lst((field.fieldname
+                        if (is_fieldType(field) is True)
+                        else field) for field in fields)
+        try:
+            if (len(sifields) == 1):
+                key = sifields(0)
+                return tuple(set(record[key] for record in outrecords))
+            return Lst(record.getvalues() for record in outrecords)
+        except Exception as err:
+            print(err)
         return ()
 
     def select(

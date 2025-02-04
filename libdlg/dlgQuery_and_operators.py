@@ -1506,7 +1506,6 @@ class clsGE(QClass):
                 op or GE
             ), name='GE', err=err)
 
-
 class clsCONTAINS(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
@@ -1593,7 +1592,8 @@ class clsBELONGS(QClass):
             ):
                 qres = reduce(lambda left, right: (left in right),
                               self.getSequence(*exps))
-            elif (isinstance(left, str) is True):
+            elif (isinstance(left, (str, int)) is True):
+                left = str(left)
                 (tablename, fieldname, value, op) = getTableOpKeyValue(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left in right),
@@ -3036,11 +3036,7 @@ class DLGExpression(object):
             self.inversion = True
 
         if (is_tableType(self) is False):
-            if (None in (
-                            self.fieldname,
-                            self.tablename
-                    )
-            ):
+            if AND((self.fieldname is None), (self.tablename is None)):
                 if (left is not None):
                     sumtypes = sum(
                                     (
@@ -3057,13 +3053,6 @@ class DLGExpression(object):
                             self.fieldname = left.fieldname
                         if (hasattr(left, 'tablename')):
                             self.tablename = left.tablename
-
-        self.type = right.type \
-            if ((right is not None) and (hasattr(right, 'type'))) \
-            else type(right)
-
-        if isinstance(self.type, str):
-            self.itype = reg_type.match(self.type).group(0)
 
     def __repr__(self):
         qdict = pformat(
@@ -3197,7 +3186,7 @@ class DLGExpression(object):
                 >>> qry2 = (oJnl.domain.name.belongs(myclients))
                 >>> clientrecords = oJnl(qry2).select()
         '''
-        return DLGExpression(self.objp4, BELONGS, self, value)
+        return DLGQuery(self.objp4, BELONGS, self, value)
 
     def contains(self, value):
         ''' USAGE:

@@ -22,7 +22,7 @@ class DLGJoin(object):
             A non-exceptional merging of 2 records into one (like braiding), where
             matches from the right side overwrite those on the left.
 
-            Equivalen to join + flat=True
+            Equivalent to join + flat=True
 
             eg.
             >>> reference = (jnl.rev.change == jnl.change.change)

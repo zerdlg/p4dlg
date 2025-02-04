@@ -14,7 +14,8 @@ from libdlg.dlgUtilities import (
     reg_ipython_builtin,
     serializable,
     reg_valid_table_field,
-    bail
+    bail,
+    noneempty
 )
 
 __all__ = ['JNLTable', 'JNLField']
@@ -22,218 +23,6 @@ __all__ = ['JNLTable', 'JNLField']
 '''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 479 $] [$Revision: #17 $]
      [$DateTime: 2024/09/20 07:42:22 $]
      [$Author: mart $]
-'''
-
-''' the schema & mappings -> this is a good time to pay attention
-
-Consider the following table.
-      +---------<->---------------+------------------------<->------------------------+
-      ^                           ^                                                   ^
-      |                           |                                                   |
-      V                           V                                                   V
-+===========================================================|=========================================================+
-|   TABLE   |                   RECORD                      |                     DATATYPE                            |
-|-----------+-----------------------------------------------|                                                         |
-|           |    NAME   |           COLUMN                  |                                                         |
-|           +-----------+-----------------------------------|---------------------------------------------------------+
-|           |           |    NAME     |     TYPE     | DESC |     NAME     |   TYPE  | SUMMARY | DESC | VALUES (...)  |
-|           |           |             |              |      |              |         |         |      |---------------|
-|           |           |             |              |      |              |         |         |      | VAL.| DESC    |
-+===========+===========+=============+==============+======|==============+=========+=========+======+=====+=========+
-| db.domain | Domain    | name        | Domain       | ...  | Domain       | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | type        | DomainType   | ...  | DomainType   | flag    | ...     | ...  | 98  | branch  |
-|           |           |             |              |      |              |         |         |      | 99  | client  |
-|           |           |             |              |      |              |         |         |      | 100 | depot   |
-|           |           |             |              |      |              |         |         |      | 108 | label   |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | extra       | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | mount       | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | mount2      | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | mount3      | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | owner       | User         | ...  | User         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | updateDate  | Date         | ...  | Date         | integer | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | accessDate  | Date         | ...  | Date         | integer | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | options     | DomainOpts   | ...  | DomainOpts   | bitmask | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | description | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | stream      | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | serverid    | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | partition   | Int          | ...  | Int          | integer | ...     | ...  | N/A | N/A     |
-+===========+===========+=============+==============+======|==============+=========+=========+======+=====+=========+
-| db.change | Change    | change      | Change       | ...  | Change       | integer | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | descKey     | Change       | ...  | Change       | integer | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | client      | Domain       | ...  | Domain       | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | user        | User         | ...  | User         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | date        | Date         | ...  | Date         | integer | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | status      | ChangeStatus | ...  | ChangeStatus | flag    | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | description | DescShort    | ...  | DescShort    | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | root        | Mapping      | ...  | Mapping      | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | importer    | String       | ...  | String       | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | identify    | String       | ...  | String       | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | access      | Date         | ...  | Date         | integer | ...     | ...  | N/A | N/A     |
-+===========+===========+=============+==============+======|==============+=========+=========+======+=====+=========+
-| db.depot  | DepotType | name        | Domain       | ...  | Domain       | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | type        | DepotType    | ...  | DepotType    | flag    | ...     | ...  | 0   | local   |
-|           |           |             |              |      |              |         |         |      | 1   | remote  |
-|           |           |             |              |      |              |         |         |      | 2   | spec    |
-|           |           |             |              |      |              |         |         |      | 3   | stream  |
-|           |           |             |              |      |              |         |         |      | 4   | archive |
-|           |           |             |              |      |              |         |         |      | 5   | unload  |
-|           |           |             |              |      |              |         |         |      | 6   | tangent |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | extra       | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-|           |           +-------------+--------------+------|--------------+---------+---------+------+-----+---------+
-|           |           | Map         | Text         | ...  | Text         | string  | ...     | ...  | N/A | N/A     |
-+===========+===========+=============+==============+======|==============+=========+=========+======+=====+=========+
-
-The schema is structured as follows:
-
-    7 high level keys: 
-            * commit_upgrades
-            * datatypes
-            * numUpgrades
-            * recordtypes
-            * tables
-            * upgrades
-            * version 
-
-For now, let's focus on `datatypes`, `recordtypes` & `tables` only.
-
-schema paths (db.domain as an example):
-
-Schema 
-    |__/datatypes
-    |           |__/datatype
-    |                  |
-    |                  |__/[{'name': 'Domain',     <-------------<->---------|
-    |                  |     'type': 'string',                               |
-    |                  |     'desc': 'A string representing the name of a depot, label, client, branch, typemap, or stream.'
-    |                  |     'summary': 'A domain name'},                    |
-    |                  |                                                     |
-    |                  |__/ {'name': 'DomainType',   <------<->----|         |
-    |                  |     'type': 'flag',                       |         |
-    |                  |     'desc': 'A integer value representing the type of a domain',
-    |                  |     'summary': 'A domain type'}           |         |
-    |                  |                                           |         |
-    |                  |... ]                                      |         |
-    |                                                              |         |
-    |__/recordtypes                                                |         |
-    |           |                                                  ^         ^ 
-    |           |__record                                          |         | 
-    |                  |                                           V         V
-    |                  |__/{'name': 'Domain,                       |         |
-    |                       'column':                              |         |
-    |                            |                                 |         ^
-    |                            |__/[{'name': 'name',             |         |
-    |                            |     'type': 'Domain',    <------|---<->---|    
-    |                            |     'desc': 'Domain name'},     |         |
-    |                            |                                 ^         ^
-    |                            |__/ {'name': 'type',             |         |
-    |                            |     'type': 'DomainType'  <-->--|         V
-    |                            |     'desc': 'Type of domain'},            |
-    |                            |                                           |
-    |                            |__/ {'name': 'extra',                      |
-    |                            |     'type': 'Text'                        |
-    |                            |     'desc': 'Formerly "host". Associated host or, for labels, revision number.'},
-    |                            |                                           |
-    |                            |__/ {'name': 'mount',                      |
-    |                            |     'type': 'Text',                       |
-    |                            |     'desc': 'The client root'},           |
-    |                            |                                           |
-    |                            |__/ {'name': 'mount2',                     |
-    |                            |     'type': 'Text',                       |
-    |                            |     'desc': 'Alternate client root'},     ^
-    |                            |                                           |
-    |                            |... ]                                      |
-    |                                                                        V
-    |__/tables                                                               |
-            |                                                                |
-            |__/table                                                        |
-                   | [                                                       |
-                   |__/{'name': 'db.domain',                                 |
-                   |    'type': 'Domain',       <---------------<->----------|
-                   |    'version': '6', 
-                   |    'classic_lockseq': '17', 
-                   |    'peek_lockseq': '17', 
-                   |    'keying': 'name', 
-                   |    'desc': 'Domains: depots, clients, labels, branches, streams, and typemap'}
-                   |...]
-            
-Table, Datatypes & Records
-
-a Table has 7 Attributes:
-                            {'name': 'db.domain', 
-                             'type': 'Domain', 
-                             'version': '6', 
-                             'classic_lockseq': '17', 
-                             'peek_lockseq': '17', 
-                             'keying': 'name', 
-                             'desc': 'Domains: depots, clients, labels, branches, streams, and typemap'}
-
-A Table contains recordtypes
-
-A recordtype has 2 attributes: `name`           
-                               `column' 
-                                  
-A column/field has 3 attributes: `name`           --> the field/column name
-                                 `type`           --> the field/column type
-                                 `description`    --> the field/column description
-                           
-
-A column's `type` maps to a `datatype` definition (specifically its type) 
-
-A datatype definition has at least 4 attributes: `name`
-                                                 `desc`
-                                                 `summary'
-                                                 `type`
-
-Some datatypes are broken down into a number of flags. 
-I.e. Table 'db.domain' store records that describe a number of domain types.
-Each domain type is identified by a unique flag. A `Domain` datatype can define
-a specification such as a `branch`, a `client`, a `depot`, a `label`, a `stream` 
-or a `typemap`. Each domain type (spec) has a associated flag.   
-
-    eg.
-            branch:     98
-            client:     99
-            depot:      100
-            label:      108
-            stream:     115
-            typemap:    116
-
-That said, we can write queries to select domain records based on their type.
-P4DLG will understand a query that specifies the domain type by flag or by name.
-
-therefore, the following queries are equivalent:           
-    
-    >>> qry = (oJnl.domain.type == 99) or '99'
-    >>> qry = (oJnl.domain.type == 'client')
-
-both will have the affect of selecting all client records stored in db.domain
-
-    >>> client_records = oJnl(qry).select()
 '''
 
 class JNLTable(object):
@@ -296,7 +85,7 @@ class JNLTable(object):
         '''
         self.name = tabledata.name
 
-        self._type = tabledata.type
+        self.rtype = tabledata.type
         self.version = tabledata.version
         self.classic_lockseq = tabledata.classic_lockseq
         self.peek_lockseq = tabledata.peek_lockseq
@@ -339,6 +128,8 @@ class JNLTable(object):
             (is_flag, is_bitmask, datatype) = (False, False, Storage())
             if (not field.name in ('id', 'idx', 'db_action', 'table_revision', 'table_name')):
                 datatype = self.oSchemaType.datatype_byname(field.type)
+                if (noneempty(datatype) is False):
+                    datatype = datatype.name
                 is_flag = self.oSchemaType.is_flag(field.type)
                 is_bitmask = self.oSchemaType.is_bitmask(field.type)
             oField = JNLField(
@@ -369,8 +160,8 @@ class JNLTable(object):
     __str__ = lambda self: f'<JNLTable {self.tablename}>'
 
     def __call__(self, *fields):
-        for field in fields:
-            fieldatts = self.getfield(field)
+        #for field in fields:
+        #    fieldatts = self.getfield(field)
         return self
 
     def as_dict(self):
@@ -541,6 +332,11 @@ class JNLField(DLGExpression):
         self.tablename = tablename = field.tablename
         self._table = _table or objp4[tablename]
 
+        self._rname = _rname
+        self.oSchema = oSchema
+        self.oSchemaType = oSchemaType
+        self.objp4 = objp4
+
         super(JNLField, self).__init__(
             objp4,
             None,
@@ -569,11 +365,6 @@ class JNLField(DLGExpression):
             'table_revision',
             'table_name'
         )
-
-        self._rname = _rname
-        self.oSchema = oSchema
-        self.oSchemaType = oSchemaType
-        self.objp4 = objp4
 
         [
             setattr(
