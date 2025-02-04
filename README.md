@@ -227,19 +227,19 @@ I.e.:
 >>> grouped_changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description)).limitby=(1, 250).groupby('client').sortby('date')
 ```
 
-### SQL `IN` belongs
-
 ### P4dlg supports expressions:
-+ belongs
+### belongs (equivalent to a SQL `IN`)
   
 ```Python
-# belongs example
+# An example of a simple & straightforward `belongs`
 >>> clientnames = ('p4client', 'computer_p4dlg', 'computer_dev')
 >>> clientrecords = jnl(jnl.domain.name.belongs(clientnames)).select()
 >>> clientrecords
 <DLGRecords (3)>
 
 # An example of a nested belongs
+>>> qry = ((jnl.change) & ())
+
 >>> qry = ((jnl.domain.type == 'client') & (jnl.domain.extra == 'uxcharlotte'))
 >>> targetclients = jnl(qry)._select(jnl.domain.name)
 >>> belongs_expression = (jnl.domain.name.belongs(targetclients))
