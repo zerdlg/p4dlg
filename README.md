@@ -142,7 +142,8 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 + find
 + etc.
 
-Example: just some list of imaginary requirements:
+
+### Example: just some list of imaginary requirements:
 + Retrieve all clientspec records. 
 + Fields should be limited to 'name', 'extra' (Host:), 'owner' & 'accessDate'. 
 + Group client records by 'Host" (aka. "extra") & order them by "accessDate".
@@ -183,26 +184,23 @@ Example: just some list of imaginary requirements:
 | gc_p4dlg           | gc             | mart  | 2024/10/20 05:17:28 |
 +--------------------+----------------+-------+---------------------+
 ```
-Though such things as aggregators can be set as keyword arguments, they can just as well be accessed as DLGRecords object attributes.
-Or do both...
+
+Though such things as aggregators can be set as keyword arguments to select().
+Note that they can just as well be accessed after the records have been selected & retrieved as attributes to the DLGRecords objects.
 
 I.e.:
 ```Python
-# Instead of passing in a query, specify a table object which begets all available records.
-# .select() also takes aggregators.
-
 >>> change_records = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description))
 >>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby=jnl.change.date)
 
 # which is equivalent to
 >>> grouped_changes = change_records.limitby=(1, 250).groupby('client').sortby('date')
 
-# or all together in a oneliner ?
+# or all together in a oneliner?
 >>> grouped_changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description)).limitby=(1, 250).groupby('client').sortby('date')
 ```
 
-### P4dlg supports expressions:
-### belongs (equivalent to a SQL `IN`)
+### SQL `IN` (`in` is already a Python keyword, therefor renamed to `belong`)
   
 ```Python
 # An example of a simple & straightforward `belongs`
@@ -216,8 +214,8 @@ I.e.:
 
 >>> qry = ((jnl.domain.type == 'client') & (jnl.domain.extra == 'uxcharlotte'))
 >>> targetclients = jnl(qry)._select(jnl.domain.name)
->>> belongs_expression = (jnl.domain.name.belongs(targetclients))
->>> clientrecords = jnl(belongs_expression).select()
+>>> qry2 = (jnl.domain.name.belongs(targetclients))
+>>> clientrecords = jnl(qry2).select()
 >>> clientrecords
 <DLGRecords (6)>
 >>> clientrecords.first()
