@@ -42,7 +42,7 @@ Table names lookup
 ['where', 'change', 'fixes', 'jobspec', 'have', 'status', 'renameuser', 'unshelve', 'delete', 'counter', 'clients', 'jobs', 'users', 'resolve', 'dbstat', 'key', 'protects', 'verify', 'streams', 'workspace', 'logtail', 'dbschema', 'rename', 'add', 'ldap', 'filelog', 'labels', 'stream', 'login', 'copy', 'client', 'archive', 'groups', 'sizes', 'user', 'flush', 'diff', 'integrate', 'sync', 'dbverify', 'changelists', 'attribute', 'zip', 'branches', 'help', 'populate', 'export', 'branch', 'logschema', 'edit', 'unzip', 'merge', 'typemap', 'tickets', 'clean', 'dirs', 'changelist', 'passwd', 'property', 'logparse', 'rec', 'obliterate', 'annotate', 'workspaces', 'admin', 'interchanges', 'unlock', 'unload', 'counters', 'list', 'depot', 'prune', 'review', 'journals', 'diff2', 'logger', 'changes', 'reopen', 'diskspace', 'opened', 'logappend', 'license', 'files', 'set', 'fstat', 'ldapsync', 'keys', 'logstat', 'print', 'lockstat', 'restore', 'tag', 'group', 'istat', 'submit', 'logrotate', 'describe', 'cachepurge', 'integrated', 'label', 'reviews', 'resolved', 'revert', 'depots', 'grep', 'logout', 'ping', 'protect', 'labelsync', 'info', 'triggers', 'ldaps', 'update', 'lock', 'reconcile', 'cstat', 'reload', 'job', 'fix', 'move', 'configure', 'shelve', 'monitor']
 ```
 
-P4Jnl Table & Field objects
+### P4Jnl Table & Field objects
 ```Python
 >>> jnl.rev
 <libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
@@ -54,7 +54,7 @@ P4Jnl Table & Field objects
 <JNLField depotFile>
 ```
 
-Py4 Table & Field object
+### Py4 Table & Field object
 ```Python
 >>> p4.files
 <libpy4.py4Sqltypes.Py4Table at 0x130398890>
@@ -67,7 +67,7 @@ Py4 Table & Field object
 ```
 
 
-Queries
+### Queries
 ```Python
 # P4JNl queries
 >>> jnlquery = (jnl.rev.depotFile.contains('test'))       # A simple query
@@ -142,7 +142,7 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 + etc.
 
 
-### Example: just some list of imaginary requirements:
+### Example: a list of imaginary requirements:
 + Retrieve all clientspec records. 
 + Fields should be limited to 'name', 'extra' (Host:), 'owner' & 'accessDate'. 
 + Group client records by 'Host" (aka. "extra") & order them by "accessDate".
@@ -184,24 +184,58 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 +--------------------+----------------+----------+---------------------+
 ```
 
-Though such things as aggregators can be set as keyword arguments to select().
-Note that they can just as well be accessed after the records have been selected & retrieved as attributes to the DLGRecords objects.
+Aggregators can be set as keyword arguments to select(). Note they can just as well be accessed after the records have been selected & retrieved as attributes to the DLGRecords objects.
 
 I.e.:
 ```Python
->>> change_records = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description))
->>> grouped_changes = change_records.groupby(jnl.change.client, limitby=(1, 250), sortby=jnl.change.date)
+>>> changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description))
+>>> grouped_changes = changes.groupby(jnl.change.client, limitby=(1, 250), sortby=jnl.change.date)
 
 # which is equivalent to
->>> grouped_changes = change_records.limitby=(1, 250).groupby('client').sortby('date')
+>>> grouped_changes = changes.limitby=(1, 250).groupby('client').sortby('date')
 
 # or all together in a oneliner?
 >>> grouped_changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description)).limitby=(1, 250).groupby('client').sortby('date')
 ```
 
-### SQL `IN` (`in` is already a Python keyword, therefor renamed to `belong`)
+Note that there is a ```groupdict``` keyword option. If set to ```True```, the groupby aggregator will return a single dictionary, instead of a set of records, where the key is the field value (which served to group these records) and the values are the records that corolate to each, respectively.
+```Python
+>>> grouped_changes = changes.groupby(jnl.change.client, limitby=(1, 250), sortby=jnl.change.date, groupdict=True)
 
-An example of a simple & straightforward `belongs` 
+>>> grouped_changes.keys()
+dict_keys(['computer_p4dlg', 'computer_p4q', 'computer_py4'])
+
+>>> grouped_changes
+{'computer_p4dlg': <DLGRecords (55)>,
+ 'computer_p4q': <DLGRecords (190)>,
+ 'computer_py4': <DLGRecords (0)>}
+
+>>> grouped_changes.computer_p4dlg
+<DLGRecords (55)>
+>>> grouped_changes.computer_p4dlg.first()
+<DLGRecord {'access': '',
+ 'change': '480',
+ 'client': 'computer_p4dlg',
+ 'date': '2024/09/21 00:03:40',
+ 'db_action': 'pv',
+ 'descKey': '480',
+ 'description': 'copy of p4q, outside of a p4 co',
+ 'identify': '',
+ 'idx': 58,
+ 'importer': '',
+ 'root': '//dev/p4dlg/...',
+ 'status': '1',
+ 'table_name': 'db.change',
+ 'table_revision': '3',
+ 'user': 'bigbird'}>
+```
+
+### Operators & Not
+
+
+### SQL `IN` (```in``` is already a Python keyword, therefor renamed to ```belongs```)
+
+An example of a simple & straightforward ```belongs``` 
 ```Python
 >>> clientnames = ('p4client', 'computer_p4dlg', 'computer_dev')
 >>> clientrecords = jnl(jnl.domain.name.belongs(clientnames)).select()
@@ -240,9 +274,7 @@ An example of a nested belongs
 ```
 
 ### P4dlg supports inner & outer joins :
-
-### Merging records
-*  right side over left where common fields are overwrittern
+#### Merging records - right side over left where common fields are overwrittern
 ```Python
 >>> reference = (jnl.rev.change == jnl.change.change)
 >>> recs = jnl(jnl.rev).select(merge_records=jnl.change.on(reference))
@@ -282,7 +314,7 @@ print(f"Change `{rec.change}` on depotFile `{rec.depotFile}` by user `{rec.user}
 Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
 ```
 
-### Join (inner)
+#### Join (inner)
 A merging of 2 records into one. 
 however, the table must be included in the syntax (I.e.: rec.rev.depotFile & rec.change.user) since this join's default behaviour is to contain both records (flat=False). 
 
@@ -336,7 +368,7 @@ however, the table must be included in the syntax (I.e.: rec.rev.depotFile & rec
 Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `bigbird`
 ```
 
-### left (outer):
+#### left (outer)
 like join but records with non-matching fields are included in overall outrecords.
 ```Python
 
@@ -376,7 +408,7 @@ like join but records with non-matching fields are included in overall outrecord
 Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
 ```
 
-## p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
+### p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
 
 ```Python
 %> python dlg.py shell
