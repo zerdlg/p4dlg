@@ -35,7 +35,7 @@
 ### A few examples.
 
 Table names lookup
-```
+```Python
 >>> jnl.tables
 ['config', 'counters', 'nameval', 'logger', 'ldap', 'server', 'svrview', 'remote', 'rmtview', 'stash', 'userrp', 'user', 'group', 'groupx', 'depot', 'stream', 'domain', 'template', 'templatesx', 'templatewx', 'viewrp', 'view', 'review', 'integed', 'integtx', 'resolve', 'resolvex', 'haverp', 'havept', 'have', 'label', 'locks', 'excl', 'archmap', 'rev', 'revtx', 'revcx', 'revdx', 'revhx', 'revpx', 'revsx', 'revsh', 'revbx', 'revux', 'working', 'workingx', 'traits', 'trigger', 'change', 'changex', 'changeidx', 'desc', 'job', 'fix', 'fixrev', 'bodresolve', 'bodtext', 'bodtextcx', 'bodtexthx', 'bodtextsx', 'bodtextwx', 'ixtext', 'ixtexthx', 'uxtext', 'protect', 'property', 'message', 'sendq', 'jnlack', 'monitor', 'rdblbr', 'tiny']
 
@@ -44,7 +44,7 @@ Table names lookup
 ```
 
 P4Jnl Table & Field objects
-```
+```Python
 >>> jnl.rev
 <libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
 
@@ -56,7 +56,7 @@ P4Jnl Table & Field objects
 ```
 
 Py4 Table & Field object
-```
+```Python
 >>> p4.files
 <libpy4.py4Sqltypes.Py4Table at 0x130398890>
 
@@ -69,7 +69,8 @@ Py4 Table & Field object
 
 
 Queries
-```
+```Python
+#P4JNl queries
 >>> jnlquery = (jnl.rev.depotFile.contains('test'))       # A simple query
 >>> jnlquery                                              # A query is a reference to class DLGQuery
 <DLGQuery {'objp4': <P4Jnl ./resc/journals/checkpoint.14>,
@@ -103,9 +104,7 @@ Queries
  'traitLot': '0',
  'type': '0'}>
 
-
-
-
+# p4 Py4 queries
 >>> p4query = (p4.files.depotfile.contains('test'))      # A simple query
 >>> p4query                                              # A query is a reference to class DLGQuery
 <DLGQuery {'objp4': <Py4 anastasia.local:1777 >,
