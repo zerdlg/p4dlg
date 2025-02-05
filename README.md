@@ -42,7 +42,7 @@ Table names lookup
 ['where', 'change', 'fixes', 'jobspec', 'have', 'status', 'renameuser', 'unshelve', 'delete', 'counter', 'clients', 'jobs', 'users', 'resolve', 'dbstat', 'key', 'protects', 'verify', 'streams', 'workspace', 'logtail', 'dbschema', 'rename', 'add', 'ldap', 'filelog', 'labels', 'stream', 'login', 'copy', 'client', 'archive', 'groups', 'sizes', 'user', 'flush', 'diff', 'integrate', 'sync', 'dbverify', 'changelists', 'attribute', 'zip', 'branches', 'help', 'populate', 'export', 'branch', 'logschema', 'edit', 'unzip', 'merge', 'typemap', 'tickets', 'clean', 'dirs', 'changelist', 'passwd', 'property', 'logparse', 'rec', 'obliterate', 'annotate', 'workspaces', 'admin', 'interchanges', 'unlock', 'unload', 'counters', 'list', 'depot', 'prune', 'review', 'journals', 'diff2', 'logger', 'changes', 'reopen', 'diskspace', 'opened', 'logappend', 'license', 'files', 'set', 'fstat', 'ldapsync', 'keys', 'logstat', 'print', 'lockstat', 'restore', 'tag', 'group', 'istat', 'submit', 'logrotate', 'describe', 'cachepurge', 'integrated', 'label', 'reviews', 'resolved', 'revert', 'depots', 'grep', 'logout', 'ping', 'protect', 'labelsync', 'info', 'triggers', 'ldaps', 'update', 'lock', 'reconcile', 'cstat', 'reload', 'job', 'fix', 'move', 'configure', 'shelve', 'monitor']
 ```
 
-### P4Jnl Table & Field objects
+P4Jnl Table & Field objects
 ```Python
 >>> jnl.rev
 <libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
@@ -54,7 +54,7 @@ Table names lookup
 <JNLField depotFile>
 ```
 
-### Py4 Table & Field object
+Py4 Table & Field object
 ```Python
 >>> p4.files
 <libpy4.py4Sqltypes.Py4Table at 0x130398890>
@@ -128,9 +128,9 @@ Table names lookup
 ```
 Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. However, in the case of Py4, you need to modify your mindset a little bit... Instead of thinking `p4 commands` (```%> p4 command arg1 arg2```), think of them as tables. In other words, the same syntax over the same mechanics. So, going forward in this README, I will use either P4Jnl or Py4 in examples, but not both (unless stated otherwise).
 
-## SQL features (aggregators, operators, expressions, inner join, outer join, etc.)
+### SQL features (aggregators, operators, expressions, inner join, outer join, etc.)
 
-### P4dlg supports aggregators:
+#### Aggregators:
 + groupby
 + orderby
 + sortby
@@ -139,6 +139,7 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 + limitby
 + exclude
 + find
++ inner & outer joins
 + etc.
 
 
@@ -185,7 +186,6 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 ```
 
 Aggregators can be set as keyword arguments to select(). Note they can just as well be accessed after the records have been selected & retrieved as attributes to the DLGRecords objects.
-
 I.e.:
 ```Python
 >>> changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description))
@@ -230,10 +230,10 @@ dict_keys(['computer_p4dlg', 'computer_p4q', 'computer_py4'])
  'user': 'bigbird'}>
 ```
 
-### Operators & Not
+#### Operators & Not
 
 
-### SQL `IN` (```in``` is already a Python keyword, therefor renamed to ```belongs```)
+#### SQL `IN` (```in``` is already a Python keyword, therefor renamed to ```belongs```)
 
 An example of a simple & straightforward ```belongs``` 
 ```Python
@@ -281,7 +281,6 @@ An example of a nested belongs
  'updateDate': '2021/12/14 02:50:36'}>
 ```
 
-### P4dlg supports inner & outer joins :
 #### Join (inner)
 A merging of 2 records into one. 
 however, the table must be included in the syntax (I.e.: rec.rev.depotFile & rec.change.user) as the default behaviour is to contain both records (flat=False). 
@@ -371,7 +370,7 @@ In this example, let's set ```flat=True```
  'type': '65539',
  'user': 'bigbird'}>
 
->>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
+>>> print(f"Change `{rec.change}` on depotFile `{rec.depotFile}` by user `{rec.user}`")
 Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
 ```
 
@@ -416,7 +415,7 @@ Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
 ```
 
 
-### p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
+#### p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
 
 ```Python
 %> python dlg.py shell
