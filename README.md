@@ -32,8 +32,7 @@
 >>> p4 = p4connector(**p4globals)
 ```
 
-### A few examples.
-
+### A few examples on tables & fields.
 Table names lookup
 ```Python
 >>> jnl.tables
@@ -70,7 +69,7 @@ Py4 Table & Field object
 
 Queries
 ```Python
-#P4JNl queries
+# P4JNl queries
 >>> jnlquery = (jnl.rev.depotFile.contains('test'))       # A simple query
 >>> jnlquery                                              # A query is a reference to class DLGQuery
 <DLGQuery {'objp4': <P4Jnl ./resc/journals/checkpoint.14>,
@@ -156,33 +155,33 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 # you can output results as a grid.
 >>> client_groups.as_grid()
 
-+--------------------+----------------+-------+---------------------+
-| name               | extra          | owner | accessDate          |
-+--------------------+----------------+-------+---------------------+
-| gc.charlotte       | computer.local | mart  | 2022/02/15 12:36:11 |
-| gc.fred            | computer.local | fred  | 2022/07/19 13:58:41 |
-| dummy              | computer.local | mart  | 2023/01/10 18:25:03 |
-| gc.computer        | computer.local | mart  | 2023/07/19 16:05:38 |
-| gc.pycharm         | computer.local | mart  | 2024/01/11 07:24:23 |
-| anastasia_dev      | computer.local | mart  | 2024/01/22 00:12:11 |
-| cvs_conversion     | computer.local | mart  | 2024/03/03 00:38:18 |
-| databraid_main     | computer.local | mart  | 2024/06/13 04:27:54 |
-| computer_dev       | computer.local | mart  | 2024/07/27 20:09:06 |
-| computer_scea      | computer.local | mart  | 2024/07/27 20:17:11 |
-| computer_py4       | computer.local | mart  | 2024/08/30 18:25:46 |
-| bla                | computer.local | mart  | 2024/09/08 07:17:57 |
-| computer_p4q       | computer.local | mart  | 2024/09/20 23:51:52 |
-| computer_git_p4dlg | computer.local | mart  | 2024/09/29 16:17:58 |
-| computer.depot     | computer.local | mart  | 2024/11/18 09:00:18 |
-| computer.bck       | computer.local | mart  | 2024/11/27 16:29:54 |
-| gcdev              | computer.local | mart  | 2024/12/21 06:48:11 |
-| computer_p4dlg     | computer.local | mart  | 2025/01/07 12:31:47 |
-| anyschema          |                | mart  | 2021/03/12 03:05:36 |
-| client.protodev    |                | mart  | 2021/04/14 08:14:43 |
-| bsclient           | uxcharlotte    | mart  | 2021/12/14 02:55:44 |
-| gcclient           | gc             | mart  | 2024/01/16 05:40:31 |
-| gc_p4dlg           | gc             | mart  | 2024/10/20 05:17:28 |
-+--------------------+----------------+-------+---------------------+
++--------------------+----------------+----------+---------------------+
+| name               | extra          | owner    | accessDate          |
++--------------------+----------------+----------+---------------------+
+| gc.charlotte       | computer.local | bigbird  | 2022/02/15 12:36:11 |
+| gc.fred            | computer.local | fred     | 2022/07/19 13:58:41 |
+| dummy              | computer.local | bigbird  | 2023/01/10 18:25:03 |
+| gc.computer        | computer.local | bigbird  | 2023/07/19 16:05:38 |
+| gc.pycharm         | computer.local | bigbird  | 2024/01/11 07:24:23 |
+| anastasia_dev      | computer.local | bigbird  | 2024/01/22 00:12:11 |
+| cvs_conversion     | computer.local | bigbird  | 2024/03/03 00:38:18 |
+| databraid_main     | computer.local | bigbird  | 2024/06/13 04:27:54 |
+| computer_dev       | computer.local | bigbird  | 2024/07/27 20:09:06 |
+| computer_scea      | computer.local | bigbird  | 2024/07/27 20:17:11 |
+| computer_py4       | computer.local | bigbird  | 2024/08/30 18:25:46 |
+| bla                | computer.local | bigbird  | 2024/09/08 07:17:57 |
+| computer_p4q       | computer.local | bigbird  | 2024/09/20 23:51:52 |
+| computer_git_p4dlg | computer.local | bigbird  | 2024/09/29 16:17:58 |
+| computer.depot     | computer.local | bigbird  | 2024/11/18 09:00:18 |
+| computer.bck       | computer.local | bigbird  | 2024/11/27 16:29:54 |
+| gcdev              | computer.local | bigbird  | 2024/12/21 06:48:11 |
+| computer_p4dlg     | computer.local | bigbird  | 2025/01/07 12:31:47 |
+| anyschema          |                | bigbird  | 2021/03/12 03:05:36 |
+| client.protodev    |                | bigbird  | 2021/04/14 08:14:43 |
+| bsclient           | uxcharlotte    | bigbird  | 2021/12/14 02:55:44 |
+| gcclient           | gc             | bigbird  | 2024/01/16 05:40:31 |
+| gc_p4dlg           | gc             | bigbird  | 2024/10/20 05:17:28 |
++--------------------+----------------+----------+---------------------+
 ```
 
 Though such things as aggregators can be set as keyword arguments to select().
@@ -201,23 +200,24 @@ I.e.:
 ```
 
 ### SQL `IN` (`in` is already a Python keyword, therefor renamed to `belong`)
-  
+
+An example of a simple & straightforward `belongs` 
 ```Python
-# An example of a simple & straightforward `belongs`
 >>> clientnames = ('p4client', 'computer_p4dlg', 'computer_dev')
 >>> clientrecords = jnl(jnl.domain.name.belongs(clientnames)).select()
 >>> clientrecords
 <DLGRecords (3)>
+```
 
-# An example of a nested belongs
->>> qry = ((jnl.change) & ())
-
+An example of a nested belongs
+```Python
 >>> qry = ((jnl.domain.type == 'client') & (jnl.domain.extra == 'uxcharlotte'))
 >>> targetclients = jnl(qry)._select(jnl.domain.name)
 >>> qry2 = (jnl.domain.name.belongs(targetclients))
 >>> clientrecords = jnl(qry2).select()
 >>> clientrecords
 <DLGRecords (6)>
+
 >>> clientrecords.first()
 <DLGRecord {'accessDate': '2021/12/14 02:55:44',
  'db_action': 'pv',
@@ -239,17 +239,142 @@ I.e.:
  'updateDate': '2021/12/14 02:50:36'}>
 ```
 
-### P4dlg supports inner & outer joins:
-   
-+ Please see more working samples & examples in /p4dlg/libsample. 
+### P4dlg supports inner & outer joins :
 
-# Inner joins, outer joins and merging records (braiding)
-`` ``
-`` ``
-`` ``
-`` ``
+### Merging records
+*  right side over left where common fields are overwrittern
+```Python
+>>> reference = (jnl.rev.change == jnl.change.change)
+>>> recs = jnl(jnl.rev).select(merge_records=jnl.change.on(reference))
 
+# which is equivalent to:
+# jnl(jnl.rev).select(join=jnl.change.on(reference), flat=True)
 
+>>> rec = recs(0)
+>>> rec
+<DLGRecord {'action': '0',
+ 'change': '3',
+ 'client': 'anyschema',
+ 'date': '2021/03/12 03:00:42',
+ 'db_action': 'pv',
+ 'depotFile': '//depot/anyschema_2db/.DS_Store',
+ 'depotRev': '1',
+ 'descKey': '3',
+ 'description': 'initital checking of anyschema_',
+ 'digest': '59DD11B3B8804F6AA7A9BBCE1B583430',
+ 'identify': '',
+ 'idx': 1,
+ 'importer': '',
+ 'lbrFile': '//depot/anyschema_2db/.DS_Store',
+ 'lbrIsLazy': '0',
+ 'lbrRev': '1.3',
+ 'lbrType': '65539',
+ 'modTime': '2021/02/09 05:50:14',
+ 'root': '//depot/anyschema_2db/...',
+ 'size': '6148',
+ 'table_name': 'db.rev',
+ 'table_revision': '9',
+ 'traitLot': '0',
+ 'type': '65539',
+ 'user': 'bigbird'}>
+
+print(f"Change `{rec.change}` on depotFile `{rec.depotFile}` by user `{rec.user}`")
+Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
+```
+
+### Join (inner)
+A merging of 2 records into one. 
+however, the table must be included in the syntax (I.e.: rec.rev.depotFile & rec.change.user) since this join's default behaviour is to contain both records (flat=False). 
+
+* Note that records are skipped where inner fields are non-matching.
+```Python
+>>> reference = (jnl.rev.change == jnl.change.change)
+>>> recs = jnl(jnl.rev).select(join=jnl.change.on(reference), flat=False)
+# alternatively, this syntax is equivalent:
+>>> recs = jnl(reference).select()
+>>> recs
+<DLGRecords (73285)>
+
+>>> rec = recs.first()
+>>> rec
+<DLGRecord {'change': <DLGRecord {'access': '',
+                                  'change': '142',
+                                  'client': 'bigbird.pycharm',
+                                  'date': '2021/11/25',
+                                  'db_action': 'pv',
+                                  'descKey': '142',
+                                  'description': 'renaming for case consistency',
+                                  'identify': '',
+                                  'idx': 1,
+                                  'importer': '',
+                                  'root': '',
+                                  'status': '0',
+                                  'table_name': 'db.change',
+                                  'table_revision': '3',
+                                  'user': 'bigbird'}>,
+            'rev': <DLGRecord {'action': '8',
+                               'change': '142',
+                               'date': '2021/11/25',
+                               'db_action': 'pv',
+                               'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+                               'depotRev': '1',
+                               'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+                               'idx': 1,
+                               'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+                               'lbrIsLazy': '1',
+                               'lbrRev': '1.121',
+                               'lbrType': '0',
+                               'modTime': '1630482775',
+                               'size': '18420',
+                               'table_name': 'db.rev',
+                               'table_revision': '9',
+                               'traitLot': '0',
+                               'type': '0'}>
+            }>
+
+>>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
+Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `bigbird`
+```
+
+### left (outer):
+like join but records with non-matching fields are included in overall outrecords.
+```Python
+
+>>> reference = (jnl.rev.change == jnl.change.change)
+>>> recs = jnl(jnl.rev).select(left=jnl.change.on(reference), flat=False)
+>>> rec = recs(0)
+>>> rec
+<DLGRecord {'change': {'change': '3',
+            'client': 'anyschema',
+            'date': '2021/03/12 03:00:42',
+            'descKey': '3',
+            'description': 'initital checking of anyschema_',
+            'identify': '',
+            'importer': '',
+            'root': '//depot/anyschema_2db/...',
+            'user': 'bigbird'},
+ 'rev': {'action': '0',
+         'change': '3',
+         'date': '2021/03/12 03:00:42',
+         'db_action': 'pv',
+         'depotFile': '//depot/anyschema_2db/.DS_Store',
+         'depotRev': '1',
+         'digest': '59DD11B3B8804F6AA7A9BBCE1B583430',
+         'idx': 1,
+         'lbrFile': '//depot/anyschema_2db/.DS_Store',
+         'lbrIsLazy': '0',
+         'lbrRev': '1.3',
+         'lbrType': '65539',
+         'modTime': '2021/02/09 05:50:14',
+         'size': '6148',
+         'table_name': 'db.rev',
+         'table_revision': '9',
+         'traitLot': '0',
+         'type': '65539'}}>
+
+>>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
+Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
+```
 
 ## p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
 
@@ -260,3 +385,4 @@ I.e.:
 ![run_shell](https://github.com/user-attachments/assets/14825c81-ada0-48d4-a0e6-834f9b8090c1)
 
 
++ Please see more working samples & examples in /p4dlg/libsample. 
