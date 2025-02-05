@@ -16,66 +16,74 @@
 ### Where do we use *p4dlg*?
 ``Import P4dlg and use it in script or broader programs or, use it interactively in an IPython QT shell (included in this package). It's OK, P4dlg is fully baked into it. More on this below``
 
-### Create a connection to a Perforce Journal (or checkpoint) and a quick example.
+### Create a connection to a Perforce Journal (or checkpoint).
 ```Python
 >>> from libjnl.jnlIO import jnlconnector
 
 >>> jnlfile = 'Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.14'
 >>> version = 'r15.2' 
 >>> jnl = jnlconnector(jnlfile, version=version)
+```
 
+### Create a connection to a Perforce Server instance.
+```Python
+>>> from libpy4.py4IO import p4connector
+>>> p4globals = {'user': 'bigbird', 'port': 'anastasia.local:1777', 'client': 'bigbird_workspace'}
+>>> p4 = p4connector(**p4globals)
+```
+
+### A few examples.
+
+Table names lookup
+```
 >>> jnl.tables
 ['config', 'counters', 'nameval', 'logger', 'ldap', 'server', 'svrview', 'remote', 'rmtview', 'stash', 'userrp', 'user', 'group', 'groupx', 'depot', 'stream', 'domain', 'template', 'templatesx', 'templatewx', 'viewrp', 'view', 'review', 'integed', 'integtx', 'resolve', 'resolvex', 'haverp', 'havept', 'have', 'label', 'locks', 'excl', 'archmap', 'rev', 'revtx', 'revcx', 'revdx', 'revhx', 'revpx', 'revsx', 'revsh', 'revbx', 'revux', 'working', 'workingx', 'traits', 'trigger', 'change', 'changex', 'changeidx', 'desc', 'job', 'fix', 'fixrev', 'bodresolve', 'bodtext', 'bodtextcx', 'bodtexthx', 'bodtextsx', 'bodtextwx', 'ixtext', 'ixtexthx', 'uxtext', 'protect', 'property', 'message', 'sendq', 'jnlack', 'monitor', 'rdblbr', 'tiny']
 
+>>> p4.tables
+['where', 'change', 'fixes', 'jobspec', 'have', 'status', 'renameuser', 'unshelve', 'delete', 'counter', 'clients', 'jobs', 'users', 'resolve', 'dbstat', 'key', 'protects', 'verify', 'streams', 'workspace', 'logtail', 'dbschema', 'rename', 'add', 'ldap', 'filelog', 'labels', 'stream', 'login', 'copy', 'client', 'archive', 'groups', 'sizes', 'user', 'flush', 'diff', 'integrate', 'sync', 'dbverify', 'changelists', 'attribute', 'zip', 'branches', 'help', 'populate', 'export', 'branch', 'logschema', 'edit', 'unzip', 'merge', 'typemap', 'tickets', 'clean', 'dirs', 'changelist', 'passwd', 'property', 'logparse', 'rec', 'obliterate', 'annotate', 'workspaces', 'admin', 'interchanges', 'unlock', 'unload', 'counters', 'list', 'depot', 'prune', 'review', 'journals', 'diff2', 'logger', 'changes', 'reopen', 'diskspace', 'opened', 'logappend', 'license', 'files', 'set', 'fstat', 'ldapsync', 'keys', 'logstat', 'print', 'lockstat', 'restore', 'tag', 'group', 'istat', 'submit', 'logrotate', 'describe', 'cachepurge', 'integrated', 'label', 'reviews', 'resolved', 'revert', 'depots', 'grep', 'logout', 'ping', 'protect', 'labelsync', 'info', 'triggers', 'ldaps', 'update', 'lock', 'reconcile', 'cstat', 'reload', 'job', 'fix', 'move', 'configure', 'shelve', 'monitor']
+```
+
+P4Jnl Table & Field objects
+```
 >>> jnl.rev
 <libjnl.jnlSqltypes.JNLTable at 0x1161b92d0>
 
-# fields vs. fieldnames:
-# They are both attributes of a table object, but the `fields` attribute retrieves field objects, while the `fieldnames` attribute retrieves strings.
->>> jnl.rev.fieldnames
-['idx', 'db_action', 'table_revision', 'table_name', 'depotFile', 'depotRev', 'type', 'action', 'change', 'date', 'modTime', 'digest', 'size', 'traitLot', 'lbrIsLazy', 'lbrFile', 'lbrRev', 'lbrType']
-
 >>> jnl.rev.fields
-[<JNLField db_action>,
- <JNLField table_revision>,
- <JNLField table_name>,
- <JNLField depotFile>,
- <JNLField depotRev>,
- <JNLField type>,
- <JNLField action>,
- <JNLField change>,
- <JNLField date>,
- <JNLField modTime>,
- <JNLField digest>,
- <JNLField size>,
- <JNLField traitLot>,
- <JNLField lbrIsLazy>,
- <JNLField lbrFile>,
- <JNLField lbrRev>,
- <JNLField lbrType>]
+[<JNLField db_action>, <JNLField table_revision>, <JNLField table_name>, <JNLField depotFile>, <JNLField depotRev>, <JNLField type>, <JNLField action>, <JNLField change>, <JNLField date>, <JNLField modTime>, <JNLField digest>, <JNLField size>, <JNLField traitLot>, <JNLField lbrIsLazy>, <JNLField lbrFile>, <JNLField lbrRev>, <JNLField lbrType>]
 
 >>> jnl.rev.depotfile
 <JNLField depotFile>
+```
 
->>> query = (jnl.rev.depotFile.contains('test'))       # A simple query. -> <connector>.<table>.<field> <operator> <value>
->>> query                                              # A query is a reference to class DLGQuery.
+Py4 Table & Field object
+```
+>>> p4.files
+<libpy4.py4Sqltypes.Py4Table at 0x130398890>
+
+>>> p4.files.fields
+[<Py4Field code>, <Py4Field depotFile>, <Py4Field rev>, <Py4Field change>, <Py4Field action>, <Py4Field type>, <Py4Field time>]
+
+>>> p4.files.depotfile
+<Py4Field depotFile>
+```
+
+
+Queries
+```
+>>> jnlquery = (jnl.rev.depotFile.contains('test'))       # A simple query
+>>> jnlquery                                              # A query is a reference to class DLGQuery
 <DLGQuery {'objp4': <P4Jnl ./resc/journals/checkpoint.14>,
 'op': <function CONTAINS at 0x10593f1a0>,
 'left': <JNLField depotFile>,
 'right': 'test',
 'inversion': False}>
 
-# jnl is a callable and takes a query.
->>> my_recordset = jnl(query)                          # Connector + query = recordset
->>> my_recordset                                       # It returns a set of records (DLGRecordSet()).
-<DLGRecordSet (<class 'libjnl.jnlFile.JNLFile'>) >     
+>>> jnlfiles = jnl(jnlquery).select()                   # A recordset has usefull attributes needed to complete a SQL statement.
+                                                     # Attributes like: select, fetch, etc.
+>>> jnlfiles                                         # The selected records (DLGRecords).
+<DLGRecords (18013)>                                 # found 18013 records
 
->>> testfiles = jnl(query).select()                    # A recordset has usefull attributes needed to complete a SQL statement.
-                                                       # Attributes like: select, fetch, etc.
->>> testfiles                                          # The selected records (DLGRecords).
-<DLGRecords (18013)>                                   # found 18013 records
-
->>> testfiles.first()                                  # the very first record
+>>> jnlfiles.first()                                 # the very first record
 <DLGRecord {'action': '0',
  'change': '3',
  'date': '2021/03/12 03:00:42',
@@ -94,56 +102,24 @@
  'table_revision': '9',
  'traitLot': '0',
  'type': '0'}>
-```
 
-### Create a connection to a Perforce Server instance and a quick usage example.
-```Python
->>> from libpy4.py4IO import p4connector
->>> p4globals = {'user': 'bigbird', 'port': 'anastasia.local:1777', 'client': 'bigbird_workspace'}
->>> p4 = p4connector(**p4globals)
 
->>> p4.tables
-['where', 'change', 'fixes', 'jobspec', 'have', 'status', 'renameuser', 'unshelve', 'delete', 'counter', 'clients', 'jobs', 'users', 'resolve', 'dbstat', 'key', 'protects', 'verify', 'streams', 'workspace', 'logtail', 'dbschema', 'rename', 'add', 'ldap', 'filelog', 'labels', 'stream', 'login', 'copy', 'client', 'archive', 'groups', 'sizes', 'user', 'flush', 'diff', 'integrate', 'sync', 'dbverify', 'changelists', 'attribute', 'zip', 'branches', 'help', 'populate', 'export', 'branch', 'logschema', 'edit', 'unzip', 'merge', 'typemap', 'tickets', 'clean', 'dirs', 'changelist', 'passwd', 'property', 'logparse', 'rec', 'obliterate', 'annotate', 'workspaces', 'admin', 'interchanges', 'unlock', 'unload', 'counters', 'list', 'depot', 'prune', 'review', 'journals', 'diff2', 'logger', 'changes', 'reopen', 'diskspace', 'opened', 'logappend', 'license', 'files', 'set', 'fstat', 'ldapsync', 'keys', 'logstat', 'print', 'lockstat', 'restore', 'tag', 'group', 'istat', 'submit', 'logrotate', 'describe', 'cachepurge', 'integrated', 'label', 'reviews', 'resolved', 'revert', 'depots', 'grep', 'logout', 'ping', 'protect', 'labelsync', 'info', 'triggers', 'ldaps', 'update', 'lock', 'reconcile', 'cstat', 'reload', 'job', 'fix', 'move', 'configure', 'shelve', 'monitor']
 
->>> p4.files
-<libpy4.py4Sqltypes.Py4Table at 0x130398890>
 
-# fields vs. fieldnames:
-# They are both attributes of a table object, but the `fields` attribute retrieves field objects, while the `fieldnames` attribute retrieves strings.
->>> p4.files.fieldnames
-['code', 'depotFile', 'rev', 'change', 'action', 'type', 'time']
-
->>> p4.files.fields
-[<Py4Field code>,
- <Py4Field depotFile>,
- <Py4Field rev>,
- <Py4Field change>,
- <Py4Field action>,
- <Py4Field type>,
- <Py4Field time>]
-
->>> p4.files.depotfile
-<Py4Field depotFile>
-
->>> query = (p4.files.depotfile.contains('test'))      # A simple query. -> <connector>.<table>.<field> <operator> <value>
->>> query
+>>> p4query = (p4.files.depotfile.contains('test'))      # A simple query
+>>> p4query                                              # A query is a reference to class DLGQuery
 <DLGQuery {'objp4': <Py4 anastasia.local:1777 >,
 'op': <function CONTAINS at 0x10593f1a0>,
 'left': <Py4Field depotFile>,
 'right': 'test',
 'inversion': False}>
 
-#p4 is a callable and takes a query.
->>> my_recordset = p4(query)                           # Connector + query = recordset
->>> my_recordset                                       # It returns a set of records (DLGRecordSet()).
-<DLGRecordSet (<class 'libpy4.py4Run.Py4Run'>) >
+>>> p4files = p4(p4query).select()                     # A recordset has usefull attributes needed to complete a SQL statement.
+                                                     # Attributes like: select, fetch, etc.
+>>> p4files                                          # The selected records (DLGRecords).
+<DLGRecords (8)>                                     # found 8 records
 
->>> testfiles = p4(query).select()                     # A recordset has usefull attributes needed to complete a SQL statement.
-                                                       # Attributes like: select, fetch, etc.
->>> testfiles                                          # The selected records (DLGRecords).
-<DLGRecords (8)>                                       # found 8 records
-
->>> testfiles.last()                                   # the very last record
+>>> p4files.last()                                   # the very last record
 <DLGRecord {'action': 'edit',
  'change': '538',
  'depotFile': '//dev/p4dlg/unittests/unittesting_py4.py',
@@ -152,7 +128,6 @@
  'time': '2025/01/07 12:31:54',
  'type': 'text'}>
 ```
-
 Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. However, in the case of Py4, you need to modify your mindset a little bit... Instead of thinking `p4 commands` (```%> p4 command arg1 arg2```), think of them as tables. In other words, the same syntax over the same mechanics. So, going forward in this README, I will use either P4Jnl or Py4 in examples, but not both (unless stated otherwise).
 
 ## SQL features (aggregators, operators, expressions, inner join, outer join, etc.)
