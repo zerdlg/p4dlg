@@ -247,6 +247,14 @@ An example of a nested belongs
 ```Python
 >>> qry = ((jnl.domain.type == 'client') & (jnl.domain.extra == 'uxcharlotte'))
 >>> targetclients = jnl(qry)._select(jnl.domain.name)
+>>> targetclients
+('bsclient',
+ 'uxcharlotte.pycharm',
+ 'uxcharlotte.p4src',
+ 'lpycharmclient',
+ 'p4source',
+ 'uxcharlotte.bigbird')
+
 >>> qry2 = (jnl.domain.name.belongs(targetclients))
 >>> clientrecords = jnl(qry2).select()
 >>> clientrecords
@@ -274,49 +282,9 @@ An example of a nested belongs
 ```
 
 ### P4dlg supports inner & outer joins :
-#### Merging records - right side over left where common fields are overwrittern
-```Python
->>> reference = (jnl.rev.change == jnl.change.change)
->>> recs = jnl(jnl.rev).select(merge_records=jnl.change.on(reference))
-
-# which is equivalent to:
-# jnl(jnl.rev).select(join=jnl.change.on(reference), flat=True)
-
->>> rec = recs(0)
->>> rec
-<DLGRecord {'action': '0',
- 'change': '3',
- 'client': 'anyschema',
- 'date': '2021/03/12 03:00:42',
- 'db_action': 'pv',
- 'depotFile': '//depot/anyschema_2db/.DS_Store',
- 'depotRev': '1',
- 'descKey': '3',
- 'description': 'initital checking of anyschema_',
- 'digest': '59DD11B3B8804F6AA7A9BBCE1B583430',
- 'identify': '',
- 'idx': 1,
- 'importer': '',
- 'lbrFile': '//depot/anyschema_2db/.DS_Store',
- 'lbrIsLazy': '0',
- 'lbrRev': '1.3',
- 'lbrType': '65539',
- 'modTime': '2021/02/09 05:50:14',
- 'root': '//depot/anyschema_2db/...',
- 'size': '6148',
- 'table_name': 'db.rev',
- 'table_revision': '9',
- 'traitLot': '0',
- 'type': '65539',
- 'user': 'bigbird'}>
-
-print(f"Change `{rec.change}` on depotFile `{rec.depotFile}` by user `{rec.user}`")
-Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
-```
-
 #### Join (inner)
 A merging of 2 records into one. 
-however, the table must be included in the syntax (I.e.: rec.rev.depotFile & rec.change.user) since this join's default behaviour is to contain both records (flat=False). 
+however, the table must be included in the syntax (I.e.: rec.rev.depotFile & rec.change.user) as the default behaviour is to contain both records (flat=False). 
 
 * Note that records are skipped where inner fields are non-matching.
 ```Python
@@ -369,44 +337,84 @@ Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by us
 ```
 
 #### left (outer)
-like join but records with non-matching fields are included in overall outrecords.
+like join but records with non-matching fields are included in the recosoverall outrecords.
+In this example, let's set ```flat=True```
 ```Python
 
 >>> reference = (jnl.rev.change == jnl.change.change)
 >>> recs = jnl(jnl.rev).select(left=jnl.change.on(reference), flat=False)
 >>> rec = recs(0)
 >>> rec
-<DLGRecord {'change': {'change': '3',
-            'client': 'anyschema',
-            'date': '2021/03/12 03:00:42',
-            'descKey': '3',
-            'description': 'initital checking of anyschema_',
-            'identify': '',
-            'importer': '',
-            'root': '//depot/anyschema_2db/...',
-            'user': 'bigbird'},
- 'rev': {'action': '0',
-         'change': '3',
-         'date': '2021/03/12 03:00:42',
-         'db_action': 'pv',
-         'depotFile': '//depot/anyschema_2db/.DS_Store',
-         'depotRev': '1',
-         'digest': '59DD11B3B8804F6AA7A9BBCE1B583430',
-         'idx': 1,
-         'lbrFile': '//depot/anyschema_2db/.DS_Store',
-         'lbrIsLazy': '0',
-         'lbrRev': '1.3',
-         'lbrType': '65539',
-         'modTime': '2021/02/09 05:50:14',
-         'size': '6148',
-         'table_name': 'db.rev',
-         'table_revision': '9',
-         'traitLot': '0',
-         'type': '65539'}}>
+<DLGRecord {'action': '0',
+ 'change': '3',
+ 'client': 'anyschema',
+ 'date': '2021/03/12 03:00:42',
+ 'db_action': 'pv',
+ 'depotFile': '//depot/anyschema_2db/.DS_Store',
+ 'depotRev': '1',
+ 'descKey': '3',
+ 'description': 'initital checking of anyschema_',
+ 'digest': '59DD11B3B8804F6AA7A9BBCE1B583430',
+ 'identify': '',
+ 'idx': 1,
+ 'importer': '',
+ 'lbrFile': '//depot/anyschema_2db/.DS_Store',
+ 'lbrIsLazy': '0',
+ 'lbrRev': '1.3',
+ 'lbrType': '65539',
+ 'modTime': '2021/02/09 05:50:14',
+ 'root': '//depot/anyschema_2db/...',
+ 'size': '6148',
+ 'table_name': 'db.rev',
+ 'table_revision': '9',
+ 'traitLot': '0',
+ 'type': '65539',
+ 'user': 'bigbird'}>
 
 >>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
 Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
 ```
+
+#### Merging records (braiding) - right side over left where common fields are overwrittern
+```Python
+>>> reference = (jnl.rev.change == jnl.change.change)
+>>> recs = jnl(jnl.rev).select(merge_records=jnl.change.on(reference))
+
+# which is equivalent to:
+# jnl(jnl.rev).select(join=jnl.change.on(reference))
+
+>>> rec = recs(0)
+>>> rec
+<DLGRecord {'action': '0',
+ 'change': '3',
+ 'client': 'anyschema',
+ 'date': '2021/03/12 03:00:42',
+ 'db_action': 'pv',
+ 'depotFile': '//depot/anyschema_2db/.DS_Store',
+ 'depotRev': '1',
+ 'descKey': '3',
+ 'description': 'initital checking of anyschema_',
+ 'digest': '59DD11B3B8804F6AA7A9BBCE1B583430',
+ 'identify': '',
+ 'idx': 1,
+ 'importer': '',
+ 'lbrFile': '//depot/anyschema_2db/.DS_Store',
+ 'lbrIsLazy': '0',
+ 'lbrRev': '1.3',
+ 'lbrType': '65539',
+ 'modTime': '2021/02/09 05:50:14',
+ 'root': '//depot/anyschema_2db/...',
+ 'size': '6148',
+ 'table_name': 'db.rev',
+ 'table_revision': '9',
+ 'traitLot': '0',
+ 'type': '65539',
+ 'user': 'bigbird'}>
+
+print(f"Change `{rec.change}` on depotFile `{rec.depotFile}` by user `{rec.user}`")
+Change `3` on depotFile `//depot/anyschema_2db/.DS_Store` by user `bigbird`
+```
+
 
 ### p4dlg has an an interactive shell where we can muck around, test stuff, or generate some those awesome matplotlib graphes with your results.
 
