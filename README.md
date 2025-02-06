@@ -66,7 +66,7 @@ Py4 Table & Field object
 <Py4Field depotFile>
 ```
 
-
+## A few examples of SQL features and functionality.
 ### Queries
 ```Python
 # P4JNl queries
@@ -143,15 +143,15 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 + etc.
 
 
-### Example: a list of imaginary requirements:
+### Example using a list of simple & imaginary requirements:
 + Retrieve all clientspec records. 
-+ Fields should be limited to 'name', 'extra' (Host:), 'owner' & 'accessDate'. 
++ Fields should be restricted to 'name', 'extra' (aka. 'Host:'), 'owner' & 'accessDate'. 
 + Group client records by 'Host" (aka. "extra") & order them by "accessDate".
 + Let's limit the number of records to 25.
 
 ```Python
 >>> clients = jnl(jnl.domain.type == 'client').select('name', 'extra', 'owner', 'accessDate')
->>> client_groups = clients.groupby('extra', orderby='accessDate', limitby=(1,25))
+>>> client_groups = clients.groupby('extra', orderby='accessDate', limitby=(100,125))
 
 # you can output results as a grid.
 >>> client_groups.as_grid()
@@ -230,7 +230,15 @@ dict_keys(['computer_p4dlg', 'computer_p4q', 'computer_py4'])
  'user': 'bigbird'}>
 ```
 
-#### Operators & Not
+#### Operators
++ You can use bitwise operators to combine query statements, though each statement must be parenthesized.
++ You can use any relational operators within a query statement.
++ You can use `contains`, `startswith` or `endswith` to check Field values.
+
+eg.
+```Python
+qry = (jnl.domain.type == 'client') & (jnl.domain.description.contains('some_token')
+```
 
 
 #### SQL `IN` (```in``` is already a Python keyword, therefor renamed to ```belongs```)
@@ -250,7 +258,7 @@ An example of a nested belongs
 >>> targetclients
 ('bsclient',
  'uxcharlotte.pycharm',
- 'uxcharlotte.p4src',
+ 'uxcharlotte.p4src',Change 569 submitted.
  'lpycharmclient',
  'p4source',
  'uxcharlotte.bigbird')
