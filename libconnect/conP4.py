@@ -4,7 +4,7 @@ from subprocess import PIPE, Popen
 import unittest
 from pprint import pprint
 
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import decode_bytes, set_localport
 from libpy4.py4IO import Py4
@@ -152,7 +152,7 @@ class ObjP4(object):
             [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
         except KeyError as err:
             print(err)
-        Storage(self.shellObj.__dict__).delete(name)
+        ZDict(self.shellObj.__dict__).delete(name)
         self.setstored()
 
     def setstored(self):
@@ -165,7 +165,7 @@ class ObjP4(object):
         return self
 
     def update(self, name, **kwargs):
-        kwargs = Storage(self.fixkeys(**kwargs))
+        kwargs = ZDict(self.fixkeys(**kwargs))
         if (kwargs.port is not None):
             kwargs.port = set_localport(kwargs.p4droot)
         try:
@@ -185,7 +185,7 @@ class ObjP4(object):
         if (self.varsdef(name) is not None):
             print(f'CreateError:\nName already exists "{name}" - use op4.update({name}) instead')
         try:
-            (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
+            (args, kwargs) = (Lst(args), ZDict(self.fixkeys(**kwargs)))
             (objp4, StopError) = (None, None)
             if (False in (
                     (kwargs.user is not None),
@@ -277,7 +277,7 @@ class ObjP4(object):
         else:
             try:
                 [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
-                Storage(self.shellObj.__dict__).delete(name)
+                ZDict(self.shellObj.__dict__).delete(name)
                 self.shellObj.kernel.shell.push(self.shellObj.__dict__)
                 self.setstored()
                 print(f'Reference ({name}) unloaded')

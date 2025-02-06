@@ -3,7 +3,7 @@ import re
 
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgRecord import DLGRecord
-from libdlg.dlgStore import Lst, Storage, objectify
+from libdlg.dlgStore import Lst, ZDict, objectify
 from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
     bail,
@@ -47,7 +47,7 @@ class Py4Table(object):
 
     def __init__(self, objp4, *args, **tabledata):
         self.objp4 = objp4
-        (args, tabledata) = (Lst(args), Storage(tabledata))
+        (args, tabledata) = (Lst(args), ZDict(tabledata))
         args0_error = 'Py4Table args[0] must be str'
         args1_error = 'Py4Table args[1] must be Py4Run object'
         if (not isinstance(args(0), str)):
@@ -101,18 +101,18 @@ class Py4Table(object):
             self.fieldtypesmap
         ) = \
             (
-                Storage(),
-                Storage(),
-                Storage()
+                ZDict(),
+                ZDict(),
+                ZDict()
             )
         self._reference_by = None
         self.inversion = tabledata.inversion or False
         ''' p4table attributes
         '''
-        self.p4schema = self.oSchema.p4schema or Storage()
+        self.p4schema = self.oSchema.p4schema or ZDict()
         self.schemaversion = self.p4schema.version
-        self.p4model = self.oSchema.p4model or Storage()
-        self.modeltable = self.p4model[self.tablename] or Storage()
+        self.p4model = self.oSchema.p4model or ZDict()
+        self.modeltable = self.p4model[self.tablename] or ZDict()
         self.modelfields = self.modeltable.fields \
             if (self.modeltable.fields is not None) \
             else Lst()
@@ -176,13 +176,13 @@ class Py4Table(object):
         if (isinstance(p4ret, str)):
             if (re.match(r'^Perforce\sclient\serror:\n', p4ret) is not None):
                 bail(p4ret)
-        ''' expect a Storage... convert Flatten to Storage or grab index 0 if ListType 
+        ''' expect a ZDict... convert Flatten to ZDict or grab index 0 if ListType 
         '''
         if (isinstance(p4ret, Flatten)):
-            p4ret = Storage(p4ret)
-        ''' Whatever the case, p4ret should end up being a Storage at this point!
+            p4ret = ZDict(p4ret)
+        ''' Whatever the case, p4ret should end up being a ZDict at this point!
         '''
-        if (isinstance(p4ret, (Storage, DLGRecord))):
+        if (isinstance(p4ret, (ZDict, DLGRecord))):
             try:
                 if AND(
                         AND(
@@ -212,7 +212,7 @@ class Py4Table(object):
             filter(
                 lambda tbl: (tbl.name == tablename), tables
             )
-        )(0) or Storage()
+        )(0) or ZDict()
         try:
             return re.split(r',\s', dtable.keying)
         except:
@@ -269,7 +269,7 @@ class Py4Table(object):
         '''
         allfields = self.fieldnames
         if (name is None):
-            return allfields if (len(allfields) > 0) else Storage()
+            return allfields if (len(allfields) > 0) else ZDict()
         if (name.lower() in self.fieldsmap.keys()):
             return Lst(
                 filter(
@@ -327,7 +327,7 @@ class Py4Table(object):
                         (len(self.fieldsmap) == 0),
                         (len(self.fieldnames) > 0)
                 ):
-                    self.fieldsmap = Storage({k.lower(): k for k in self.fieldnames})
+                    self.fieldsmap = ZDict({k.lower(): k for k in self.fieldnames})
                 fieldkey = self.fieldsmap.get(key.lower())
                 if (fieldkey is None):
                     bail(
@@ -425,8 +425,8 @@ class Py4Field(DLGExpression):
                  fieldname,
                  tablename=None,
                  table=None,
-                 objp4=Storage(),
-                 oSchema=Storage(),
+                 objp4=ZDict(),
+                 oSchema=ZDict(),
                  default=lambda: None,
                  type='string',
                  length=None,
@@ -444,7 +444,7 @@ class Py4Field(DLGExpression):
                  _table=None,
                  **kwargs
                 ):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         self.fieldname = fieldname
         self.name = fieldname
         self._table = _table or objp4[tablename]
@@ -526,7 +526,7 @@ class Py4Field(DLGExpression):
         except Exception as err:
             self.logwarning(err)
 
-    keys = lambda self: Storage(self.__dict__).getkeys()
+    keys = lambda self: ZDict(self.__dict__).getkeys()
 
     __get__ = lambda self: self.__getitem__
 
@@ -575,7 +575,7 @@ class Py4Field(DLGExpression):
             else:
                 return obj
 
-        fielddict = Storage()
+        fielddict = ZDict()
         if not (sanitize and not (self.readable or self.writable)):
             for attr in attrs:
                 flattened = {attr: flatten(getattr(self, attr))} \

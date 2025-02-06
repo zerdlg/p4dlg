@@ -2,7 +2,7 @@ import re
 import datetime
 
 from libdlg.dlgStore import (
-    Storage,
+    ZDict,
     objectify,
     Lst
 )
@@ -37,7 +37,7 @@ class JNLTable(object):
                     *args,
                     **tabledata
     ):
-        (args, tabledata) = (Lst(args), Storage(tabledata))
+        (args, tabledata) = (Lst(args), ZDict(tabledata))
         self.objp4 = objp4
         self.tablename = self._name = tablename
         self.oSchema = oSchema or self.objp4.oSchema
@@ -48,15 +48,15 @@ class JNLTable(object):
             self.fieldtypesmap
         ) = \
             (
-                tabledata.fieldsmap or Storage(),
-                tabledata.fieldtypesmap or Storage()
+                tabledata.fieldsmap or ZDict(),
+                tabledata.fieldtypesmap or ZDict()
             )
         ''' schema data
         '''
-        self.p4schema = self.oSchema.p4schema or Storage()
+        self.p4schema = self.oSchema.p4schema or ZDict()
         self.schemaversion = self.p4schema.version
-        self.p4model = self.oSchema.p4model or Storage()
-        self.modeltable = self.p4model[self.tablename] or Storage()
+        self.p4model = self.oSchema.p4model or ZDict()
+        self.modeltable = self.p4model[self.tablename] or ZDict()
         self.modelfields = self.modeltable.fields \
             if (self.modeltable.fields is not None) \
             else Lst()
@@ -105,7 +105,7 @@ class JNLTable(object):
                 )
             except Exception as err:
                 pass
-            (is_flag, is_bitmask, datatype) = (False, False, Storage())
+            (is_flag, is_bitmask, datatype) = (False, False, ZDict())
             if (not field.name in ('id', 'idx', 'db_action', 'table_revision', 'table_name')):
                 datatype = self.oSchemaType.datatype_byname(field.type)
                 if (noneempty(datatype) is False):
@@ -327,7 +327,7 @@ class JNLField(DLGExpression):
         )
 
         fieldattributes = [fielditem for fielditem in field]
-        self.attributesmap = Storage({fitem.lower(): fitem for fitem in fieldattributes})
+        self.attributesmap = ZDict({fitem.lower(): fitem for fitem in fieldattributes})
         [setattr(self, fielditem, field[fielditem]) for fielditem in field]
         self.__dict__ = objectify(self.__dict__)
 
@@ -403,7 +403,7 @@ class JNLField(DLGExpression):
         ):
             pass
 
-        attkeys = Storage(self.__dict__).getkeys()
+        attkeys = ZDict(self.__dict__).getkeys()
         if (not key in attkeys):
             if (self.attributesmap[key.lower()] is not None):
                 return getattr(self, self.attributesmap[key.lower()])
@@ -460,7 +460,7 @@ class JNLField(DLGExpression):
             return flatobj
 
 
-        fielddict = Storage()
+        fielddict = ZDict()
         if NOT(
                 AND(
                     (sanitize is True),

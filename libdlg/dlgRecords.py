@@ -5,7 +5,7 @@ from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgStore import (
     Lst,
-    Storage,
+    ZDict,
     objectify
 )
 from libdlg.dlgSearch import Search
@@ -77,13 +77,13 @@ class DLGRecords(object):
             objp4=None,
             **tabledata
     ):
-        self.objp4 = objp4 or Storage()
+        self.objp4 = objp4 or ZDict()
         self.records = Lst(DLGRecord(record) for record in records) if (records is not None) else Lst()
         self.cols = cols
         self.grid = None
         ''' thinking specifically for Py4 & Search
         '''
-        self.tabledata = Storage(tabledata)
+        self.tabledata = ZDict(tabledata)
         ''' p4 cmd specific tables are of no use if objp4 is P4Jnl - 
             let's get rid of them so as to not bring about confusion.  
         '''
@@ -274,6 +274,12 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             i += 1
 
     def limitby(self, args, records=None):
+        ''' would a between() func be useful?
+            res = filter(lambda rec: min <= rec.idx <= max, changes)
+
+            and, should start/end be used as rec.id/idx?
+            hum...
+        '''
         if (len(args) != 2):
             return self
         args = Lst(args)
@@ -494,6 +500,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                                          'owner': 'gc',
                                          'options': '0'},
                          ...}
+
+        res = filter(lambda rec: min <= rec.idx <= max, changes)
         '''
         for field in fields:
             if (not field in self.cols):
@@ -508,7 +516,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             '''
             return records
 
-        records_by_group = Storage()
+        records_by_group = ZDict()
         recordslen = len(records)
 
         def group(record, num):
@@ -636,7 +644,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         ''' do something to validate user input & apply to sdearch as well!
         '''
         optionsmap = self.objp4.memoizetable(tablename).tableoptions.optionsmap
-        for (key, value) in Storage(kwargs).items():
+        for (key, value) in ZDict(kwargs).items():
             key = re.sub('\-', '', key).lower()
             if (key in optionsmap.keys()):
                 optkey = f'--{key}'
@@ -656,7 +664,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
                 table/cmcd option defaults on a file/revision:
                 '''
-        fileoptions = Storage(
+        fileoptions = ZDict(
             {
                 'unload': False,            # (-U) enables access to unloaded objects.
                 'quiet': False,             # (-q) suppresses normal information output.
@@ -697,7 +705,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         if (is_P4Jnl(self.objp4) is True):
             bail('`sync` attribute is of no use here... dropping.')
 
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         records = self
         (start, end) = limitby \
             if (noneempty(limitby) is False) \
@@ -773,7 +781,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             """
             ''' do something to validate user input & apply to sdearch as well!
             '''
-            for (key, value) in Storage(kwargs.copy()).items():
+            for (key, value) in ZDict(kwargs.copy()).items():
                 if (key.lower() in self.objp4.tablememo['sync'].cmdref.fieldsmap.getkeys()):
                     optkey = f'--{key}'
                     if (noneempty(value) is False):
@@ -939,7 +947,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                             for result in results:
                                 #context = re.sub('^\s*', '... ', result.context).rstrip('\n')
                                 context = result.context.rstrip('\n')
-                                searchdata = Storage(
+                                searchdata = ZDict(
                                     {
                                         'score': str(result.score),
                                         'search_terms': result.terms,

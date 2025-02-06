@@ -1,4 +1,4 @@
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgControl import DLGControl
 
 '''  [$File: //dev/p4dlg/libpy4/py4Filetypes.py $] [$Change: 452 $] [$Revision: #6 $]
@@ -15,7 +15,7 @@ class Py4Filetypes(DLGControl):
     def __init__(self, objp4, *args, **kwargs):
         self.objp4 = objp4
         if (self.objp4 is None):
-            self.objp4 = Storage()
+            self.objp4 = ZDict()
         loglevel = kwargs.loglevel \
             if (self.objp4 is None) \
             else self.objp4.loglevel or 'DEBUG'
@@ -33,7 +33,7 @@ class Py4Filetypes(DLGControl):
 
         The following are the base Perforce filetypes:
 
-            Type        Client Use              Server Storage
+            Type        Client Use              Server ZDict
             ----        ----------              --------------
             text        newlines translated     deltas in RCS format
             binary      raw bytes               compressed binary

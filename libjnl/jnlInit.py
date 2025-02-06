@@ -1,5 +1,5 @@
 import os
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgFileIO import loadpickle, dumppickle
 from libdlg.dlgSchema import SchemaXML
 from libdlg.dlgUtilities import remove
@@ -49,8 +49,8 @@ class JnlInitialize(object):
         self.cleanupdstores()
         self.objFiles = Lst(objFile for objFile in os.listdir(self.objfilespath))
         self.modelFiles = Lst(modelFile for modelFile in os.listdir(self.modelfilespath))
-        self.objects = Storage()
-        self.models = Storage()
+        self.objects = ZDict()
+        self.models = ZDict()
         self.ALLTABLES = set()
         self.records = Lst()
 
@@ -135,7 +135,7 @@ class JnlInitialize(object):
                 modelXml = self.models[model]
                 modelTables = modelXml.keys()
                 idx += 1
-                tblrecord = Storage(
+                tblrecord = ZDict(
                     {
                         'id': idx,
                         'table': table,

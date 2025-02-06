@@ -1,6 +1,6 @@
 from io import StringIO
 
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgFileIO import is_writable, make_writable
 
 '''  [$File: //dev/p4dlg/libconnect/conNO.py $] [$Change: 472 $] [$Revision: #9 $]
@@ -32,7 +32,7 @@ class ObjNO(object):
                           if (key != '__session_loaded_on__'))
 
     def create(self, name, **kwargs):
-        value = Storage(kwargs)
+        value = ZDict(kwargs)
         self.varsdef(name, value)
         self.shellObj.kernel.shell.push({name: value})
         print(f'Reference ({name}) created')
@@ -55,12 +55,12 @@ class ObjNO(object):
             [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
         except KeyError as err:
             print(err)
-        Storage(self.shellObj.__dict__).delete(name)
+        ZDict(self.shellObj.__dict__).delete(name)
         self.setstored()
         print(f'Reference ({name}) unloaded')
 
     def update(self, name, **kwargs):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         if (len(kwargs) > 0):
             self.unload(name)
             old_value = self.varsdef(name)

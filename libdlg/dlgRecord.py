@@ -1,7 +1,7 @@
 import decimal
 from datetime import date, datetime, time
 
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgUtilities import (
     reg_objdict,
     bail,
@@ -21,7 +21,7 @@ __all__ = ['DLGRecord']
 
 from pprint import pformat
 
-class DLGRecord(Storage):
+class DLGRecord(ZDict):
 
     __str__ = __repr__ = lambda self: f'<DLGRecord {pformat(self.as_dict())}>'
 
@@ -29,7 +29,7 @@ class DLGRecord(Storage):
         return self.getkeys()
 
     def _fieldsmap(self):
-        return Storage(zip(ALLLOWER(self._fieldnames()), self._fieldnames()))
+        return ZDict(zip(ALLLOWER(self._fieldnames()), self._fieldnames()))
 
     def __setattr__(self, item, value):
         if (str(item).lower() in self._fieldsmap()):
@@ -97,7 +97,7 @@ class DLGRecord(Storage):
             datetime,
             time
         )
-        record = Storage(self.copy())
+        record = ZDict(self.copy())
         for field in record.getkeys():
             try:
                 fieldvalue = record[field]
@@ -196,7 +196,7 @@ class DLGRecord(Storage):
                 overwrite - add_missing - allow_nonevalue  - extend_listvalues
     '''
     def merge(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         any = args.storageindex(reversed=True) \
             if (len(args) > 0) \
             else Lst([kwargs]).storageindex(reversed=True) \
@@ -248,6 +248,6 @@ class DLGRecord(Storage):
 
         for anyitem in any:
             mergedict(self.objectify(any[anyitem]) \
-                          if (isinstance(any[anyitem], Storage) is False) \
+                          if (isinstance(any[anyitem], ZDict) is False) \
                           else any[anyitem])
         return self

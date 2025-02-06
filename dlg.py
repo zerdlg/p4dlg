@@ -1,6 +1,6 @@
 import os, sys
 from pprint import pformat
-from libdlg.dlgStore import Storage
+from libdlg.dlgStore import ZDict
 from libdlg.dlgOptions import ArgsParser
 from libsh import shell
 
@@ -18,7 +18,7 @@ from libsh import shell
 '''
 
 def initprog(**opts):
-    opts = Storage(opts)
+    opts = ZDict(opts)
     print(f'Processing subparser `{opts.which}` with the following cmd ine options:\n{pformat(opts)}')
     if (len(opts) > 0):
         subparser = opts.pop('which')
@@ -33,7 +33,7 @@ if (__name__ == '__main__'):
     '''  cmd line options
     '''
     root_path = os.path.abspath('.')
-    opts = Storage({'root_path': root_path})
+    opts = ZDict({'root_path': root_path})
     args = []
     oParser = ArgsParser()
     domainargs = oParser().parse_args(args if (len(sys.argv) == 1) else None)

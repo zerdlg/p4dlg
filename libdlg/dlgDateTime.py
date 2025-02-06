@@ -2,7 +2,7 @@ import re
 from datetime import datetime, date, time
 from time import mktime, strptime
 
-from libdlg.dlgStore import Lst, Storage
+from libdlg.dlgStore import Lst, ZDict
 from libdlg.dlgUtilities import (
     noneempty,
     reg_datetime_fieldname
@@ -55,7 +55,7 @@ class DLGDateTime(object):
              utc=False,
              **kwargs
     ):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         (self.sep, self.utc) = (sep, utc)
         ''' date/time formats
         '''
@@ -429,7 +429,7 @@ class DLGDateTime(object):
             >>> oP4QDT.to_datetime(*[2019,6,9])
             datetime(2019,8,19,0,0)
         '''
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         if (len(args) == 1):
             dt = args(0)
             if (isinstance(args(0), str) is True):
@@ -582,7 +582,7 @@ class DLGDateTimeConvert(object):
                 fld.fieldname,
                 fld.type
             ) \
-                if (type(fld).__name__ == 'Storage') \
+                if (type(fld).__name__ == 'ZDict') \
                 else (
                 None,
                 None

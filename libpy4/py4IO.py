@@ -10,7 +10,7 @@ from libpy4.py4Options import Py4Options
 from libpy4.py4Run import Py4Run
 from libpy4.py4Sqltypes import Py4Table, Py4Field
 from libdlg.dlgStore import (
-    Storage,
+    ZDict,
     objectify,
     Lst
 )
@@ -138,7 +138,7 @@ class Py4(object):
         iter(self)
 
     def __init__(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         loglevel = kwargs.pop('loglevel') \
             if (kwargs.loglevel is not None) \
             else 'DEBUG'
@@ -346,7 +346,7 @@ class Py4(object):
             if (not configkey in self.p4globals):
                 setattr(self, attname, configpairs[configkey])
 
-        self.recCounter = Storage(
+        self.recCounter = ZDict(
                                     {
                                         'threshhold': self.recordchunks,
                                         'recordcounter': 0
@@ -360,7 +360,7 @@ class Py4(object):
                 (query is None)
         ):
             return self
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         (
             tablename,
             lastarg,
@@ -370,7 +370,7 @@ class Py4(object):
             = (
             kwargs.tablename,
             None,
-            Storage(),
+            ZDict(),
             None,
         )
 
@@ -650,7 +650,7 @@ class Py4(object):
                         'ignore',
                         'tickets'
         ]
-        envvariables = Storage()
+        envvariables = ZDict()
         p4UserConfig = Py4Run(self, **cdata)()
         if (type(p4UserConfig).__name__ == 'DLGRecords'):
             p4UserConfig = p4UserConfig(0).data
@@ -667,7 +667,7 @@ class Py4(object):
         return envvariables
 
     def define_p4globals(self, **kwargs):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         res = set()
         RSH_PORT_Error = "Can not define RSH port because the RSH string could not be built"
         RSH_MISSING_ROOT_ERROR = "Can not define RSH port, `p4droot` is required!"
@@ -826,7 +826,7 @@ class Py4(object):
     def define_lastarg(self, tablename, *cmdargs, **kwargs):
         if (tablename is None):
             return (None, None)
-        (cmdargs, kwargs) = (Lst(cmdargs), Storage(kwargs))
+        (cmdargs, kwargs) = (Lst(cmdargs), ZDict(kwargs))
         query = kwargs.query
         if (query is not None):
             query = query(0) \
@@ -934,7 +934,7 @@ class Py4(object):
             args = ['print', sourcefile]
             cmdargs = self.objp4.p4globals + args
             out = Lst(self.objp4.p4OutPut('print', *cmdargs))
-            metadata = Storage(out(0))
+            metadata = ZDict(out(0))
             if (len(out) == 2):
                 source = out(1).data
             else:
@@ -951,7 +951,7 @@ class Py4(object):
             for q in query:
                 specifiers = []
                 if OR(
-                        (isinstance(q.right, Storage)),
+                        (isinstance(q.right, ZDict)),
                         (q.right.__name__ == fieldType(self.objp4))
                 ):
                     q = q.left
@@ -1237,7 +1237,7 @@ class Py4(object):
         )
 
     def parseInputKeys(self, tabledata, specname, **specinput):
-        specinput = Storage(specinput)
+        specinput = ZDict(specinput)
         if (type(specname).__name__ == 'Py4Table'):
             specname = specname.tablename
         try:
@@ -1279,7 +1279,7 @@ class Py4(object):
         ) = \
             (
                 Lst(p4args),
-                Storage(kwargs),
+                ZDict(kwargs),
                 Lst(),
                 False
         )
@@ -1328,7 +1328,7 @@ class Py4(object):
         ) = \
             (
                 Lst(p4args),
-                Storage(kwargs),
+                ZDict(kwargs),
                 Lst(),
                 False
         )
@@ -1361,7 +1361,7 @@ class Py4(object):
                 out = objectify(loader(oFile))
                 if (isinstance(out, Lst) is True):
                     if (isinstance(out(0), tuple) is True):
-                        out = Storage(out)
+                        out = ZDict(out)
                 out = decode_bytes(out)
                 records.append(out)
             except (StopIteration, EOFError):
@@ -1401,7 +1401,7 @@ class Py4(object):
             = \
             (
                 Lst(p4args),
-                Storage(specinput)
+                ZDict(specinput)
             )
         objFile = Popen(
             p4args,
@@ -1452,7 +1452,7 @@ class Py4(object):
                         )
                     ):
                     out = decode_bytes(out)
-            return Flatten(**Storage(out)).reduce()
+            return Flatten(**ZDict(out)).reduce()
         finally:
             if (hasattr(objFile, 'close')):
                 objFile.close()
@@ -1480,13 +1480,13 @@ class Py4(object):
                     None,
                     tablename,
                     None,
-                    Storage(),
-                    Storage(),
+                    ZDict(),
+                    ZDict(),
                     Lst(),
                     Lst(),
-                    Storage(),
+                    ZDict(),
                     Lst(),
-                    Storage(),
+                    ZDict(),
                     ''
                 )
             tabledata = self.tablememo[tablename] = objectify(
@@ -1525,7 +1525,7 @@ class Py4(object):
                             (tditem == 'fieldsmap'),
                             (len(tabledata.fieldnames) > 0)
                 ):
-                    tdvalue = Storage(
+                    tdvalue = ZDict(
                         zip(
                             [
                                 fname.lower() for fname in fieldnames

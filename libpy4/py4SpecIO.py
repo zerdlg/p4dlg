@@ -20,7 +20,7 @@ class SpecIO(object):
             *args,
             **specinput
     ):
-        (args, specinput) = (Lst(args), Storage(specinput))
+        (args, specinput) = (Lst(args), ZDict(specinput))
         tabledata = self.objp4.memoizetable(tablename)
         fieldsmap = tabledata.fieldsmap
         (
@@ -91,7 +91,7 @@ class SpecIO(object):
             is_output = True
 
         ''' for reporting
-        specoptions = Storage(
+        specoptions = ZDict(
             {
                 'is_input': is_input,
                 'is_output': is_output,
@@ -156,7 +156,7 @@ class SpecIO(object):
             out = self.objp4.p4OutPut(tablename, *outputargs)
             outrecord = Lst(out)(0)
             if (type(outrecord) is Lst):
-                outrecord = outrecord(0) or Storage()
+                outrecord = outrecord(0) or ZDict()
             if (outrecord not in (Lst(), None)):
                 if AND(
                         (outrecord.generic is not None),
@@ -195,7 +195,7 @@ class SpecIO(object):
         '''
         if (inputargs(-1) == specname):
             inputargs.pop(-1)
-        specinputcopy = Storage(specinput.copy())
+        specinputcopy = ZDict(specinput.copy())
         ''' - cleanup p4d-generated & managed field values
             - remove read-only fields from input spec                    
             - add the --input flag to inputargs

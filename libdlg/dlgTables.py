@@ -6,7 +6,7 @@ import datetime
 
 from libdlg.dlgUtilities import *
 from libdlg.dlgFileIO import isanyfile
-from libdlg.dlgStore import Storage, objectify, Lst, StorageIndex
+from libdlg.dlgStore import ZDict, objectify, Lst, StorageIndex
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgQuery_and_operators import *
 from libdlg.contrib.prettytable.prettytable import PrettyTable as PT
@@ -38,7 +38,7 @@ re_formatted = re.compile('\\x1b[\[0-9;]*m')
         '\033[0m'
     )
 
-table_stryle = Storage(
+table_stryle = ZDict(
             {
                 'default': 10,
                 'msword_friendly': 11,
@@ -107,10 +107,10 @@ tableoption = objectify(
 
 class Ascii(object):
     def __init__(self,**options):
-        options = Storage(options)
+        options = ZDict(options)
         self.datatable = PT()
         self.datagrid = PT()
-        self.dataoptions = Storage()
+        self.dataoptions = ZDict()
         self.oDateTime = DLGDateTime()
 
         for opt in (
@@ -187,7 +187,7 @@ class Ascii(object):
             value = value.decode('utf8')
         elif (realtype in (
                 dict,
-                Storage,
+                ZDict,
                 StorageIndex
             )
         ):
@@ -215,7 +215,7 @@ class msgbox(object):
         '''
 
     def __init__(self, title='MESSAGE_BOX', *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         self.stylize = kwargs.stylize or False
         title = re.sub('\s', '_', title).upper()
         self.msgboxtable = PT([title,])
@@ -232,12 +232,12 @@ class DataGrid(Ascii):
             rows,   # list of records
             **options
     ):
-        options = Storage(options)
+        options = ZDict(options)
         super(DataGrid, self).__init__(**options)
         self.exclude_fields = ()
         if (isinstance(rows, list) is True):
             rows = objectify(rows)
-        elif (isinstance(rows, Storage) is True):
+        elif (isinstance(rows, ZDict) is True):
             for key in rows.keys():
                 (
                     groupname,
@@ -271,7 +271,7 @@ class DataGrid(Ascii):
         ) = \
             (
                 Lst(fields),
-                Storage(kwargs)
+                ZDict(kwargs)
             )
 
         if (len(fields) == 0):
@@ -280,7 +280,7 @@ class DataGrid(Ascii):
             elif (type(self.rows).__name__ == 'DLGRecords'):
                 fields = self.rows.cols
             elif (isinstance(self.rows(0), dict)):
-                fields = Storage(self.rows(0)).getkeys()
+                fields = ZDict(self.rows(0)).getkeys()
             elif AND(
                     (isinstance(self.rows(0), list) is True),
                     (isinstance(self.rows(1), dict) is True)
@@ -290,7 +290,7 @@ class DataGrid(Ascii):
                 fields = self.rows(0).getkeys()
 
         self.fields = fields.storageindex(reversed=True)
-        self.fieldsmap = Storage(
+        self.fieldsmap = ZDict(
             zip(
                 [field.lower() for field in fields], fields
             )
@@ -312,7 +312,7 @@ class DataGrid(Ascii):
         rowcounter = 0
         for (nidx, row) in enumerate(self.rows, start=1):
             if (isinstance(row, dict) is True):
-                row = Storage(row).getvalues()
+                row = ZDict(row).getvalues()
             if (requires_rowidx is True):
                 row.insert(0, nidx)
 
@@ -334,7 +334,7 @@ class DataGrid(Ascii):
                 self.addrow(row)
 
     def build_datagrid(self, *fields, **kwargs):
-        (fields, kwargs) = (Lst(fields), Storage(kwargs))
+        (fields, kwargs) = (Lst(fields), ZDict(kwargs))
         if (type(self.rows) is Generator):
             self.rows = Lst([row for row in self.rows])
         if (len(self.rows) == 0):
@@ -418,16 +418,16 @@ class DataGrid(Ascii):
 
 class DataTable(Ascii):
     def __init__(self, record, **options):
-        options = Storage(options)
+        options = ZDict(options)
         reservedatts = ['get', 'set']
-        self.__dict__ = Storage(self.__dict__)
+        self.__dict__ = ZDict(self.__dict__)
         self.oDateTime = DLGDateTime()
         self.record = objectify(record) \
             if (
             isinstance(record,
                        (
                            dict,
-                           Storage,
+                           ZDict,
                            Lst,
                            list
                        )
@@ -458,7 +458,7 @@ class DataTable(Ascii):
         ) = \
             (
                 Lst(fields) or Lst(['key', 'value']),
-                Storage(kwargs)
+                ZDict(kwargs)
             )
         self.dataoptions_copy = self.dataoptions.copy()
         self.dataoptions.merge(kwargs)
@@ -466,7 +466,7 @@ class DataTable(Ascii):
         '''
         if (type(self.record) is not StorageIndex):
             self.record = Lst(
-                Storage(
+                ZDict(
                     {i: j}
                 ) for (i, j) in self.record.items()
             ).storageindex(reversed=True, startindex=1)

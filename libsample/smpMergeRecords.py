@@ -3,7 +3,7 @@ from os.path import dirname
 from libdlg.dlgQuery_and_operators import AND
 from libjnl.jnlIO import P4Jnl
 from libdlg import SchemaXML, to_releasename, DLGRecord
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 import resc.journals as journals
 
 '''  [$File: //dev/p4dlg/libsample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
@@ -27,7 +27,7 @@ class  Merge(object):
     '''
 
     def __init__(self, *args, version="r16.2", **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         schemaversion = to_releasename(version)
         oSchema = SchemaXML(schemaversion)
         journal = args(0)

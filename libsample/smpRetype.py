@@ -1,7 +1,7 @@
 from libdlg.dlgQuery_and_operators import AND
 from libpy4.py4IO import Py4
 from libdlg import SchemaXML, to_releasename
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 
 '''  [$File: //dev/p4dlg/libsample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
      [$DateTime: 2024/08/23 04:23:28 $]
@@ -60,7 +60,7 @@ class Retype(object):
             print(err)
 
 def _retype(**kwargs):
-    kwargs = Storage(kwargs)
+    kwargs = ZDict(kwargs)
     preview = False
     if (kwargs.preview is not None):
         preview = kwargs.pop('preview')

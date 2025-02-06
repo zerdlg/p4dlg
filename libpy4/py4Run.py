@@ -1,6 +1,6 @@
 import re
 
-from libdlg.dlgStore import Lst, Storage, objectify
+from libdlg.dlgStore import Lst, ZDict, objectify
 from libdlg.dlgUtilities import decode_bytes
 from libdlg.dlgQuery_and_operators import AND, OR
 from libpy4.py4SpecIO import SpecIO
@@ -38,7 +38,7 @@ class Py4Run(object):
         ) = \
             (
                 cmdargs,
-                Storage(tabledata)
+                ZDict(tabledata)
             )
 
         ''' Py4 does provide its own logger, if objp4 IS iinstance of Py4, then use it.
@@ -55,7 +55,7 @@ class Py4Run(object):
         self.logcritical = logger.logcritical if (logger is not None) else self.loglist.append
 
     def __call__(self, *cmdargs, **cmdkwargs):
-        (cmdargs, cmdkwargs) = (Lst(cmdargs), Storage(cmdkwargs))
+        (cmdargs, cmdkwargs) = (Lst(cmdargs), ZDict(cmdkwargs))
         join_datachunks = cmdkwargs.joindata_chunks or False
         ''' tablename should exist in tablememo
         '''
@@ -262,7 +262,7 @@ class Py4Run(object):
                                     data = ''
                                     for out_chunk in output[1:]:
                                         data += out_chunk.data
-                                    output = Storage(
+                                    output = ZDict(
                                         {
                                             'code': metadata,
                                             'data': data

@@ -5,7 +5,7 @@ from libdlg.dlgRecord import DLGRecord
 from libdlg.dlgStore import (
     Lst,
     objectify,
-    Storage
+    ZDict
 )
 from libdlg.dlgQuery_and_operators import AND, OR
 from libdlg.dlgUtilities import (
@@ -140,7 +140,7 @@ class Py4Options(object):
             }
         )
 
-        self.optiondefaults = Storage()
+        self.optiondefaults = ZDict()
         self.optionsdata = objectify(optionsdata)
 
     def __call__(self, *args, **kwargs):
@@ -172,10 +172,10 @@ class Py4Options(object):
                 Lst(),
                 Lst(),
                 Lst(),
-                Storage(),
+                ZDict(),
                 None,
                 Lst(),
-                Storage(),
+                ZDict(),
                 None,
                 None
             )
@@ -193,7 +193,7 @@ class Py4Options(object):
             if (len(datarecord) > 0):
                 if (isinstance(datarecord, (list, DLGRecords))):
                     datarecord = datarecord.first()
-                if (isinstance(datarecord, Storage) is True):
+                if (isinstance(datarecord, ZDict) is True):
                     (
                         generic,
                         code,
@@ -291,7 +291,7 @@ class Py4Options(object):
                 cmdargs = cmdargs + more_cmdargs
                 records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)
                 if (isinstance(records, Lst) is True):
-                    if (isinstance(records(0), Storage)):
+                    if (isinstance(records(0), ZDict)):
                         rec0 = records(0)
                         fieldnames = rec0.getkeys()
                         if AND(
@@ -314,7 +314,7 @@ class Py4Options(object):
                                 error = rec0.data
                                 fieldnames = Lst()
                             else:
-                                rec0 = Flatten(**Storage(rec0)).reduce()
+                                rec0 = Flatten(**ZDict(rec0)).reduce()
                                 fieldnames = rec0.getkeys()
             else:
                 usage = f'usage string for cmd `{self.tablename}` could not be set.'
@@ -327,7 +327,7 @@ class Py4Options(object):
                 (len(fieldsmap) == 0),
                 (len(fieldnames) > 0)
         ):
-            fieldsmap = Storage(
+            fieldsmap = ZDict(
                 zip(
                     [
                         fname.lower() for fname in fieldnames
@@ -436,7 +436,7 @@ class Py4Options(object):
         specfields = specrec.Fields
         specitems = [re.split(r'\s', item) for item in specfields]
         fieldsdata = [
-            Storage(
+            ZDict(
                 zip(
                     self.objp4.specfield_headers, specitem
                 )
@@ -450,7 +450,7 @@ class Py4Options(object):
             if (noneempty(specdata) is False) \
             else Lst()
         fieldnames = Lst(fieldattr.name for fieldattr in fieldsdata).nodups()
-        fieldsmap = Storage([(field.lower(), field) for field in fieldnames])
+        fieldsmap = ZDict([(field.lower(), field) for field in fieldnames])
         specref = {
                    'fieldnames': fieldnames,
                    'fieldsmap': fieldsmap,

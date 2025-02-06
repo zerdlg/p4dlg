@@ -29,7 +29,7 @@ try:
 except ImportError:
     import pickle
 
-from libdlg.dlgStore import Storage, Lst, StorageIndex
+from libdlg.dlgStore import ZDict, Lst, StorageIndex
 from libdlg.dlgQuery_and_operators import AND,OR, XOR, NOT
 from libdlg.dlgError import LockingError
 
@@ -109,37 +109,37 @@ def readwritepickle(filename, value=None):
         oFile.write(objFile)
         oFile.truncate()
         out = ast.literal_eval(str(objFile))
-        return Storage(out) \
+        return ZDict(out) \
             if (isinstance(out, dict)) \
-            else out or Storage()
+            else out or ZDict()
     finally:
         oFile.close()
 
 def loadpickle(filename):
     if (os.path.exists(filename) is False):
-        return Storage()
+        return ZDict()
     pFile = fileopen(filename, 'rb')
     try:
         out = pickle.load(pFile)
-        return Storage(out) \
+        return ZDict(out) \
             if (isinstance(out, dict)) \
-            else out or Storage()
+            else out or ZDict()
     except pickle.UnpicklingError as err:
         return readwritepickle(filename)
     except EOFError:
-        return Storage()
+        return ZDict()
     except Exception as err:
         e = raiseException(Exception, err)
-        return Storage()
+        return ZDict()
     finally:
         pFile.close()
 
 def loadspickle(obj):
     try:
         out = ast.literal_eval(str(pickle.loads(obj)))
-        return Storage(out) \
+        return ZDict(out) \
             if (isinstance(out, dict)) \
-            else out or Storage()
+            else out or ZDict()
     except pickle.UnpicklingError as err:
         print(err, False)
     except EOFError:
@@ -149,7 +149,7 @@ def dumppickle(obj, filename):
     pFile = get_fileobject(filename, 'wb')
     try:
         obj = dict(obj) \
-            if (type(obj).__name__ in ('Storage', 'StorageIndex')) \
+            if (type(obj).__name__ in ('ZDict', 'StorageIndex')) \
             else obj
         pickle.dump(obj, pFile)
     finally:
@@ -157,7 +157,7 @@ def dumppickle(obj, filename):
 
 def dumpspickle(obj):
     obj = dict(obj) \
-        if (type(obj).__name__ in ('Storage', 'StorageIndex')) \
+        if (type(obj).__name__ in ('ZDict', 'StorageIndex')) \
         else list(obj) \
         if (type(obj) is Lst) \
         else obj
@@ -621,7 +621,7 @@ def readwrite(
 def loadconfig(filename):
     oFile = fileopen(filename, 'r')
     try:
-        return Storage(json.load(oFile))
+        return ZDict(json.load(oFile))
     finally:
         oFile.close()
 
@@ -651,7 +651,7 @@ def loaddumpconfig(
         oFile.seek(0)
         json.dump(content, oFile, indent=indent)
         oFile.truncate()
-        return Storage(content)
+        return ZDict(content)
     finally:
         oFile.close()
 
@@ -669,10 +669,10 @@ def guessfilemode(*args, **kwargs):
         r'^[a+]+$': 'append'
     }
 
-    (args, kwargs) = (Lst(args), Storage(kwargs))
+    (args, kwargs) = (Lst(args), ZDict(kwargs))
 
     def iterreg(*args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         (
             idex,
             mode,
@@ -727,7 +727,7 @@ class Hash(object):
         self.digest = digest
 
     def __call__(self, value):
-        hashdict = Storage(
+        hashdict = ZDict(
                             {
                              'md5': hashlib.md5,
                              'sha1': hashlib.sha1,

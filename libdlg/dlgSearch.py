@@ -4,7 +4,7 @@ from functools import reduce
 from pprint import pprint
 
 from libdlg.dlgFileIO import ispath
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgUtilities import bail
 from libdlg.dlgControl import DLGControl
 from libdlg.dlgQuery_and_operators import AND
@@ -59,12 +59,12 @@ class Search(DLGControl):
             maxrows=None,
             **kwargs
     ):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         self.maxrows = maxrows or 20
         self.mergeitems = lambda a, b: (a + b)
         self.objp4 = objp4
         if (self.objp4 is None):
-            self.objp4 = Storage()
+            self.objp4 = ZDict()
         loglevel = kwargs.loglevel \
             if (self.objp4 is None) \
             else self.objp4.loglevel or 'DEBUG'
@@ -113,8 +113,8 @@ class Search(DLGControl):
             parents
         ) = \
             (
-                Storage(),
-                Storage()
+                ZDict(),
+                ZDict()
             )
         for word in set(words):
             hist[word] = ((hist[word] or 0) + 1)
@@ -133,8 +133,8 @@ class Search(DLGControl):
             docinfo
         ) = \
             (
-                Storage(),
-                Storage()
+                ZDict(),
+                ZDict()
             )
         for (idx, item) in enumerate(items):
             words = self.get_words(item)
@@ -154,7 +154,7 @@ class Search(DLGControl):
             docinfo,
             terms
     ):
-        acc = Storage()
+        acc = ZDict()
         (hist, parents, norm) = self.bin(terms, subs=False)
         '''  so they cannot be repeated
         '''
@@ -242,7 +242,7 @@ class Search(DLGControl):
                     context = context.lstrip().rstrip()
                     record.insert(0, idx)
                     record.insert(3, context)
-                    searchrecord = Storage(zip(keys, record))
+                    searchrecord = ZDict(zip(keys, record))
                     records.append(searchrecord)
                 except Exception as err:
                     bail(err)

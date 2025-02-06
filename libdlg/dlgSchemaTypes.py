@@ -4,7 +4,7 @@ from libdlg.dlgUtilities import (
     isnum,
     ALLLOWER
 )
-from libdlg.dlgStore import Lst, Storage
+from libdlg.dlgStore import Lst, ZDict
 from libdlg.dlgQuery_and_operators import BELONGS, AND, OR
 from libdlg.dlgSchema import SchemaXML
 
@@ -409,28 +409,28 @@ class SchemaType(object):
     def recordtype_typemap(self):
         types = self.recordtype_types()
         try:
-            return Storage(zip(ALLLOWER(types), types))
+            return ZDict(zip(ALLLOWER(types), types))
         except Exception as err:
             bail(err)
 
     def recordtype_namemap(self):
         names = self.recordtype_names()
         try:
-            return Storage(zip(ALLLOWER(names), names))
+            return ZDict(zip(ALLLOWER(names), names))
         except Exception as err:
             bail(err)
 
     def datatype_namemap(self):
         names = self.datatype_names()
         try:
-            return Storage(zip(ALLLOWER(names), names))
+            return ZDict(zip(ALLLOWER(names), names))
         except Exception as err:
             bail(err)
 
     def datatype_typemap(self):
         types = self.datatype_types()
         try:
-            return Storage(zip(ALLLOWER(types), types))
+            return ZDict(zip(ALLLOWER(types), types))
         except Exception as err:
             bail(err)
 
@@ -661,7 +661,7 @@ def get_schema_history(objSchema):
 
 def iter_schema_history(histrecord, local_releases):
     recversion = histrecord.version or histrecord.release_id
-    history_record = Storage()
+    history_record = ZDict()
     if (recversion is not None):
         release = to_releasename(recversion)
         if (release in local_releases):

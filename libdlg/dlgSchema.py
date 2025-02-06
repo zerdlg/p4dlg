@@ -4,7 +4,7 @@ from xml.etree.ElementTree import ElementTree
 from libdlg.dlgModel import Py4Model
 from libdlg.dlgQuery_and_operators import AND, OR
 from libdlg.dlgStore import (
-    Storage,
+    ZDict,
     objectify,
     Lst
 )
@@ -359,7 +359,7 @@ def guessversion(jnlfile):
     if (len(upgrades) > 0):
         upgrade = str(max(upgrades))
         schema_upgrades = oSchemaxml.p4schema.upgrades.upgrade
-        rec = Storage(next(filter(lambda rec: rec.index == upgrade, schema_upgrades)))
+        rec = ZDict(next(filter(lambda rec: rec.index == upgrade, schema_upgrades)))
         release = to_releasename(rec.release_id)
         return (release, rec)
 
@@ -686,7 +686,7 @@ class SchemaXML(object):
                         if (preview is True) \
                         else 'Skipped'
                     result = [ver, status, None]
-                    result = Storage(
+                    result = ZDict(
                         zip(
                             result_headers,
                             list(result)
@@ -699,7 +699,7 @@ class SchemaXML(object):
                         overwrite,
                         preview,
                     )
-                    result = Storage(
+                    result = ZDict(
                         zip(
                             result_headers,
                             list(result)
@@ -759,12 +759,12 @@ class SchemaXML(object):
                     }
                 )
             except Exception as err:
-                return Storage()
+                return ZDict()
             finally:
                 oFile.close()
 
     def xmlschema2Storage(self, elem, text_as_atrributes=True):
-        elemdict = Storage()
+        elemdict = ZDict()
         items = elem.attrib
         if (len(items) > 0):
             elemdict.merge(items)

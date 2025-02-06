@@ -1,7 +1,7 @@
 import os, sys
 import logging
 
-from libdlg.dlgStore import Storage
+from libdlg.dlgStore import ZDict
 from libdlg.dlgUtilities import bail
 
 '''  [$File: //dev/p4dlg/libdlg/dlgLogger.py $] [$Change: 452 $] [$Revision: #4 $]
@@ -117,7 +117,7 @@ class LogHandler(object):
                 handlers = ['filehandler', 'streamhandler']
             ''' map handler name to logging handler
             '''
-            kwhandler = Storage({'filehandler': self.get_filehandler,
+            kwhandler = ZDict({'filehandler': self.get_filehandler,
                                  'streamhandler': self.get_streamhandler,
                                  'nullhandler': self.get_nullhandler,
                                  'dbhandler': self.get_dbhandler})

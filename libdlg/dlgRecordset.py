@@ -5,7 +5,7 @@ import timeit
 
 from libdlg.dlgSelect import Select
 from libdlg.dlgRecords import DLGRecords
-from libdlg.dlgStore import Storage, Lst, objectify
+from libdlg.dlgStore import ZDict, Lst, objectify
 from libdlg.dlgUtilities import noneempty, bail, ALLLOWER
 from libdlg.dlgFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
@@ -25,7 +25,7 @@ class DLGRecordSet(object):
     __hash__ = lambda self: hash(
         (frozenset(self),
          frozenset(self.recordset))
-         #frozenset(Storage(self.__dict__).getvalues()))
+         #frozenset(ZDict(self.__dict__).getvalues()))
     )
     __bool__ = lambda self: True
     __copy__ = lambda self: self
@@ -148,7 +148,7 @@ class DLGRecordSet(object):
     '''
     '''      (op in ('#^', '#$', '#')) / (op == '!#')
     '''
-    env = Storage()
+    env = ZDict()
 
     def __init__(
             self,
@@ -187,7 +187,7 @@ class DLGRecordSet(object):
             setattr(self, tdata, tabledata[tdata]) for tdata in tabledata
         ]
 
-        self.oSchema = self.objp4.oSchema or Storage()
+        self.oSchema = self.objp4.oSchema or ZDict()
         self.cols = self.fieldnames if (hasattr(self, 'fieldnames')) else Lst()
         ''' recordset is the reference to jnlFile.JNLFile
             should be re-used for the constraint_recordset
@@ -253,7 +253,7 @@ class DLGRecordSet(object):
         ) = \
             (
                 Lst(queries),
-                Storage(kwargs)
+                ZDict(kwargs)
             )
         if AND(
                 (len(queries) == 1),
@@ -269,7 +269,7 @@ class DLGRecordSet(object):
         return queries
 
     def __call__(self, *queries, **kwargs):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         if AND(
                 (self.query is None),
                 (len(queries) > 0)
@@ -283,7 +283,7 @@ class DLGRecordSet(object):
     def defineCols(self, records):
         recs = (rec[1] for rec in records)
         cols = Lst()
-        record = Storage(next(recs))
+        record = ZDict(next(recs))
         if (len(record) > 0):
             cols = record.getkeys()
         else:
@@ -363,7 +363,7 @@ class DLGRecordSet(object):
             elif (type(records).__name__ == 'Py4Run'):
                 if (hasattr(records, 'options')):
                     records = getattr(records, '__call__')(*records.options)
-                return Storage(records) \
+                return ZDict(records) \
                     if (isinstance(records, dict)) \
                     else enumerate(records, start=1)
 
@@ -448,7 +448,7 @@ class DLGRecordSet(object):
                  estimates=False,
                  **kwargs
     ):
-        (options, kwargs) = (Lst(options), Storage(kwargs))
+        (options, kwargs) = (Lst(options), ZDict(kwargs))
         records = self.select(close=False)
         (start, end) = limitby \
             if (noneempty(limitby) is False) \
@@ -500,7 +500,7 @@ class DLGRecordSet(object):
                             if not (isinstance(self.query, list)) \
                             else self.query
                         for q in query:
-                            if (isinstance(q.right, Storage)):
+                            if (isinstance(q.right, ZDict)):
                                 q = q.left
                             if (q.right == syncFile):
                                 specifier = q.left.specifier
@@ -525,7 +525,7 @@ class DLGRecordSet(object):
                              syncFile = f'{syncFile}{specifier}{record.rev}'
                         syncfiles.append(syncFile)
 
-            for (key, value) in Storage(kwargs.copy()).items():
+            for (key, value) in ZDict(kwargs.copy()).items():
                 if (key.lower() in self.objp4.tablememo['sync'].cmdref.fieldsmap.getkeys()):
                     optkey = f'--{key}'
                     if (noneempty(value) is False):
@@ -654,7 +654,7 @@ class DLGRecordSet(object):
                             if not (isinstance(self.query, list)) \
                             else self.query
                         for q in query:
-                            if (isinstance(q.right, Storage)):
+                            if (isinstance(q.right, ZDict)):
                                 q = q.left
                             if (q.right == sourceFile):
                                 specifier = q.left.specifier
@@ -686,17 +686,17 @@ class DLGRecordSet(object):
                 ) = \
                     (
                         None,
-                        Storage()
+                        ZDict()
                     )
                 if (isinstance(item, dict)):
-                    item = Storage(item)
+                    item = ZDict(item)
                     if (item.Description is not None):
                         source = item.Description
                     elif (item.desc is not None):
                         source = item.desc
                     metadata = item
                 elif (isinstance(item, Lst)):
-                    metadata = Storage(item(0))
+                    metadata = ZDict(item(0))
                     if (len(out) == 2):
                         source = out(1).data
                     else:
@@ -706,7 +706,7 @@ class DLGRecordSet(object):
                 results = self.oSearch(source, *term)
                 for result in results:
                     context = re.sub('^\s*', '... ', result.context)
-                    searchdata = Storage(
+                    searchdata = ZDict(
                         {
                             'score': result.score,
                             'search_terms': result.terms,
@@ -744,7 +744,7 @@ class DLGRecordSet(object):
         ) = \
             (
                 Lst(args),
-                Storage(kwargs)
+                ZDict(kwargs)
             )
         ''' TODO: Implement '''
 
@@ -755,7 +755,7 @@ class DLGRecordSet(object):
         ) = \
             (
                 Lst(args),
-                Storage(kwargs)
+                ZDict(kwargs)
             )
         ''' NOT YET IMPLEMENTED
             TODO: this. 
@@ -824,7 +824,7 @@ class DLGRecordSet(object):
                 close_session=True,
                 **kwargs
     ):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
 
         (
             tablename,
@@ -834,7 +834,7 @@ class DLGRecordSet(object):
             (
                 kwargs.tablename,
                 Lst(fieldnames),
-                kwargs.fieldsmap or Storage()
+                kwargs.fieldsmap or ZDict()
             )
 
         if (hasattr(self, 'tablename')):
@@ -906,7 +906,7 @@ class DLGRecordSet(object):
             distinct=None,
             **kwargs
     ):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         cols = self.cols
         records = self.records
         query = self.query
@@ -974,7 +974,7 @@ class DLGRecordSet(object):
             for (key, value) in self.compute:
                 self.cols.merge(key)
                 self.updateenv(**record)
-                record.update(**{key: eval(value, Storage(), self.env)})
+                record.update(**{key: eval(value, ZDict(), self.env)})
                 self.loginfo(f'computed new column ({key})')
             return record
         except Exception as err:

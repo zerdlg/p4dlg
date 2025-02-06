@@ -6,7 +6,7 @@ from libdlg.dlgDateTime import DLGDateTime, DLGDateTimeConvert
 from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgRecords import DLGRecords
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgStore import Storage, Lst, StorageIndex
+from libdlg.dlgStore import ZDict, Lst, StorageIndex
 from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
     is_iterable,
@@ -46,11 +46,11 @@ class Select(DLGControl):
             query=None,
             **tabledata
     ):
-        tabledata = Storage(tabledata)
+        tabledata = ZDict(tabledata)
         self.closed = False
         self.objp4 = objp4
         if (self.objp4 is None):
-            self.objp4 = Storage()
+            self.objp4 = ZDict()
         [
             setattr(
                 self,
@@ -192,7 +192,7 @@ class Select(DLGControl):
         ) = \
             (
                 Lst(fieldnames),
-                Storage(kwargs)
+                ZDict(kwargs)
             )
 
         self.records = self.select(
@@ -255,9 +255,9 @@ class Select(DLGControl):
             return (False, None)
         try:
             if (isinstance(record, list)):
-                record = Storage(zip(self.cols, record))
+                record = ZDict(zip(self.cols, record))
             (record_is_error, error_data) = is_error()
-            skip_record = Storage(
+            skip_record = ZDict(
                 {
                     'record_is_error': (record_is_error is True),
                     'ignore_action':  AND(
@@ -367,7 +367,7 @@ class Select(DLGControl):
                     None,
                 )
             if (type(qry).__name__ in (
-                    'Storage',
+                    'ZDict',
                     'DLGQuery',
                     'DLGExpression'
                 )
@@ -521,7 +521,7 @@ class Select(DLGControl):
         elif OR(
                 (isinstance(qry, (str, list))),
                 (type(qry).__name__ in (
-                        'Storage',
+                        'ZDict',
                         'DLGQuery',
                         'DLGExpression'
                     )
@@ -727,7 +727,7 @@ class Select(DLGControl):
                 self.objp4.updateenv(**record)
                 record.update(
                     **{
-                        key: eval(value, Storage(), self.objp4.env)
+                        key: eval(value, ZDict(), self.objp4.env)
                     }
                 )
                 self.loginfo(f'computed new column ({key})')
@@ -736,7 +736,7 @@ class Select(DLGControl):
             bail(err)
 
     def aggregate(self, records, query=None, **kwargs):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
 
         (orderby,
          limitby,
@@ -912,7 +912,7 @@ class Select(DLGControl):
                 fld.fieldname,
                 fld.type
             ) \
-                if (type(fld).__name__ == 'Storage') \
+                if (type(fld).__name__ == 'ZDict') \
                 else (
                 None,
                 None
@@ -929,7 +929,7 @@ class Select(DLGControl):
             records,
             **kwargs
     ):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         ''' query
         '''
         if (query is None):
@@ -996,7 +996,7 @@ class Select(DLGControl):
             datetype='datetime',
             **kwargs
     ):
-        kwargs = Storage(kwargs)
+        kwargs = ZDict(kwargs)
         ''' define & get relevant record components (tablename, fieldnames, query, cols & records))
         '''
         (
@@ -1043,7 +1043,7 @@ class Select(DLGControl):
                 0
             )
 
-        distinctrecords = Storage()
+        distinctrecords = ZDict()
         aggregators = (
                 'groupby',
                 'having',
@@ -1144,7 +1144,7 @@ class Select(DLGControl):
                         record.appendleft(idx)
                         actionfield = 1
                     if (record[actionfield] not in ignore_actions):
-                        record = Storage(
+                        record = ZDict(
                             zip(
                                 cols,
                                 record
@@ -1182,7 +1182,7 @@ class Select(DLGControl):
                         ''' if any, compute new columns now and adjust the record
                         '''
                         if (len(self.compute) > 0):
-                            record = Storage(self.computecolumns(record))
+                            record = ZDict(self.computecolumns(record))
                         ''' match column to their records 
                             hum...
                             
@@ -1193,7 +1193,7 @@ class Select(DLGControl):
                         if (len(fieldnames) > 0):
                             ''' we have a custom field list to output! - re-define the record accordingly!
                             '''
-                            rec = Storage()
+                            rec = ZDict()
                             for fn in fieldnames.keys():
                                 field = fieldnames[fn]
                                 fieldtype = type(field).__name__

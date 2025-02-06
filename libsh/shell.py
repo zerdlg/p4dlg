@@ -4,6 +4,7 @@ from pprint import pprint
 from datetime import datetime, time
 from importlib import __import__
 from socket import gethostname
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -147,25 +148,11 @@ class DLGShell(object):
 
     def __init__(self, *args, **kwargs):
         self.clsVars = clsVars
-        self.shFuncs = Storage()
-        self.shClasses = Storage()
-        self.locals_cfg = Storage()
+        self.shFuncs = ZDict()
+        self.shClasses = ZDict()
+        self.locals_cfg = ZDict()
         self.schemaMemo = {}
-
         self.varsdata = objectify(varsdata)
-
-        #self.varsdata = objectify(
-        #    {
-        #     'configvars': {'prefix': 'var', 'Vars': {}, 'objvars': None},
-        #     'jnlvars':    {'prefix': 'jnl', 'Vars': {}, 'objvars': None},
-        #     'p4vars':     {'prefix': 'p4', 'Vars': {}, 'objvars': None},
-        #     'p4dbvars':   {'prefix': 'p4db', 'Vars': {}, 'objvars': None},
-        #     'qtvars':     {'prefix': 'qt', 'Vars': {}, 'objvars': None},
-        #     'dbvars':     {'prefix': 'db', 'Vars': {}, 'objvars': None},
-        #     'novars':     {'prefix': 'no', 'Vars': {}, 'objvars': None}
-        #     }
-        #)
-
         self.ignoredvars = []
         (
             self.var_projectdir,
@@ -237,7 +224,7 @@ class DLGShell(object):
         self.db_migrate = True
         self.db_migrate_enabled = True
         self.db_pool_size = 5
-        self.qt_set_default_style = 'lightbg'
+        self.qt_set_default_style = 'linux'
         self.qt_banner = f"DLGShell {mdata}\n\n"
         self.qt_ansi_codes = True
         self.qt_buffer_size = '1200'
@@ -308,7 +295,7 @@ class DLGShell(object):
         self.clsVars(self, configname).set(*args, **kwargs)
 
     def validatevars(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         allinstvars = self.shFuncs.getkeys() \
                     + self.shClasses.getkeys() \
                     + self.locals_cfg.getkeys()
@@ -391,12 +378,12 @@ class DLGShell(object):
         return False
 
     def instlocals(self):
-        self.locals_cfg = Storage()
+        self.locals_cfg = ZDict()
         keys = '\n'.join([key for key in self.__dict__.keys() \
                           if (not key.startswith('__'))])
         for varskey in self.varsdata:
-            #varspath = os.path.join(self.var_varsdir, varskey)
-            #self.varsdata[varskey].merge({'path': varspath})
+            varspath = os.path.join(self.var_varsdir, varskey)
+            self.varsdata[varskey].merge({'path': varspath})
             prefix = self.varsdata[varskey].prefix
             self.varsdata[varskey].merge({'objvars': VARSObject(self, varskey)})
             if (prefix in self.prefixes):
@@ -404,7 +391,7 @@ class DLGShell(object):
                 localvars = {pfx: self.__dict__[pfx] for pfx in prefix_vars}
                 initvars = self.varsdata[varskey].objvars.init_vars(**localvars)
                 self.varsdata[varskey].Vars.merge(initvars)
-                setattr(self.locals_cfg, varskey, Storage())
+                setattr(self.locals_cfg, varskey, ZDict())
                 if (varskey not in self.ignoredvars):
                     for (keyname, vdata) in self.varsdata[varskey].Vars.items():
                         castedvalue = casttype(
@@ -547,36 +534,30 @@ class DLGShell(object):
 
         connectors = {
                         ObjP4(self): Lst(
-                            'p4c',
                             'p4con',
                             'p4connect'
                         ),
                         ObjP4db(self): Lst(
-                            'p4dbc',
                             'p4dbcon',
                             'p4dbconnect'
                         ),
                         ObjJnl(self): Lst(
-                            'jnlc',
                             'jnlconnect',
                             'jnlcon'
                         ),
                         ObjDB(self): Lst(
-                            'dbc',
                             'dbcon',
                             'dbconnect'
                         ),
                         ObjNO(self): Lst(
-                            'noc',
                             'nocon',
                             'noconnect'
                         )
         }
         [
             localattributes.update(**{connectors[key][idx]: key})
-            for key in connectors.keys() for idx in (0, 1, 2)
+            for key in connectors.keys() for idx in (0, 1)
          ]
-
         locals().update(**localattributes)
         return locals()
 
@@ -661,6 +642,10 @@ class DLGShell(object):
         def updatekernellocals(self, *args, **kwargs):
             [self.obj.kernel.shell.push({key: value}) for (key, value) in kwargs.items()]
 
+    def cmd_scriptedit(self, filename, line=None):
+        self.qtWidget.editor = "gnome-terminal -- vim"
+        self.qtWidget._edit(filename, line=None)
+
     '''  kernel manager & client
     '''
     def initKernel(self, *args, **kwargs):
@@ -668,7 +653,7 @@ class DLGShell(object):
         self.kernel_manager.start_kernel()
         self.kernel = self.kernel_manager.kernel
         self.kernel.gui = 'qt'
-        inits = Storage(self.initialize())
+        inits = ZDict(self.initialize())
         self.kernel.shell.push(inits)
         self.kernel_client = self.kernel_manager.client()
         self.kernel_client.start_channels()
@@ -679,13 +664,17 @@ class DLGShell(object):
     def get_widget(self, *args, **kwargs):
         qtinstvars = self.cmd_qtvars()
         RJWidget = RichJupyterWidget()
-        RJWidget.set_default_style(qtinstvars.default_style)
+        #RJWidget.set_default_style(qtinstvars.default_style)
         RJWidget._set_completion_widget(qtinstvars.gui_completion)
         RJWidget.locals = self.kernel.shell.ns_table
         RJWidget.kernel_manager = self.kernel_manager
         RJWidget.kernel_client = self.kernel_client
         ''' shell configs        
         '''
+        #RJWidget.editor
+        #RJWidget._edit()
+        #RJWidget.set_default_style('linux')
+
         RJWidget.console_height = qtinstvars.console_height
         RJWidget.console_width = qtinstvars.console_width
         RJWidget.banner = qtinstvars.banner
@@ -744,7 +733,7 @@ def _query(**opts):
             'version': 'r15.2',
             'groupby': ''}
     '''
-    Storage(opts).delete('which')
+    ZDict(opts).delete('which')
     # RunQuery is in the shop!
     #RunQuery(**opts).__call__()
 
@@ -766,7 +755,7 @@ if (__name__ == '__main__'):
     if (len(sys.argv) > 1):
         '''  arg options from cmd line
         '''
-        opts = Storage(
+        opts = ZDict(
             {
                 k: v for (k, v) in dict(
                 vars(ArgsParser()().parse_args())).items() if (v not in (None, False, 'unset'))

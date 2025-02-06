@@ -4,7 +4,7 @@ from subprocess import (
     PIPE
 )
 
-from libdlg.dlgStore import Storage
+from libdlg.dlgStore import ZDict
 from libdlg.dlgUtilities import decode_bytes
 
 '''  [$File: //dev/p4dlg/libsample/smpP4DBackup.py $] [$Change: 461 $] [$Revision: #5 $]
@@ -49,7 +49,7 @@ def p4d_backup(**opts):
 
         my own default values:
     '''
-    opts = Storage(opts)
+    opts = ZDict(opts)
     ''' expected options
     '''
     recurse = opts.recurse or True
@@ -157,7 +157,7 @@ def p4d_backup(**opts):
     return exec_backup(*cmdargs)
 
 def backup(**kwargs):
-    kwargs = Storage(kwargs)
+    kwargs = ZDict(kwargs)
 
     ''' transfer from remote to local
     '''

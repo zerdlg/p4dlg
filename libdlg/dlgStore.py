@@ -8,7 +8,7 @@ from pprint import pformat
 
 __all__ = [
     'Lst',
-    'Storage',
+    'ZDict',
     'StorageIndex',
     'objectify',
     'unobjectify'
@@ -177,7 +177,7 @@ class Lst(list):
         self = Lst(first | second)
 
     def clean(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         if (len(args) == 0):
             args = Lst(
                 '',
@@ -267,8 +267,8 @@ class Lst(list):
             self.replace(key, value, all=all)
         return self
 
-class Storage(dict):
-    ''' a dict with object-like attributes (and a few convenient methods)
+class ZDict(dict):
+    ''' a dict with object-like attributes (and a few convenient methods) collections
     '''
     __slots__ = ()
     __setattr__ = dict.__setitem__
@@ -276,7 +276,7 @@ class Storage(dict):
     __getitem__ = dict.get
     __call__ = __getitem__
     __getstate__ = lambda self: None
-    __copy__ = lambda self: Storage(self)
+    __copy__ = lambda self: ZDict(self)
     __hash__ = lambda self: hash(
         (
             frozenset(self),
@@ -289,7 +289,7 @@ class Storage(dict):
 
     def keysmap(self):
         keynames = self.getkeys()
-        return Storage(zip([f.lower() for f in keynames], keynames))
+        return ZDict(zip([f.lower() for f in keynames], keynames))
 
     def __getattr__(self, key):
         keysmap = self.keysmap()
@@ -320,13 +320,13 @@ class Storage(dict):
 
     @staticmethod
     def objectify(any):
-        return Storage(
+        return ZDict(
             {
-                key: Storage.objectify(value) for (key, value) in any.items()
+                key: ZDict.objectify(value) for (key, value) in any.items()
             }
         ) \
-            if (type(any) in (dict, Storage)) \
-            else Lst(Storage.objectify(value) for value in any) \
+            if (type(any) in (dict, ZDict)) \
+            else Lst(ZDict.objectify(value) for value in any) \
             if (
                 type(any) in (
                 list,
@@ -341,11 +341,11 @@ class Storage(dict):
     def unobjectify(any):
         return dict(
             {
-                key: Storage.unobjectify(value) for (key, value) in any.items()
+                key: ZDict.unobjectify(value) for (key, value) in any.items()
             }
         ) \
             if (isinstance(any, dict)) \
-            else Lst(Storage.unobjectify(value) for value in any) \
+            else Lst(ZDict.unobjectify(value) for value in any) \
             if (isinstance(any, list)) \
             else any
 
@@ -462,8 +462,8 @@ class Storage(dict):
                                             a.port=['avalue','bvalue','a','b','c']
     '''
     def merge(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), Storage(kwargs))
-        constrainsts = Storage(
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        constrainsts = ZDict(
             {
                 'overwrite': True,
                 'add_missing': True,
@@ -531,14 +531,14 @@ class Storage(dict):
 
         for anyitem in any:
             mergedict(self.objectify(any[anyitem]) \
-                    if (isinstance(any[anyitem], (Storage, StorageIndex)) is False) \
+                    if (isinstance(any[anyitem], (ZDict, StorageIndex)) is False) \
                     else any[anyitem])
         return self
 
     ''' keys to lower & keys to upper - modifies original
     '''
     def lower(self, **any):
-        anydict = Storage(any) or self
+        anydict = ZDict(any) or self
         [
             anydict.update(
                 **{
@@ -549,7 +549,7 @@ class Storage(dict):
         return anydict
 
     def upper(self, **any):
-        anydict = Storage(any) or self
+        anydict = ZDict(any) or self
         [
             anydict.update(
                 **{
@@ -561,7 +561,7 @@ class Storage(dict):
     ''' keys to lower & keys to upper - does not modify original
     '''
     def keystolower(self, **any):
-        anydict = Storage(self.copy() \
+        anydict = ZDict(self.copy() \
               if (len(any) == 0) \
               else any.copy())
         [
@@ -570,7 +570,7 @@ class Storage(dict):
         return anydict
 
     def keystoupper(self, **any):
-        anydict = Storage(self.copy() \
+        anydict = ZDict(self.copy() \
             if (len(any) == 0) \
             else any.copy())
         [
@@ -583,11 +583,11 @@ class Storage(dict):
     unobjectify
 ) = \
     (
-        Storage.objectify,
-        Storage.unobjectify
+        ZDict.objectify,
+        ZDict.unobjectify
     )
 
-class StorageIndex(Storage):
+class StorageIndex(ZDict):
     __str__ = __repr__ = lambda self: f'<{type(self).__name__}({pformat(dict(self))})>'
 
     def __init__(self, *args, **kwargs):
@@ -645,7 +645,7 @@ class StorageIndex(Storage):
         [self.rename(i, i - 1) for i in rkeys if (i >= idx)]
 
     def mergeright(self, *any, **kwargs):
-        (any, kwargs) = (Lst(any), Storage(kwargs))
+        (any, kwargs) = (Lst(any), ZDict(kwargs))
         if (len(any) > 0):
             [self.mergein(item, -1) for item in any]
         elif (len(kwargs) > 0):
@@ -659,7 +659,7 @@ class StorageIndex(Storage):
         ) = \
             (
                 Lst(any),
-                Storage(kwargs)
+                ZDict(kwargs)
             )
         if (len(any) > 0):
             [self.mergein(item, 0) for item in any]

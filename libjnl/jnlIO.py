@@ -3,7 +3,7 @@ from types import *
 import datetime
 from itertools import tee
 
-from libdlg.dlgStore import Storage, Lst, objectify
+from libdlg.dlgStore import ZDict, Lst, objectify
 from libdlg.dlgControl import DLGControl
 from libdlg.dlgQuery_and_operators import *
 from libdlg.dlgUtilities import (
@@ -97,7 +97,7 @@ ignore_actions = [
                    "mx",
                    "nx"
 ]
-fixep4names = Storage({
+fixep4names = ZDict({
                    'group': 'p4group',
                    'db.group': 'p4group',
                    'type': 'p4type',
@@ -246,7 +246,7 @@ class P4Jnl(object):
         self.reader = kwargs.reader or 'csv'
         self.recordchunks = kwargs.recordchunks or 15000
         self.maxrows = kwargs.maxrows or 0
-        self.recCounter = Storage(
+        self.recCounter = ZDict(
             {
                 'threshhold': self.recordchunks,
                 'recordcounter': 0
@@ -341,32 +341,66 @@ class P4Jnl(object):
         if (left.tablename is not None):
             return (left.tablename, left.fieldname)
 
-    def build(self, qry):
+    def build(self, qry, inversion=None):
         ''' for building / rebuilding queries passed in as strings.
         '''
-        (op, left, right) = getTableOpKeyValue(qry) \
-            if (isinstance(qry, str)) \
-            else (qry.op, qry.left, qry.right)
+        if (isinstance(qry, str) is True):
+            (op, left, right) = getTableOpKeyValue(qry)
+        else:
+            (
+                op,
+                left,
+                right
+            ) = \
+                (
+                    qry.op,
+                    qry.left,
+                    qry.right
+                )
+            if AND(
+                    (inversion is None),
+                    (qry.inversion is not None)
+            ):
+                inversion = qry.inversion
+        if (inversion is None):
+            inversion = False
+        if (callable(op) is False):
+            op = all_ops_table(op)
+        opname = op.__name__
         built = None
-        if (op in andops + orops + xorops + notops):
-            (buildleft, buildright) = (self.build(left), self.build(right))
-            if (op in andops):
-                built = {'op': AND, 'left': buildleft, 'right': buildright}
-            elif (op in orops):
-                built = {'op': OR, 'left': buildleft, 'right': buildright}
-            elif (op in xorops):
-                built = {'op': XOR, 'left': buildleft, 'right': buildright}
-            elif (op in notops):
+        AOX = (andops + orops + xorops)
+        ANOX = (AOX + notops)
+        AOX = (andops + orops + xorops)
+        if (opname in ANOX):
+            buildleft  = self.build(left, inversion)
+            buildright = self.build(right, inversion) \
+                if (right is not None) \
+                else None
+            if (opname in AOX):
+                built = ZDict(
+                    {
+                        'op': op,
+                        'left': buildleft,
+                        'right': buildright,
+                        'inversion': inversion
+                    }
+                )
+            else:
                 if (left is None):
                     bail('Invalid Query')
-                buildleft = self.build(left)
                 built = ~buildleft
         else:
             attdict = objectify({"left": left, "right": right})
             for (akey, avalue) in attdict.items():
                 if (is_dictType(avalue) is True):
-                    tablename = avalue.tablename
-                    fieldname = avalue.fieldname
+                    (
+                        tablename,
+                        fieldname
+                    ) = \
+                        (
+                            avalue.tablename,
+                            avalue.fieldname
+                        )
                     tabledata = self.memoizetable(tablename)
                     try:
                         oCmdTable = JNLTable(
@@ -383,9 +417,17 @@ class P4Jnl(object):
                 if (is_query_or_expressionType(avalue) is True):
                     if (hasattr(avalue, 'op') is True):
                         if (avalue.op is not None):
-                            avalue = self.build(avalue)
-                    if (hasattr(avalue, 'tablename')) & (hasattr(avalue, 'fieldname')):
-                        if (avalue.tablename is not None) & (avalue.fieldname is not None):
+                            avalue = self.build(avalue, inversion)
+                    if AND(
+                            AND(
+                                (hasattr(avalue, 'tablename')),
+                                (hasattr(avalue, 'fieldname'))
+                            ),
+                            (
+                                    (avalue.tablename is not None),
+                                    (avalue.fieldname is not None)
+                            )
+                    ):
                             (
                                 fieldname,
                                 tablename
@@ -404,46 +446,47 @@ class P4Jnl(object):
                     left = avalue
                 else:
                     right = avalue
-            opname = op.__name__ \
-                if (callable(op) is True) \
-                else op
-            op = all_ops_table(opname)
             if (op is not None):
-                built = {'op': op, 'left': left, 'right': right}
+                built = ZDict(
+                    {
+                        'op': op,
+                        'left': left,
+                        'right': right,
+                        'inversion': inversion
+                    }
+                )
             elif not (left or right):
-                built = {'op': op}
+                built = ZDict({'op': op})
             else:
                 bail(f"Operator not supported: {opname}")
-        if (callable(op) is False):
-            op = all_ops_table(op)
-        inversion = qry.inversion
         built = DLGQuery(
             self,
-            op,
-            left,
-            right,
-            inversion
+            built.op,
+            built.left,
+            built.right,
+            built.inversion
         )
         return objectify(built)
 
-
-    def breakdown_query(self, qry, tabledata=None):
-        if (isinstance(qry, (dict, str)) is True):
-            qry = self.build(qry)
+    def breakdown_query(self, qry, tabledata=None, inversion=None):
+        if (inversion is None):
+            inversion = False
+        qry = self.build(qry, inversion)
+        if (qry.inversion is not None):
+            inversion  = qry.inversion
 
         (
             op,
             left,
             right,
-            inversion
         ) = \
             (
                 qry.op,
                 qry.left,
                 qry.right,
-                qry.inversion or False
             )
-        ANOX = andops + orops + xorops + notops
+
+        ANOX = (andops + orops + xorops + notops)
         opname = op.__name__ \
             if (callable(op) is True) \
             else op
@@ -457,11 +500,10 @@ class P4Jnl(object):
                 inversion,
                 tabledata
             ) = \
-                self.breakdown_query(left, tabledata)
+                self.breakdown_query(left, tabledata, inversion)
 
         if (isnum(right) is True):
             right = str(right)
-
         try:
             (
                 tablename,
@@ -476,7 +518,9 @@ class P4Jnl(object):
             (tablename, fieldname) = (None, None)
 
 
-        if ((tablename, fieldname) == (None, None)):
+        if (
+                (tablename, fieldname) == (None, None)
+        ):
             (tablename, fieldname) = (self.get_tablename_fieldname_from_qry(qry))
         if (not tablename in self.tables):
             bail(
@@ -575,8 +619,13 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 ):
                     if (right.left is not None):
                         qry = self.resolve_datatype_value(right)
-        elif AND((hasattr(left, 'tablename')), (hasattr(left, 'fieldname'))):
-            if ((left.tablename is not None), (left.fieldname is not None)):
+        elif AND(
+                (hasattr(left, 'tablename')),
+                (hasattr(left, 'fieldname'))
+        ):
+            if AND(
+                    (left.tablename is not None), (left.fieldname is not None)
+            ):
                 ''' Left is well formed, moving on.
                 '''
                 if (isinstance(left, dict) is True):
@@ -602,11 +651,6 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         (hasattr(left, 'right'))
                 ):
                     qry = self.resolve_datatype_value(left)
-        elif (is_query_or_expressionType(left) is True):
-                left = self.resolve_datatype_value(left)
-                qry.left = left
-                right = self.resolve_datatype_value(right)
-                qry.right = right
         elif AND(
                 (hasattr(left, 'left')),
                 (hasattr(left, 'right'))
@@ -620,8 +664,8 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             **kwargs
     ):
         jnlQueries = Lst()
-        kwargs = Storage(kwargs)
-        (tablename, tabledata) = (kwargs.tablename, Storage())
+        kwargs = ZDict(kwargs)
+        (tablename, tabledata) = (kwargs.tablename, ZDict())
         (queries, qries) = (Lst(), Lst())
         self.maxrows = kwargs.maxrows or 0
         self.compute = kwargs.compute or Lst()
@@ -652,7 +696,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                             (isinstance(query, dict)),
                             (type(query) is LambdaType)
                     ):
-                        qries =  objectify(Lst([query]))
+                        qries = objectify(Lst([query]))
             else:
                 qries = objectify(Lst(query))
 
@@ -670,10 +714,12 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                     inversion,
                     tabledata
                 ) = (
-                    self.breakdown_query(qry, tabledata=tabledata)
+                    self.breakdown_query(qry, tabledata=tabledata, inversion=qry.inversion)
                 )
+
                 if (q != qry):
                     qry = q
+
                 ''' we can't all remember obscure datatype values
                     jnl.domain.type == 'client' --> will replace 
                     'client' with its expected value of '99' for us.
@@ -738,9 +784,9 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         '''
         initialfields = self.oSchema.p4model[tablename].fields
         fielddicts = initialfields.storageindex(reversed=True)
-        fieldsmap = Storage({value.name.lower(): value.name for (key, value) in fielddicts.items()})
+        fieldsmap = ZDict({value.name.lower(): value.name for (key, value) in fielddicts.items()})
         fieldnames = fieldsmap.getvalues()
-        fieldtypesmap = Storage({value.type.lower(): value.type for (key, value) in fielddicts.items()})
+        fieldtypesmap = ZDict({value.type.lower(): value.type for (key, value) in fielddicts.items()})
         return (
                 fieldnames,
                 fieldsmap,
@@ -748,7 +794,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         )
 
     def memoizetable(self, tablename):
-        tabledata = Storage()
+        tabledata = ZDict()
         if (tablename is not None):
             try:
                 tabledata = self.tablememo[tablename]
@@ -762,7 +808,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         (
                             self.getfieldmaps(tablename)
                     )
-                    tabledata = self.tablememo[tablename] = Storage(
+                    tabledata = self.tablememo[tablename] = ZDict(
                                         {
                                             'fieldsmap': fieldsmap,
                                             'fieldtypesmap': fieldtypesmap,

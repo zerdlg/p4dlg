@@ -1,5 +1,5 @@
 from types import LambdaType
-from libdlg.dlgStore import Storage, objectify, Lst
+from libdlg.dlgStore import ZDict, objectify, Lst
 from libdlg.dlgQuery_and_operators import AND, OR
 from libdlg.dlgControl import DLGControl
 from libdlg.dlgRecordset import DLGRecordSet
@@ -31,8 +31,8 @@ class PyNO(DLGControl):
 
     def __call__(self, query=None, *options, **kwargs):
         noQueries = Lst()
-        kwargs = Storage(kwargs)
-        (tablename, tabledata) = (kwargs.tablename or 'notable', Storage())
+        kwargs = ZDict(kwargs)
+        (tablename, tabledata) = (kwargs.tablename or 'notable', ZDict())
         queries = Lst()
         self.maxrows = kwargs.maxrows or 1000
         self.loginfo(f"maxrows = f{self.maxrows}")
@@ -128,8 +128,8 @@ class PyNO(DLGControl):
         ''' mapping of all table names  -> {lower_case_fieldname: actual_fieldname}
         '''
         fieldnames = self.rec0.getkeys()
-        fieldsmap = Storage(zip(ALLLOWER(fieldnames), fieldnames))
-        fieldtypesmap = Storage()
+        fieldsmap = ZDict(zip(ALLLOWER(fieldnames), fieldnames))
+        fieldtypesmap = ZDict()
         return (fieldnames, fieldsmap, fieldtypesmap)
 
     def memoizetable(self, tablename='notable'):
@@ -137,7 +137,7 @@ class PyNO(DLGControl):
             tabledata = self.tablememo[tablename]
         except KeyError:
             (fieldnames, fieldsmap, fieldtypesmap) = self.getfieldmaps(tablename)
-            tabledata = self.tablememo[tablename] = Storage({
+            tabledata = self.tablememo[tablename] = ZDict({
                 'tablename': self.tablename,
                 'fieldsmap': fieldsmap,
                 'fieldtypesmap': fieldtypesmap,

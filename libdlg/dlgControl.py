@@ -3,7 +3,7 @@ import os, sys
 import logging
 
 from libdlg.dlgUtilities import bail
-from libdlg.dlgStore import Lst, Storage
+from libdlg.dlgStore import Lst, ZDict
 from libdlg.dlgLogger import LogHandler
 
 '''  [$File: //dev/p4dlg/libdlg/dlgControl.py $] [$Change: 452 $] [$Revision: #4 $]
@@ -124,7 +124,7 @@ class LogHandler(object):
                 handlers = ['filehandler', 'streamhandler']
             ''' map handler name to logging handler
             '''
-            kwhandler = Storage({'filehandler': self.get_filehandler,
+            kwhandler = ZDict({'filehandler': self.get_filehandler,
                                  'streamhandler': self.get_streamhandler,
                                  'nullhandler': self.get_nullhandler,
                                  'dbhandler': self.get_dbhandler})
@@ -138,7 +138,7 @@ class LogHandler(object):
         return self
 
 class DLGControl(object):
-    #__shared__ = Storage()
+    #__shared__ = ZDict()
     def __init__(
             self,
             loggername='P4DLG',
@@ -148,7 +148,7 @@ class DLGControl(object):
             **kwargs
     ):
         #self.__dict__ = self.__shared__
-        (args, kwargs) = (Lst(args), Storage(kwargs))
+        (args, kwargs) = (Lst(args), ZDict(kwargs))
         if (logfile is None):
             dateitems = datetime.datetime.now().ctime().split()
             dateitems.pop(3)
