@@ -18,7 +18,7 @@ __all__ = ['DLGRecordSet']
 
 '''  [$File: //dev/p4dlg/libdlg/dlgRecordset.py $] [$Change: 478 $] [$Revision: #44 $]
      [$DateTime: 2024/09/18 23:56:29 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 class DLGRecordSet(object):
@@ -140,7 +140,7 @@ class DLGRecordSet(object):
 
         1 rule: no spaces within the expression, unless you mean it!
             <table>.<field><operator>value
-            'user.name=bigbird'            
+            'user.name=zerdlg'            
 
                     *   ' ' a space (\s) between queries means __and__
                     *   # signals a regex (search) (or 'contains')

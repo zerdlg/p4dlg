@@ -15,7 +15,7 @@ __all__ = ['ObjP4db']
 
 '''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 472 $] [$Revision: #13 $]
      [$DateTime: 2024/09/03 03:46:02 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 
@@ -24,29 +24,29 @@ class ObjP4db(object):
         {'fred': {'client': 'gc.pycharm',
         'p4droot': '/Users/gc/p4dinst/2015.2/',
         'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-        'user': 'mart'},
+        'user': 'zerdlg'},
 
         'oP4': {'client': 'gc.pycharm',
         'password': '3Sour.Sn4kes...!',
         'port': 'anastasia.local:1777',
-        'user': 'mart'},
+        'user': 'zerdlg'},
 
         'p4': {'client': 'gc.pycharm',
         'p4droot': '/Users/gc/p4dinst/2015.2',
         'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-        'user': 'mart'}}
+        'user': 'zerdlg'}}
 
         oSchema = schema('r15.2')
         {'oP4': {'client': 'gc.pycharm',
           'p4droot': '/Users/gc/p4dinst/2015.2',
           'port': 'rsh:/Users/gc/p4dinst/2015.2/p4d -r /Users/gc/p4dinst/2015.2 -L /Users/gc/p4dinst/2015.2/serverlog -i -vserver=3',
-          'user': 'mart',
+          'user': 'zerdlg',
           'oSchema': oSchema}}
 
         oSchema = schema('r16.2')
         {'oP4': {'client': 'computer_p4q',
                  'port': 'anastasia.local:1777',
-                 'user': 'mart',
+                 'user': 'zerdlg',
                  'oSchema': oSchema}}
 
     TODO: add something to login / logout/ create .p4config, .p4ignore, .p4tickets, etc...
@@ -63,7 +63,7 @@ class ObjP4db(object):
         >>> p4con.create(
                     'my_connection',                # the name of the connector
                     oSchema,                        
-                    user='mart',                    # a p4 user to access P4D
+                    user='zerdlg',                    # a p4 user to access P4D
                     port='anastasia.local:1777',    # the port to a p4d instance
                     client='my_client'              # the clientspec that defines your workspace
             )
@@ -219,9 +219,9 @@ class ObjP4db(object):
     def create_old(self, name, *args, **kwargs):
         '''
 p4dbcon.create('testdb', **{'port': 'anastasia:1777',
-                            'user': 'mart',
+                            'user': 'zerdlg',
                             'depot': '//p4db',
-                            'client_root': '/Users/mart/p4db',
+                            'client_root': '/Users/zerdlg/p4db',
                             ''})
         '''
         if (self.varsdef(name) is not None):

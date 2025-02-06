@@ -14,7 +14,7 @@ from libdlg.dlgTables import DataTable
 
 '''  [$File: //dev/p4dlg/libdlg/dlgRecord.py $] [$Change: 474 $] [$Revision: #11 $]
      [$DateTime: 2024/09/09 06:39:06 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['DLGRecord']

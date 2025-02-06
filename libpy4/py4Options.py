@@ -22,7 +22,7 @@ from libdlg.dlgUtilities import (
 
 '''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 473 $] [$Revision: #29 $]
      [$DateTime: 2024/09/08 08:15:23 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Options']

@@ -6,7 +6,7 @@ from libsh import shell
 
 '''  [$File: //dev/p4dlg/p4dlg.py $] [$Change: 476 $] [$Revision: #15 $]
      [$DateTime: 2024/09/13 01:55:06 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 ''' USAGE & REQUIREMENTS

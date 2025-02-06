@@ -8,7 +8,7 @@ from libdlg.dlgLogger import LogHandler
 
 '''  [$File: //dev/p4dlg/libdlg/dlgControl.py $] [$Change: 452 $] [$Revision: #4 $]
      [$DateTime: 2024/07/30 12:39:25 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['DLGControl']

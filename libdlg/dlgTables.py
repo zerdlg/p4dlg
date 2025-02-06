@@ -13,7 +13,7 @@ from libdlg.contrib.prettytable.prettytable import PrettyTable as PT
 
 ''' [$File: //dev/p4dlg/libdlg/dlgTables.py $] [$Change: 472 $] [$Revision: #13 $]
     [$DateTime: 2024/09/03 03:46:02 $]
-    [$Author: mart $]
+    [$Author: zerdlg $]
 '''
 
 __all__ = [

@@ -61,7 +61,7 @@ schemadir = dirname(schemaxml.__file__)
 
 '''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 474 $] [$Revision: #69 $]
      [$DateTime: 2024/09/09 06:39:06 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 '''     a perforce client program.
@@ -69,7 +69,7 @@ schemadir = dirname(schemaxml.__file__)
         BASIC USAGE:
         
         The class reference (the connector) and the usual commands & cmd line options 
-            >>>  oP4 = Py4(**{'user': 'mart',
+            >>>  oP4 = Py4(**{'user': 'zerdlg',
                               'port':  'anastasia:1777',
                               'client': 'gc.depot',
                               'password':'Unset'}) --> value can be a password, a p4ticket, 
@@ -176,17 +176,6 @@ class Py4(object):
                 Lst()
             )
         self.usage_items = []
-
-        #(version, oSchema) = (kwargs.version, kwargs.oSchema)
-        #if AND(
-        #        (oSchema is None),
-        #        (version is not None)
-        #):
-        #    oSchema = SchemaXML(schemadir, version)
-        #''' oSchema is still None? no worry, we'll resolve that below :)
-        #'''
-
-
         self.user_defined_globals = Lst()
         [kwargs.delete(kw) for kw in self.define_p4globals(**kwargs)]
         self.tablenames = self.commands = Lst()
@@ -509,14 +498,14 @@ class Py4(object):
 
                 executable                                                    command
                     |                           `                               |
-                >>> p4 -u mart -P martspassword -p localhost:1666 -c clientname files //depot/...
+                >>> p4 -u zerdlg -P martspassword -p localhost:1666 -c clientname files //depot/...
                        |                                                      |         |
                        |_________________global arguments >___________________|       arg/lastarg
 
             Generally, global args are passed in and defined when we instantiate 
             a reference to class Py4. I.e.:
 
-                >>> objp4 = Py4(*args, **{'user': 'mart',
+                >>> objp4 = Py4(*args, **{'user': 'zerdlg',
                                           'password': 'martspassword',
                                           'port': 'localhost:1666',
                                           'client': 'defaultclient'})
@@ -638,43 +627,6 @@ class Py4(object):
                 reference=reference
             )
         return oRecordSet(*p4Queries, **kwargs)
-
-    ''' 
-    +-----------------+------------------------------------------------+
-    | Dumb-Query Type | Query Statement                                |
-    +=================+================================================+
-    | recQuery        | query = lambda record: record.user=='mart'     |
-    +-----------------+------------------------------------------------+
-    | funcQuery       | query = lambda record: EQ(record.user, 'mart') |
-    +-----------------+------------------------------------------------+
-    | strQuery        | query = "change.user=mart"                     |
-    +-----------------+------------------------------------------------+
-    | attQuery        | query = oJnl.change.user == 'mart'             |
-    +-----------------+------------------------------------------------+
-
-    def formatQuery(self, qry, qtype=None):
-        if (qtype is None):
-            qtype = self.queryformat
-        if (qtype == 'strQuery'):
-            if (hasattr(qry, 'left') is True):
-                objname = qry.left.tablename
-                fieldname = qry.left.fieldname
-                value = qry.right
-                op = qry.op
-                qry = (f"{objname}.{fieldname}{op}{value}") \
-                    if (objname is not None) \
-                    else (f"{fieldname}{op}{value}")
-        elif (qtype == 'funcQuery'):
-            opfunc = optable(qry.op)[0]
-            field = qry.left.fieldname
-            value = qry.right
-            qry = lambda record: opfunc(record[field], value)
-        elif (qtype == "recQuery"):
-            field = qry.left.fieldname
-            value = qry.right
-            qry = (lambda record: record[field] == value)
-        return qry
-    '''
 
     ''' Create p4globals for our user from this system's environment (P4USER, etc.)
     '''
@@ -968,21 +920,6 @@ class Py4(object):
             if (noneempty(lastarg) is True):
                 lastarg = f'//{self._client}/...'
             return (lastarg, cmdargs)
-
-    '''     notes and query usage
-
-            arguments: 1. query=None     --> a query, a list of queries string, dict, object
-                       2. *[options,]
-
-                       Qry1 = oP4.files.depotFile == '//dev/projects/projname/release/...'
-                       Qry2 = oP4.files.depotFile.contains('release') 
-                       Qry3 = 'files.depotFile#release'
-
-                       Qry = (Qry1, Qry2)
-
-                       oP4(Qry, *[], filename='//fifa/dev/ml/...')
-                       Note: has an experimental filename guesser (still needs work/testing though) 
-    '''
 
     def get_recordsIterator(self):
         return enumerate(self.records, start=1) \

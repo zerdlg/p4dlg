@@ -7,7 +7,7 @@ from libdlg.dlgUtilities import set_localport
 
 '''  [$File: //dev/p4dlg/libconnect/conDB.py $] [$Change: 468 $] [$Revision: #9 $]
      [$DateTime: 2024/08/28 01:16:41 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['ObjDB']

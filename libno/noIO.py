@@ -8,7 +8,7 @@ from libno.noSqltypes import NOTable
 
 '''  [$File: //dev/p4dlg/libno/noIO.py $] [$Change: 452 $] [$Revision: #7 $]
      [$DateTime: 2024/07/30 12:39:25 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['PyNO']

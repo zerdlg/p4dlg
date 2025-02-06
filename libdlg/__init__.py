@@ -1,6 +1,6 @@
 '''  [$File: //dev/p4dlg/libdlg/__init__.py $] [$Change: 463 $] [$Revision: #14 $]
      [$DateTime: 2024/08/19 18:03:01 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 ''' libdlg for quick access

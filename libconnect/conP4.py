@@ -16,7 +16,7 @@ __all__ = ['ObjP4']
 
 '''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 473 $] [$Revision: #14 $]
      [$DateTime: 2024/09/08 08:15:23 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 class ObjP4(object):
@@ -53,7 +53,7 @@ class ObjP4(object):
                     or any valid global
 
         eg.
-            >>> user = 'bigbird'
+            >>> user = 'zerdlg'
             >>> port = 'anastasia.local:1777'
             >>> client = 'my_client'
 

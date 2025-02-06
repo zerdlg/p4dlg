@@ -7,13 +7,13 @@ from libpy4.py4SpecIO import SpecIO
 
 '''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 474 $] [$Revision: #17 $]
      [$DateTime: 2024/09/09 06:39:06 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 ''' Usage example:
 
     objp4 = Py4(**kwargs)
-    cmdargs = ['--user', 'bigbird', '--port', 'anastasia.local:1777']
+    cmdargs = ['--user', 'zerdlg', '--port', 'anastasia.local:1777']
     inforecord = Py4Run(objp4, *cmdargs, tablename='info')()(0)
 '''
 

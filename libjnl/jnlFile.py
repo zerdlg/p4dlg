@@ -1,4 +1,4 @@
-import _csv
+import sys
 from copy import copy
 import os.path
 from _csv import writer as csvwriter, reader as csvreader
@@ -18,10 +18,10 @@ __all__=['JNLFile']
 
 '''  [$File: //dev/p4dlg/libjnl/jnlFile.py $] [$Change: 458 $] [$Revision: #9 $]
      [$DateTime: 2024/08/07 05:21:26 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
-csv.field_size_limit(10000000000)
+csv.field_size_limit(sys.maxsize)
 
 ''' A journal compatible dialect / reader / writer
 '''

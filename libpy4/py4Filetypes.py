@@ -3,7 +3,7 @@ from libdlg.dlgControl import DLGControl
 
 '''  [$File: //dev/p4dlg/libpy4/py4Filetypes.py $] [$Change: 452 $] [$Revision: #6 $]
      [$DateTime: 2024/07/30 12:39:25 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Filetypes']

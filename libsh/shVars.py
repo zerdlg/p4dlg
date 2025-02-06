@@ -26,7 +26,7 @@ now = datetime.now
 
 '''  [$File: //dev/p4dlg/libsh/shVars.py $] [$Change: 467 $] [$Revision: #7 $]
      [$DateTime: 2024/08/24 08:15:42 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ('VARSObject', 'clsVars')

@@ -23,7 +23,7 @@ from libdlg.dlgDateTime import DLGDateTime
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSchema.py $] [$Change: 467 $] [$Revision: #14 $]
      [$DateTime: 2024/08/24 08:15:42 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [

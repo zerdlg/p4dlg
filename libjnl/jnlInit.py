@@ -12,7 +12,7 @@ default_xmlschema_version = 'r16.2'
 
 '''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 457 $] [$Revision: #9 $]
      [$DateTime: 2024/08/02 05:45:11 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 ___all__ = ['JnlInitialize']

@@ -22,29 +22,10 @@ __all__ = ['JNLTable', 'JNLField']
 
 '''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 479 $] [$Revision: #17 $]
      [$DateTime: 2024/09/20 07:42:22 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 class JNLTable(object):
-    ''' Usage:
-
-            >>> oTable = JNLTable('change',oSchema)
-
-        .fields('change')
-
-            >>> tbl = oTable.fields('change')
-            >>> pprint(tbl)
-            {'comment': '',
-             'default': '',
-             'desc': 'The change number',
-             'fieldname': 'change',
-             'label': '',
-             'name': 'change',
-             'requires': None,
-             'sqltype': {'fieldtype': 'string'},
-             'type': 'Change'}
-    '''
-
     def __or__(self, othertable):
         return Lst(self, othertable)
 
@@ -61,7 +42,6 @@ class JNLTable(object):
         self.tablename = self._name = tablename
         self.oSchema = oSchema or self.objp4.oSchema
         self.oSchemaType = SchemaType(self.objp4)
-        self.jnlRecords = Lst()
         self.inversion = tabledata.inversion or False
         (
             self.fieldsmap,
@@ -248,7 +228,7 @@ class JNLTable(object):
     def __getattr__(self, key):
         ''' does pkey start with P4|p4 ?
 
-            we get a 'p4' prefix when sQuery encounters a JNLTable name or a JNLField name
+            we get a 'p4' prefix when DLGQuery encounters a JNLTable name or a JNLField name
             happens to be an SQL reserved keyword for a given SQL system. I.e.: db.user
             loses its 'db.' prefix so then 'user' becomes problamatic. In this case the new
             'user' tablename gets renamed to 'p4user' while the 'User/user' fieldname gets

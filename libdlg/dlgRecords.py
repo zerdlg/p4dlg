@@ -21,7 +21,7 @@ from libdlg.dlgError import *
 
 '''  [$File: //dev/p4dlg/libdlg/dlgRecords.py $] [$Change: 479 $] [$Revision: #36 $]
      [$DateTime: 2024/09/20 07:42:22 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['DLGRecords']
@@ -844,18 +844,18 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
             or
             >>> files = p4(p4.files, *['//dev/p4dlg/libconnect/...']).select()
-            >>> results = files.search('mart')
+            >>> results = files.search('zerdlg')
             >>> results(0)
             <DLGRecord {'action': 'add',
                         'change': '480',
                         'code': 'stat',
-                        'context': '... [$Author: mart $]',
+                        'context': '... [$Author: zerdlg $]',
                         'depotFile': '//dev/p4dlg/libconnect/__init__.py',
                         'fileSize': '311',
                         'linenumber': 8,
                         'rev': '1',
                         'score': '0.7071067811865475',
-                        'search_terms': ['mart'],
+                        'search_terms': ['zerdlg'],
                         'time': '1726902220',
                         'type': 'text'}>
         '''

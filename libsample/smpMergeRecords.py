@@ -8,7 +8,7 @@ import resc.journals as journals
 
 '''  [$File: //dev/p4dlg/libsample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
      [$DateTime: 2024/08/23 04:23:28 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Merge']

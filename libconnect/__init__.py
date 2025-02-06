@@ -6,7 +6,7 @@ from libconnect.conNO import *
 
 '''  [$File: //dev/p4dlg/libconnect/__init__.py $] [$Change: 473 $] [$Revision: #6 $]
      [$DateTime: 2024/09/08 08:15:23 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 

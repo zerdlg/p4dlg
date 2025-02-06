@@ -17,7 +17,7 @@ from libsh import (
 
 '''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 476 $] [$Revision: #12 $]
      [$DateTime: 2024/09/13 01:55:06 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['ObjJnl']
@@ -134,23 +134,6 @@ Manage connections to journals and checkpoints.
     def __call__(self, loglevel=None):
         self.loglevel = loglevel.upper() or self.loglevel
         return self
-
-    def getObjSchemax(self, journal, oSchema,  version):
-        if (oSchema is not None):
-            if (version is None):
-                version = oSchema.version
-            return (oSchema, version)
-        if (version is None):
-            try:
-                version = guessversion(journal)
-                if (version is not None):
-                    if (len(version) == 2):
-                        version = to_releasename(version[1])
-                        oSchema = (SchemaXML(version), version)
-                        return (oSchema, version)
-            except Exception as err:
-                print(f'Could not guess the release that create this journal `{journal}`. bailing...', err)
-        return (None, None)
 
     def create(
             self,

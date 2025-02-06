@@ -30,7 +30,7 @@ schemadir = dirname(schemaxml.__file__)
 
 '''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 477 $] [$Revision: #45 $]
      [$DateTime: 2024/09/18 06:23:30 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 '''     Journals (and checkpoints) are the textual representation of of the p4 db (the metadata). 

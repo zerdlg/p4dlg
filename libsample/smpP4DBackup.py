@@ -9,7 +9,7 @@ from libdlg.dlgUtilities import decode_bytes
 
 '''  [$File: //dev/p4dlg/libsample/smpP4DBackup.py $] [$Change: 461 $] [$Revision: #5 $]
      [$DateTime: 2024/08/09 18:15:55 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 # not really a sample, but it is helpful.

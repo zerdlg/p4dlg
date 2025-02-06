@@ -7,7 +7,7 @@ from libdlg.dlgRecord import DLGRecord
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSelect.py $] [$Change: 479 $] [$Revision: #56 $]
      [$DateTime: 2024/09/20 07:42:22 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['DLGJoin']
@@ -34,7 +34,7 @@ class DLGJoin(object):
             >>> recs.first()
             <DLGRecord {'action': '8',
                         'change': '142',
-                        'client': 'bigbird.pycharm',
+                        'client': 'zerdlg.pycharm',
                         'date': '2021/11/25',
                         'db_action': 'pv',
                         'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
@@ -56,7 +56,7 @@ class DLGJoin(object):
                         'table_revision': '9',
                         'traitLot': '0',
                         'type': '0',
-                        'user': 'bigbird'}>
+                        'user': 'zerdlg'}>
 
         join (inner):
             A merging of 2 records into one. however, the tablename must be included in the syntax (I.e.:
@@ -74,7 +74,7 @@ class DLGJoin(object):
             >>> recs.first()
             <DLGRecord {'change': <DLGRecord {'access': '',
                                               'change': '142',
-                                              'client': 'bigbird.pycharm',
+                                              'client': 'zerdlg.pycharm',
                                               'date': '2021/11/25',
                                               'db_action': 'pv',
                                               'descKey': '142',
@@ -86,7 +86,7 @@ class DLGJoin(object):
                                               'status': '0',
                                               'table_name': 'db.change',
                                               'table_revision': '3',
-                                              'user': 'bigbird'}>,
+                                              'user': 'zerdlg'}>,
                         'rev': <DLGRecord {'action': '8',
                                            'change': '142',
                                            'date': '2021/11/25',
@@ -108,7 +108,7 @@ class DLGJoin(object):
                         }>
 
             >>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
-            Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `bigbird`
+            Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `zerdlg`
 
         left (outer):
             like join but records with non-matching fields are included in overall outrecords.

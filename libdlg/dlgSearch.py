@@ -12,7 +12,7 @@ from libdlg.contrib.prettytable.prettytable import PrettyTable
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSearch.py $] [$Change: 467 $] [$Revision: #6 $]
      [$DateTime: 2024/08/24 08:15:42 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Search']

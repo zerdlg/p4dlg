@@ -22,7 +22,7 @@ from libdlg.dlgUtilities import (
      [$Change: 452 $] 
      [$Revision: #10 $]
      [$DateTime: 2024/07/30 12:39:25 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 objectify = Storage.objectify
@@ -907,16 +907,16 @@ class clsAND(QClass):
                  'client': 'anastasia',
                  'Update': '1641848078',
                  'Access': '1689653983',
-                 'Owner': 'mart',
+                 'Owner': 'zerdlg',
                  'Options': 'noallwrite noclobber nocompress unlocked nomodtime normdir',
                  'SubmitOptions': 'submitunchanged',
                  'LineEnd': 'local',
                  'Root': '/home/pi',
                  'Host': '',
-                 'Description': 'Created by mart.\n'}
+                 'Description': 'Created by zerdlg.\n'}
 
             >>> Query1 = (oP4.client.client.startswith('ana'))
-            >>> Query2 = (oP4.clients.owner == 'mart')
+            >>> Query2 = (oP4.clients.owner == 'zerdlg')
             >>> qry = AND(Query1, Query2)
             >>> qry
             <DLGQuery {'left': <DLGQuery {'left': <Py4Field client>,
@@ -928,7 +928,7 @@ class clsAND(QClass):
                       'right': <DLGQuery {'left': <Py4Field Owner>,
                                          'objp4': <Py4 anastasia.local:1777 >,
                                          'op': <function EQ at 0x105203740>,
-                                         'right': 'mart'}>}>
+                                         'right': 'zerdlg'}>}>
     '''
     def __call__(self, *exps):
         exps = Lst(exps)
@@ -992,23 +992,23 @@ class clsOR(QClass):
                      'client': 'anastasia',
                      'Update': '1641848078',
                      'Access': '1689653983',
-                     'Owner': 'mart',
+                     'Owner': 'zerdlg',
                      'Options': 'noallwrite noclobber nocompress unlocked nomodtime normdir',
                      'SubmitOptions': 'submitunchanged',
                      'LineEnd': 'local',
                      'Root': '/home/pi',
                      'Host': '',
-                     'Description': 'Created by mart.\n'}
+                     'Description': 'Created by zerdlg.\n'}
 
                 >>> Query1 = (oP4.client.client.startswith('ana'))
-                >>> Query2 = (oP4.clients.owner == 'mart')
+                >>> Query2 = (oP4.clients.owner == 'zerdlg')
                 >>> qry = OR(Query1, Query2)
                 >>> client_records = oP4(qry).select()
 
             Nested:
                 >>> Query1 = (oP4.client.client.startswith('x'))
-                >>> Query2 = (oP4.clients.owner == 'mart')
-                >>> Query3 = (oP4.clients.Description.contains('mart'))
+                >>> Query2 = (oP4.clients.owner == 'zerdlg')
+                >>> Query3 = (oP4.clients.Description.contains('zerdlg'))
                 >>> nestedQuery = OR((AND(Query1, Query2)),(Query3))
                 >>> nestedQuery
                 <DLGQuery {'left': <DLGQuery {'left': <DLGQuery {'left': <Py4Field client>,
@@ -1020,13 +1020,13 @@ class clsOR(QClass):
                                             'right': <DLGQuery {'left': <Py4Field Owner>,
                                                                'objp4': <Py4 anastasia.local:1777 >,
                                                                'op': <function EQ at 0x103d0b920>,
-                                                               'right': 'mart'}>}>,
+                                                               'right': 'zerdlg'}>}>,
                           'objp4': <Py4 anastasia.local:1777 >,
                           'op': <function OR at 0x147ad8fe0>,
                           'right': <DLGQuery {'left': <Py4Field Description>,
                                              'objp4': <Py4 anastasia.local:1777 >,
                                              'op': <function CONTAINS at 0x103d0bce0>,
-                                             'right': 'mart'}>}>
+                                             'right': 'zerdlg'}>}>
         '''
     def __call__(self, *exps):
         exps = Lst(exps)
@@ -1112,12 +1112,12 @@ class clsXOR(QClass):
 
 class clsINVERT(QClass):
     '''
-    q = NOT((oP4.clients.Owner=='mart'))
+    q = NOT((oP4.clients.Owner=='zerdlg'))
 
     <DLGExpression {'left': <DLGQuery {'left': <Py4Field Owner>,
                                       'objp4': <Py4 anastasia.local:1777 >,
                                       'op': <function EQ at 0x1075ff6a0>,
-                                      'right': 'mart'}>,
+                                      'right': 'zerdlg'}>,
                     'objp4': <Py4 anastasia.local:1777 >,
                     'op': <function NOT at 0x169fe1080>,
                     'right': None}>  --> right is uniary, it is always None!
@@ -1162,12 +1162,12 @@ class clsINVERT(QClass):
 
 class clsNOT(QClass):
     '''
-    q = NOT((oP4.clients.Owner=='mart'))
+    q = NOT((oP4.clients.Owner=='zerdlg'))
 
     <DLGExpression {'left': <DLGQuery {'left': <Py4Field Owner>,
                                       'objp4': <Py4 anastasia.local:1777 >,
                                       'op': <function EQ at 0x1075ff6a0>,
-                                      'right': 'mart'}>,
+                                      'right': 'zerdlg'}>,
                     'objp4': <Py4 anastasia.local:1777 >,
                     'op': <function NOT at 0x169fe1080>,
                     'right': None}>  --> right is uniary, it is always None!
@@ -2525,7 +2525,7 @@ class clsLOWER(QClass):
     >>> name = f'{name[0:3]}%'
     >>> for rec in oP4(oP4.user.user.lower().like(name)).select():
     >>>     print(rec.user)
-    mart
+    zerdlg
     '''
     def __call__(self, *exps):
         exps = Lst(exps)
@@ -3181,7 +3181,7 @@ class DLGExpression(object):
 
                 nested belongs:
 
-                >>> qry1 = AND((oJnl.domain.type == '99'), (oJnl.domain.owner == 'mart'))
+                >>> qry1 = AND((oJnl.domain.type == '99'), (oJnl.domain.owner == 'zerdlg'))
                 >>> myclients = oJnl(qry1)._select(oJnl.domain.name)
                 >>> qry2 = (oJnl.domain.name.belongs(myclients))
                 >>> clientrecords = oJnl(qry2).select()

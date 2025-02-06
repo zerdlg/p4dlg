@@ -3,7 +3,7 @@ from pprint import pformat
 
 '''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 474 $] [$Revision: #7 $]
      [$DateTime: 2024/09/09 06:39:06 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [
@@ -243,7 +243,7 @@ class Lst(list):
             >>> l1
             ['e', 'H', 'A', 'z', 'd', 'B', 'g', 'c', 'f']
 
-            >>> new_list = l1.merge(*['dog', 'cat', 'cow', ('bert', 'ernie', 'bigbird')], **{'cow': 'kangaroo'})
+            >>> new_list = l1.merge(*['dog', 'cat', 'cow', ('bert', 'ernie', 'zerdlg')], **{'cow': 'kangaroo'})
             >>> new_list
             ['e',
              'H',
@@ -257,7 +257,7 @@ class Lst(list):
              'dog',
              'cat',
              'kangaroo',
-             ('bert', 'ernie', 'bigbird')]
+             ('bert', 'ernie', 'zerdlg')]
         '''
         for arg in arglists:
             if (isinstance(arg, list) is False):

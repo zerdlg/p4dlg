@@ -35,7 +35,7 @@ from libdlg.dlgError import LockingError
 
 '''  [$File: //dev/p4dlg/libdlg/dlgFileIO.py $] [$Change: 467 $] [$Revision: #10 $]
      [$DateTime: 2024/08/24 08:15:42 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 def raiseException(exception, msg):

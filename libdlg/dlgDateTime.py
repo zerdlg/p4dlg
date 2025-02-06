@@ -10,7 +10,7 @@ from libdlg.dlgUtilities import (
 
 '''  [$File: //dev/p4dlg/libdlg/dlgDateTime.py $] [$Change: 452 $] [$Revision: #13 $]
      [$DateTime: 2024/07/30 12:39:25 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 ''' USAGE:

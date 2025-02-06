@@ -20,7 +20,7 @@ from libdlg.dlgQuery_and_operators import *
 
 '''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 479 $] [$Revision: #33 $]
      [$DateTime: 2024/09/20 07:42:22 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Table', 'Py4Field']

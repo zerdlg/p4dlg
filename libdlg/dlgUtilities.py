@@ -94,7 +94,7 @@ openurl = urlopen
 
 '''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 471 $] [$Revision: #13 $]
      [$DateTime: 2024/09/01 06:30:49 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [
@@ -118,12 +118,12 @@ __all__ = [
     #
            'reg_type', 'reg_dbname', 'reg_w', 'reg_dot_field', 'reg_no_greedy_entity',
            'reg_upload_pattern', 'reg_cleanup_fn', 'reg_unpack', 'reg_python_keywords',
-           'reg_select_as_parser', 'reg_const_string', 'reg_search_pattern', 'reg_square_brackets',
+           'reg_select_as_parser', 'reg_const_string', 'reg_square_brackets',
            'reg_store_pattern', 'reg_quotes', 'reg_alphanumeric', 'reg_valid_table_field',
            'reg_ipython_builtin', 'reg_envvariable', 'reg_changelist', 'reg_spec_usage',
     #
            'now', 'cacheprop', 'casttype', 'noneempty', 'IsMatch',
-           'storageIndexToList', 'Casttype', 'BSTypeConvert', 'is_int_hex_or_str', 'itemgrouper_filler',
+           'storageIndexToList', 'Casttype', 'is_int_hex_or_str', 'itemgrouper_filler',
            'itemgrouper', 'containschars', 'sqOperators', 'getTableOpKeyValue', 'getOpKeyValue',
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
            'ALLLOWER', 'ALLUPPER', 'PY2', 'fix_tablename',
@@ -257,8 +257,6 @@ reg_cleanup_fn = re.compile('[\'"\s;]+')
 reg_unpack = re.compile('(?<!\|)\|(?!\|)')
 reg_select_as_parser = re.compile("\s+AS\s+(\S*[^\s)])$")
 reg_const_string = re.compile('(\"[^\"]*?\")|(\'[^\']*?\')')
-reg_search_pattern = re.compile('^{[^\.]+\.[^\.]+(\.(lt|gt|le|ge|eq|ne|contains|\
-startswith|year|month|day|hour|minute|second))?(\.not)?}$')
 reg_square_brackets = re.compile('^.+\[.+\]$')
 reg_store_pattern = re.compile('\.(?P<e>\w{1,5})$')
 reg_quotes = re.compile("'[^']*'")
@@ -657,7 +655,7 @@ class Flatten(Storage):
         I.e.:
 
            >>> output={'bla0': 'gc',
-                       'bla1': 'bigbird',
+                       'bla1': 'zerdlg',
                        'bla2': 'charlotte',
                        'bla3': 'cara',
                        'fieldtest': 'abc',
@@ -735,7 +733,7 @@ class Flatten(Storage):
             Out[13]: 'd3'
     '''
     numex = re.compile('\d+$')
-    #__str__ = __repr__ = lambda self: '<%s(%s)>' % (type(self).__name__, pformat(dict(self)))
+
     __str__ = __repr__ = lambda self: f'<{type(self).__name__}({format(dict(self))})>'
 
     def __call__(self, *args, **kwargs):
@@ -762,7 +760,7 @@ class Flatten(Storage):
                     nextkey = 0
                     if (dkey in previously_numbered_keys):
                         nextkey = (self.get_max_key(dkey) + 1)
-                    self.rename(dkey, f'{dkey}{nextkey}'.format(dkey, nextkey))
+                    self.rename(dkey, f'{dkey}{nextkey}')
                     kwargs.rename(dkey, f'{dkey}{(nextkey + 1)}')
             self.merge(kwargs)
         return self
@@ -1419,32 +1417,6 @@ def Casttype(_type, value):
         print('CasttypeError: {}'.format(err))
     return value
 
-
-class BSTypeConvert(object):
-    '''  USAGE Examples:
-
-                >>> oBSTC=BSTypeConvert()
-                >>> oBSTC.average_default=False #default    --> sums the results
-                >>> res=oBSTC.fractions2Float('8/20','66/77')
-                >>> res
-                1.66
-                >>> oBSTC.average_default=True
-                >>> res=oBSTC.fractions2Float('8/20','66/77')  #            --> calculates an average
-                >>> res
-                0.83
-
-                >>> res=oBSTC.percents2Float('80%')
-                >>> res
-                80.0
-                >>> res=oBSTC.percents2Float('80%','90%')
-                >>> res
-                85.0
-
-                >>> res=oBSTC.floats2Percent(7.3)
-
-                >>> res=oBSTC.floats2Percent('7.3',80.8,90)
-                >>> res
-    '''
 
 (decimals_default, average_default) = (2, False)
 def fractions2Float(*args, **kwargs):

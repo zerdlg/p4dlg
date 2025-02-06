@@ -5,7 +5,7 @@ from libdlg.dlgStore import Storage, Lst
 
 '''  [$File: //dev/p4dlg/libsample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
      [$DateTime: 2024/08/23 04:23:28 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Retype']
@@ -99,7 +99,7 @@ def _retype(**kwargs):
 
 if (__name__ == '__main__'):
     p4args = {
-        'user': 'mart',
+        'user': 'zerdlg',
         'port': 'anastasia.local:1777',
         'client': 'computer_p4dlg',
         'preview': True

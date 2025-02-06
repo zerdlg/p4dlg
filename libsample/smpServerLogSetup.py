@@ -3,7 +3,7 @@ from libdlg.dlgUtilities import noneempty
 
 '''  [$File: //dev/p4dlg/libsample/smpServerLogSetup.py $] [$Change: 461 $] [$Revision: #4 $]
      [$DateTime: 2024/08/09 18:15:55 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 ''' Server logs:

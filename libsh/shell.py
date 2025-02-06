@@ -97,7 +97,7 @@ mdata = """
         --[$Change: 473 $] 
         --[$Revision: #33 $]
         --[$DateTime: 2024/09/08 08:15:23 $]
-        --[$Author: mart $]
+        --[$Author: zerdlg $]
         """
 
 (
