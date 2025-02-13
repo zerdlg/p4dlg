@@ -6,10 +6,10 @@ from libdlg.dlgStore import (
     objectify,
     Lst
 )
-from libdlg.dlgQuery_and_operators import *
-from libdlg.dlgSchemaTypes import SchemaType
+from libsql.sqlQuery import *
+from libsql.sqlSchemaTypes import SchemaType
 from libdlg.dlgError import *
-from libdlg.dlgJoin import DLGJoin
+from libsql.sqlJoin import Join
 from libdlg.dlgUtilities import (
     reg_ipython_builtin,
     serializable,
@@ -162,8 +162,8 @@ class JNLTable(object):
                         else value
                 elif (is_fieldType(value) is True):
                     dgen[key] = value.as_dict()
-                elif AND(
-                        (isinstance(value, serializable) is True),
+                elif (
+                        (isinstance(value, serializable) is True) &
                         (key not in EXCLUDE)
                 ):
                     dgen[key] = mergeKeyValue(value) \
@@ -255,8 +255,8 @@ class JNLTable(object):
         if (len(key_dismiss_attr) > 0):
             pass
 
-        if AND(
-                ('tablename' in self.__dict__.keys()),
+        if (
+                ('tablename' in self.__dict__.keys()) &
                 (not 'fieldname' in self.__dict__.keys())
         ):
             ''' is it a table attribute, or a JNLField, something else?
@@ -268,8 +268,8 @@ class JNLTable(object):
                  and with its real intended name provided by self.fieldsmap
             '''
             fieldatt = self.getfield(key)
-            if AND(
-                    (fieldatt is not None),
+            if (
+                    (fieldatt is not None) &
                     (hasattr(fieldatt, 'name'))
             ):
                 if (key == fieldatt.name):
@@ -281,7 +281,7 @@ class JNLTable(object):
     __getitem__ = __getattr__
 
     def on(self, reference, flat=False):
-        return DLGJoin(self.objp4, reference, flat=flat)
+        return Join(self.objp4, reference, flat=flat)
 
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"
@@ -331,8 +331,8 @@ class JNLField(DLGExpression):
         [setattr(self, fielditem, field[fielditem]) for fielditem in field]
         self.__dict__ = objectify(self.__dict__)
 
-        if OR(
-                (not isinstance(self.fieldname, str)),
+        if (
+                (not isinstance(self.fieldname, str)) |
                 (reg_valid_table_field.match(self.fieldname) is None)
         ):
             error = f'Invalid field name `{self.fieldname}`'
@@ -397,8 +397,8 @@ class JNLField(DLGExpression):
         ]
         if (len(key_dismiss_attr) > 0):
             pass
-        if OR(
-                (re.match(r'^_([_aA-zZ])*_$', key) is not None),
+        if (
+                (re.match(r'^_([_aA-zZ])*_$', key) is not None) |
                 (key in ('objp4', '__members__', 'getdoc'))
         ):
             pass
@@ -461,17 +461,27 @@ class JNLField(DLGExpression):
 
 
         fielddict = ZDict()
-        if NOT(
-                AND(
-                    (sanitize is True),
-                    NOT(
-                        OR(
-                            (self.readable is True),
-                            (self.writable is True)
+
+        if ~(
+                (
+                        (sanitize is True) &
+                        ~(
+                                (self.readable is True) |
+                                (self.writable is True)
                         )
-                    )
                 )
         ):
+        #if NOT(
+        #        AND(
+        #            (sanitize is True),
+        #            NOT(
+        #                OR(
+        #                    (self.readable is True),
+        #                    (self.writable is True)
+        #                )
+        #            )
+        #        )
+        #):
             for attr in attrs:
                 if (flat is True):
                     try:

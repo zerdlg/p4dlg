@@ -301,14 +301,14 @@ class DLGShell(object):
                     + self.locals_cfg.getkeys()
 
         if (len(args) > 1):
-            if AND(
-                    (args(0) in allinstvars),
+            if (
+                    (args(0) in allinstvars) &
                     (args(1) is not None)
             ):
                 return False
         for key in kwargs.keys():
-            if AND(
-                    (key in allinstvars),
+            if (
+                    (key in allinstvars) &
                     (kwargs[key] is not None)
             ):
                 return False
@@ -411,11 +411,9 @@ class DLGShell(object):
         localattributes = {}
 
         def dirImport(qdir):
-            if AND(
-                AND(
-                    (os.path.isdir(qdir)),
-                    (qdir not in self.var_excludelibdirs)
-                ),
+            if (
+                    (os.path.isdir(qdir)) &
+                    (qdir not in self.var_excludelibdirs) &
                     (re.match('^.*/__.*__$', qdir) is None)
             ):
                 if (not qdir in sys.path):

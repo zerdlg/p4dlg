@@ -1,7 +1,5 @@
-from io import StringIO
-
 from libdlg.dlgStore import ZDict, Lst
-from libdlg.dlgFileIO import is_writable, make_writable
+from libfs.fsFileIO import is_writable, make_writable
 
 '''  [$File: //dev/p4dlg/libconnect/conNO.py $] [$Change: 472 $] [$Revision: #9 $]
      [$DateTime: 2024/09/03 03:46:02 $]

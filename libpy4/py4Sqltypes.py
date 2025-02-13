@@ -1,8 +1,8 @@
 import datetime
 import re
 
-from libdlg.dlgRecords import DLGRecords
-from libdlg.dlgRecord import DLGRecord
+from libsql.sqlRecords import Records
+from libsql.sqlRecord import Record
 from libdlg.dlgStore import Lst, ZDict, objectify
 from libdlg.dlgError import *
 from libdlg.dlgUtilities import (
@@ -14,9 +14,8 @@ from libdlg.dlgUtilities import (
     reg_default,
     reg_ipython_builtin
 )
-from libdlg.dlgJoin import DLGJoin
-from libdlg.dlgControl import DLGControl
-from libdlg.dlgQuery_and_operators import *
+from libsql.sqlJoin import Join
+from libsql.sqlQuery import *
 
 '''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 479 $] [$Revision: #33 $]
      [$DateTime: 2024/09/20 07:42:22 $]
@@ -85,8 +84,8 @@ class Py4Table(object):
         '''
         valid_tablenames = (self.objp4.tablenames + self.objp4.nocommands + self.objp4.p4spec)
         [setattr(self, cmdattribute, tabledata[cmdattribute]) for cmdattribute in tabledata]
-        if AND(
-                (len( self.objp4.tablenames) > 0),
+        if (
+                (len( self.objp4.tablenames) > 0) &
                 (not self.tablename in valid_tablenames)
         ):
             tablename_error = f' Invalid tablename `{self.tablename}`.\n'
@@ -119,8 +118,8 @@ class Py4Table(object):
         ''' p4fields 
         '''
         self.fields = Lst()
-        if AND(
-                (len(self.fieldnames) > 0),
+        if (
+                (len(self.fieldnames) > 0) &
                 (len(self.fieldsmap) == 0)
         ):
             for fieldname in self.fieldnames:
@@ -182,13 +181,11 @@ class Py4Table(object):
             p4ret = ZDict(p4ret)
         ''' Whatever the case, p4ret should end up being a ZDict at this point!
         '''
-        if (isinstance(p4ret, (ZDict, DLGRecord))):
+        if (isinstance(p4ret, (ZDict, Record))):
             try:
-                if AND(
-                        AND(
-                            (p4ret.code == 'error'),
-                            (p4ret.data is not None)
-                        ),
+                if (
+                        (p4ret.code == 'error') &
+                        (p4ret.data is not None) &
                         (p4ret.severity is not None)
                 ):
                     bail(p4ret.data)
@@ -199,7 +196,7 @@ class Py4Table(object):
             if (p4ret.data is not None):
                 p4ret = p4ret.data
         if (isinstance(p4ret, Lst)):
-            p4ret = DLGRecords(p4ret, cols=p4ret(0).getkeys(), objp4=self.objp4)
+            p4ret = Records(p4ret, cols=p4ret(0).getkeys(), objp4=self.objp4)
         return p4ret
 
     ''' p4 keyed tables... get a table's `keying` attributes
@@ -252,7 +249,7 @@ class Py4Table(object):
                 >>> oJnl.rev.fields()               --> no args, returns list of all fields for for this table
                 [{'comment': '',
                   'default': '',
-                  'desc': 'DLGRecord number as read in',
+                  'desc': 'Record number as read in',
                   'fieldname': 'id',
                   'label': '',
                   'name': 'id',
@@ -286,7 +283,7 @@ class Py4Table(object):
         setattr(self, self.tablename, Lst())
 
     def on(self, reference, flat=False):
-        return DLGJoin(self.objp4, reference, flat=flat)
+        return Join(self.objp4, reference, flat=flat)
 
     def get(self, name):
         return self.getfield(name=name)
@@ -307,8 +304,8 @@ class Py4Table(object):
         ]
         if (len(key_dismiss_attr) > 0):
             pass
-        if OR(
-                (re.match(r'^_([_aA-zZ])*_$', key) is not None),
+        if (
+                (re.match(r'^_([_aA-zZ])*_$', key) is not None) |
                 (key in ('objp4', '__members__', 'getdoc'))
         ):
             pass
@@ -323,8 +320,8 @@ class Py4Table(object):
                     and, more importantly, can we get the actual field value
                     from fieldsmap?
                 '''
-                if AND(
-                        (len(self.fieldsmap) == 0),
+                if (
+                        (len(self.fieldsmap) == 0) &
                         (len(self.fieldnames) > 0)
                 ):
                     self.fieldsmap = ZDict({k.lower(): k for k in self.fieldnames})
@@ -451,8 +448,8 @@ class Py4Field(DLGExpression):
 
         self.__dict__ = objectify(self.__dict__)
 
-        if OR(
-                (not isinstance(fieldname, str)),
+        if (
+                (not isinstance(fieldname, str)) |
                 (reg_valid_table_field.match(fieldname) is None)
         ):
             error = f'Invalid field name `{fieldname}`'
@@ -500,8 +497,8 @@ class Py4Field(DLGExpression):
         self.length = length or len(fieldname)
         self.default = default
         self.regex = regex
-        if AND(
-                (regex is None),
+        if (
+                (regex is None) &
                 (isinstance(self.type, str))
         ):
             self.regex = reg_default.get(self.type.split('(')[0])

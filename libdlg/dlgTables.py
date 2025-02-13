@@ -2,13 +2,11 @@ import os, re
 from pprint import pformat
 from typing import *
 from ast import literal_eval
-import datetime
 
 from libdlg.dlgUtilities import *
-from libdlg.dlgFileIO import isanyfile
+from libfs.fsFileIO import isanyfile
 from libdlg.dlgStore import ZDict, objectify, Lst, StorageIndex
 from libdlg.dlgDateTime import DLGDateTime
-from libdlg.dlgQuery_and_operators import *
 from libdlg.contrib.prettytable.prettytable import PrettyTable as PT
 
 ''' [$File: //dev/p4dlg/libdlg/dlgTables.py $] [$Change: 472 $] [$Revision: #13 $]
@@ -136,8 +134,8 @@ class Ascii(object):
                 'bottom_right_junction_char',
                 'bottom_left_junction_char'
         ):
-            if AND(
-                    (options[opt] is not None),
+            if (
+                    (options[opt] is not None) &
                     (options[opt] in tableoption.chars)
             ):
                 self.dataoptions[opt] = options[opt] or tableoption[opt]
@@ -192,8 +190,8 @@ class Ascii(object):
             )
         ):
             value = pformat(value)
-        if AND(
-                (self.dataoptions.truncate_width is True),
+        if (
+                (self.dataoptions.truncate_width is True) &
                 (isinstance(value, str) is True),
             ):
             if (len(value) > self.dataoptions.max_width):
@@ -251,7 +249,7 @@ class DataGrid(Ascii):
                     rows.mergeright({key: rows[key]})
         elif (type(rows) in (enumerate, Generator)):
             rows = objectify([row for row in rows])
-        elif (type(rows).__name__ == 'DLGRecords'):
+        elif (type(rows).__name__ == 'Records'):
             rows = Lst(rows)
         elif (isinstance(rows, StorageIndex) is True):
             rows = storageIndexToList(rows)
@@ -277,12 +275,12 @@ class DataGrid(Ascii):
         if (len(fields) == 0):
             if (noneempty(kwargs.fields) is False):
                 fields = Lst(kwargs.pop('fields'))
-            elif (type(self.rows).__name__ == 'DLGRecords'):
+            elif (type(self.rows).__name__ == 'Records'):
                 fields = self.rows.cols
             elif (isinstance(self.rows(0), dict)):
                 fields = ZDict(self.rows(0)).getkeys()
-            elif AND(
-                    (isinstance(self.rows(0), list) is True),
+            elif (
+                    (isinstance(self.rows(0), list) is True) &
                     (isinstance(self.rows(1), dict) is True)
             ):
                 fields = Lst(self.rows.pop(0))
@@ -322,7 +320,6 @@ class DataGrid(Ascii):
                 value = row[fn]
                 frow.append(value)
             row = frow
-
 
             if (self.dataoptions.maxrows is not None):
                 if (nidx <= self.dataoptions.maxrows):
@@ -472,14 +469,14 @@ class DataTable(Ascii):
             ).storageindex(reversed=True, startindex=1)
         ''' do we need to add columns 'idx' and 'type'?
         '''
-        if AND(
-                (self.dataoptions.includeid is True),
+        if (
+                (self.dataoptions.includeid is True) &
                 (not 'idx' in fields)
         ):
             fields.insert(0, 'idx')
 
-        if AND(
-                (self.dataoptions.includetype is True),
+        if (
+                (self.dataoptions.includetype is True) &
                 (not 'type' in fields)
         ):
             typeidx = 1 \
@@ -627,8 +624,8 @@ class DataTable(Ascii):
 
         ''' Include idx?
         '''
-        if AND(
-                (self.dataoptions.includeid is True),
+        if (
+                (self.dataoptions.includeid is True) &
                 (idx is not None)
         ):
             keyidx += 1
@@ -643,8 +640,8 @@ class DataTable(Ascii):
 
         ''' Include type?
         '''
-        if AND(
-                (self.dataoptions.includetype is True),
+        if (
+                (self.dataoptions.includetype is True) &
                 (noneempty(value) is False)
         ):
             (
@@ -679,7 +676,7 @@ class DataTable(Ascii):
         if ('set' in row):
             keyindex = row.index('set')
             valueindex = (keyindex + 1)
-            if AND(
+            if (
                     (row(valueindex) == ''),
                     ('unset' in self.record.keys())
             ):

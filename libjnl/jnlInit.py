@@ -1,9 +1,8 @@
 import os
 from libdlg.dlgStore import ZDict, Lst
-from libdlg.dlgFileIO import loadpickle, dumppickle
-from libdlg.dlgSchema import SchemaXML
+from libfs.fsFileIO import loadpickle, dumppickle
+from libsql.sqlSchema import SchemaXML
 from libdlg.dlgUtilities import remove
-from libdlg.dlgQuery_and_operators import AND
 
 from os.path import dirname
 import schemaxml
@@ -99,8 +98,8 @@ class JnlInitialize(object):
                     remove(dstore)
                 except:pass
 
-        if AND(
-                (hasattr(self, 'objFiles')),
+        if (
+                (hasattr(self, 'objFiles')) &
                 (hasattr(self, 'modelFiles'))
         ):
             objs = [self.objFiles, self.modelFiles]
@@ -176,8 +175,8 @@ class JnlInitialize(object):
                 print('creating p4 model....\t')
                 p4model = oXml.p4model
                 filename = os.path.join(self.modelfilespath, modelFile)
-                if AND(
-                        (os.path.exists(filename)),
+                if (
+                        (os.path.exists(filename)) &
                         (overwrite_models is True)
                 ):
                     try:

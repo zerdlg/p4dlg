@@ -5,7 +5,7 @@ from subprocess import PIPE, Popen
 from pprint import pprint
 
 from libdlg.dlgStore import ZDict, Lst
-from libdlg.dlgFileIO import is_writable, make_writable
+from libfs.fsFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import bail, decode_bytes
 from libpy4.py4IO import Py4
 from libdlg.dlgUtilities import set_localport

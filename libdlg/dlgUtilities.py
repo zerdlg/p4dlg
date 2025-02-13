@@ -29,8 +29,7 @@ try:
 except ImportError:
     import pickle
 
-from libdlg.dlgStore import StorageIndex
-from libdlg.dlgStore import ZDict, objectify, Lst
+from libdlg.dlgStore import ZDict, objectify, Lst, StorageIndex
 
 ''' maps py2 to 3 '''
 from importlib import reload
@@ -128,7 +127,7 @@ __all__ = [
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
            'ALLLOWER', 'ALLUPPER', 'PY2', 'fix_tablename',
     #
-           'SQLType', 'objecttypes', 'tabletypes', 'fieldtypes', 'table_alias',
+            'table_alias',
     #
            'Flatten', 'fractions2Float', 'percents2Float', 'isnum', 'is_iterable', 'is_array',
            'decode_bytes', 'Plural',
@@ -146,9 +145,7 @@ __all__ = [
            'to_bytes', 'to_native', 'to_unicode', 'serializable', 'dttypes', 'reg_objdict',
            'reg_default', 'datefields',
     #
-           'sanitizename', 'is_Py4Exception',
-    #
-           'is_Py4', 'is_P4Jnl', 'is_NOSource', 'fieldType', 'tableType'
+           'sanitizename',  #
 ]
 
 (mloads, mload, mdump, mdumps) = (loads, load, dump, dumps)
@@ -394,94 +391,6 @@ dttypes = (
     datetime,
     time
 )
-
-''' SQLTypes
-'''
-SQLType = objectify(
-    {
-        'objects': (
-            'Py4',
-            'P4Jnl',
-            'PyNO',
-            'PyRCS',
-            'PyD',
-            'P4DB',
-        ),
-        'tables': (
-            'Py4Table',
-            'JNLTable',
-            'NOTable',
-            'RCSTable',
-            'PyDTable',
-            'P4DTable'
-        ),
-        'fields': (
-            'Py4Field',
-            'JNLField',
-            'NOField',
-            'RCSField',
-            'PyDField',
-            'P4DBField'
-        )
-    }
-)
-objecttypes = SQLType.objects
-tabletypes = SQLType.tables
-fieldtypes = SQLType.fields
-
-def is_Py4Exception(*args, **kwargs):
-    (args, record) = (Lst(args), ZDict(kwargs))
-    if (
-            (len(record) == 0)
-            & (isinstance(args(0), list) is True)
-    ):
-        record = ZDict(args(0))
-
-    exceptkeys = ['code', 'data', 'generic', 'severity']
-    intersect = record.getkeys().intersect(exceptkeys)
-
-    if (
-            (len(intersect) == len(exceptkeys))
-            & (kwargs.code == 'error')
-    ):
-        return True
-    return False
-
-def is_P4JnlException(*args, **kwargs):
-    pass
-
-def is_Py4(p4obj):
-    return True \
-        if (type(p4obj).__name__ == 'Py4') \
-        else False
-
-def is_P4Jnl(p4obj):
-    return True \
-        if (type(p4obj).__name__ == 'P4Jnl') \
-        else False
-
-def is_NOSource(p4obj):
-    return True \
-        if (type(p4obj).__name__ == 'NOFile') \
-        else False
-
-def fieldType(p4obj):
-    return 'Py4Field' \
-        if (is_Py4(p4obj) is True) \
-        else 'JNLField' \
-        if (is_P4Jnl(p4obj) is True) \
-        else 'NOField' \
-        if (is_NOSource(p4obj) is True) \
-        else None
-
-def tableType(p4obj):
-    return 'Py4Table' \
-        if (is_Py4(p4obj) is True) \
-        else 'JNLTable' \
-        if (is_P4Jnl(p4obj) is True) \
-        else 'NOTable'  \
-        if (is_NOSource(p4obj) is True) \
-        else None
 
 def to_bytes(obj, charset='utf-8', errors='strict'):
     try:

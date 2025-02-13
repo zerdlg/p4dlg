@@ -1,8 +1,8 @@
 import os
 from libpy4.py4IO import Py4
 from libdlg.dlgStore import ZDict, Lst
-from libdlg.contrib.pydal import DAL
-from libdlg.dlgFileIO import is_writable, make_writable
+from libdlg.contrib.pydal.pydal import DAL
+from libfs.fsFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import set_localport
 
 '''  [$File: //dev/p4dlg/libconnect/conDB.py $] [$Change: 468 $] [$Revision: #9 $]

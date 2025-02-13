@@ -3,11 +3,10 @@ from collections import deque
 from functools import reduce
 from pprint import pprint
 
-from libdlg.dlgFileIO import ispath
+from libfs.fsFileIO import ispath
 from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgUtilities import bail
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgQuery_and_operators import AND
 from libdlg.contrib.prettytable.prettytable import PrettyTable
 
 '''  [$File: //dev/p4dlg/libdlg/dlgSearch.py $] [$Change: 467 $] [$Revision: #6 $]
@@ -280,7 +279,10 @@ class Search(DLGControl):
                 source = Lst(source.split('\n'))
         elif (hasattr(source, 'readlines')):
             source = Lst(source.readlines())
-        elif AND((isinstance(source(0), dict)), (key is not None)):
+        elif (
+                (isinstance(source(0), dict)) &
+                (key is not None)
+        ):
             source = Lst([' '.join(str(v) for v in i[key]) for i in source])
         elif (isinstance(source, (list, tuple, deque, set))):
             source = Lst(source)

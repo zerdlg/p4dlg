@@ -15,7 +15,7 @@ class DLGHelp(object):
     def usagelist(self):
         help = self.objp4.help()
         if (
-                (type(help).__name__ == 'DLGRecords')
+                (type(help).__name__ == 'Records')
                 | (isinstance(help, list) is True)
         ):
             help = help(0).data
@@ -32,7 +32,7 @@ class DLGHelp(object):
     def commandslist(self):
         help = self.objp4.help('commands')
         if (
-                (type(help).__name__ == 'DLGRecords')
+                (type(help).__name__ == 'Records')
                 | (isinstance(help, list) is True)
         ):
             help = help(0).data
@@ -47,7 +47,7 @@ class DLGHelp(object):
     def administrationlist(self):
         help = self.objp4.help('administration')
         if (
-                (type(help).__name__ == 'DLGRecords')
+                (type(help).__name__ == 'Records')
                 | (isinstance(help, list) is True)
         ):
             help = help(0).data
@@ -73,7 +73,7 @@ class DLGHelp(object):
     def parseundoc(self):
         undoc = self.objp4.help('undoc')
         if (
-                (type(undoc).__name__ == 'DLGRecords')
+                (type(undoc).__name__ == 'Records')
                 | (isinstance(undoc, list) is True)
         ):
             undoc = undoc(0)

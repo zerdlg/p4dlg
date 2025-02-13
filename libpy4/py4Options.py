@@ -1,16 +1,13 @@
 import re
 
-from libdlg.dlgRecords import DLGRecords
-from libdlg.dlgRecord import DLGRecord
+from libsql.sqlRecords import Records
 from libdlg.dlgStore import (
     Lst,
     objectify,
     ZDict
 )
-from libdlg.dlgQuery_and_operators import AND, OR
 from libdlg.dlgUtilities import (
     noneempty,
-    bail,
     Flatten,
     reg_explain,
     reg_changelist,
@@ -191,7 +188,7 @@ class Py4Options(object):
             )
             datarecord = self.objp4.p4OutPut(self.tablename, *cmdargs)
             if (len(datarecord) > 0):
-                if (isinstance(datarecord, (list, DLGRecords))):
+                if (isinstance(datarecord, (list, Records))):
                     datarecord = datarecord.first()
                 if (isinstance(datarecord, ZDict) is True):
                     (
@@ -208,14 +205,10 @@ class Py4Options(object):
                         )
                 if (isinstance(data, str) is True):
                     data = Lst(data.splitlines()).clean()
-                if AND(
-                        AND(
-                            AND(
-                                (len(data) > 0),
-                                (generic == 1)
-                            ),
-                            (code == 'error')
-                        ),
+                if (
+                        (len(data) > 0) &
+                        (generic == 1) &
+                        (code == 'error') &
                         (severity == 3)
                 ):
                     ''' generic 1, code 'error' & severity 3...                    
@@ -270,13 +263,20 @@ class Py4Options(object):
                     rightside_mapping = f'//{self.objp4._client}/...'
                     more_cmdargs += [rightside_mapping]
                 elif (not self.tablename in (self.objp4.nocommands + self.objp4.initcommands)):
-                    if OR(
-                            AND(
-                                (self.optionsdata.is_command is True),
-                                (self.optionsdata.is_spec is False)
-                            ),
+                    if (
+                            (
+                                    (self.optionsdata.is_command is True) &
+                                    (self.optionsdata.is_spec is False)
+                            ) |
                             (self.optionsdata.is_specs is True)
                     ):
+                    #if OR(
+                    #        AND(
+                    #            (self.optionsdata.is_command is True),
+                    #            (self.optionsdata.is_spec is False)
+                    #        ),
+                    #        (self.optionsdata.is_specs is True)
+                    #):
                         more_cmdargs = self.get_more_table_options(keywords)
                         if (reg_changelist.search(usage) is not None):
                             more_cmdargs.append('1')
@@ -294,8 +294,8 @@ class Py4Options(object):
                     if (isinstance(records(0), ZDict)):
                         rec0 = records(0)
                         fieldnames = rec0.getkeys()
-                        if AND(
-                                (len(fieldnames) == 1),
+                        if (
+                                (len(fieldnames) == 1) &
                                 (fieldnames(0) == 'code')
                         ):
                             rec0.delete('code')
@@ -307,8 +307,8 @@ class Py4Options(object):
                                 'severity',
                                 'data'
                             ).intersect(fieldnames)
-                            if AND(
-                                    (len(rec_results) == 4),
+                            if (
+                                    (len(rec_results) == 4) &
                                     (rec0.code == 'error')
                             ):
                                 error = rec0.data
@@ -318,13 +318,13 @@ class Py4Options(object):
                                 fieldnames = rec0.getkeys()
             else:
                 usage = f'usage string for cmd `{self.tablename}` could not be set.'
-        if AND(
-                (len(fieldnames) == 0),
+        if (
+                (len(fieldnames) == 0) &
                 (len(fieldsmap) > 0)
         ):
             fieldnames = fieldsmap.getvalues()
-        if AND(
-                (len(fieldsmap) == 0),
+        if (
+                (len(fieldsmap) == 0) &
                 (len(fieldnames) > 0)
         ):
             fieldsmap = ZDict(

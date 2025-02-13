@@ -1,8 +1,7 @@
 from types import LambdaType
 from libdlg.dlgStore import ZDict, objectify, Lst
-from libdlg.dlgQuery_and_operators import AND, OR
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgRecordset import DLGRecordSet
+from libsql.sqlRecordset import RecordSet
 from libdlg.dlgUtilities import queryStringToStorage, bail, noneempty, ALLLOWER
 from libno.noSqltypes import NOTable
 
@@ -25,7 +24,7 @@ class PyNO(DLGControl):
 
     def __call__(self, *queries, **tabledata):
 
-        oRecordSet = DLGRecordSet(self, self.records, **tabledata)
+        oRecordSet = RecordSet(self, self.records, **tabledata)
         return oRecordSet() if (len(queries) == 0) else oRecordSet(*queries)
 
 
@@ -50,7 +49,10 @@ class PyNO(DLGControl):
                 qries = objectify(Lst(queryStringToStorage(q) for q in query.split()))
             elif (isinstance(query, (list, Lst, tuple, NOTable))):
                 qries = objectify(Lst(query))
-            elif OR((isinstance(query, dict)),(type(query) is LambdaType)):
+            elif (
+                    (isinstance(query, dict)) |
+                    (type(query) is LambdaType)
+            ):
                 qries =  objectify(Lst([query]))
             elif (type(query).__name__ in ('DLGQuery', 'DLGExpression')):
                 qries =  Lst([query])
@@ -119,9 +121,12 @@ class PyNO(DLGControl):
                 'tabletype': NOFile
                 })
         oSource = enumerate(self.records)
-        if AND((len(queries) == 0), (isinstance(query, NOTable))):
-            return DLGRecordSet(self, oSource, **tabledata)
-        oRecordSet = DLGRecordSet(self, oSource, **tabledata)
+        if (
+                (len(queries) == 0) &
+                (isinstance(query, NOTable))
+        ):
+            return RecordSet(self, oSource, **tabledata)
+        oRecordSet = RecordSet(self, oSource, **tabledata)
         return oRecordSet() if (len(noQueries) == 0) else oRecordSet(*noQueries)
 
     def getfieldmaps(self, tablename='notable'):

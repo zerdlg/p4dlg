@@ -2,7 +2,6 @@ import re
 
 from libdlg.dlgStore import Lst, ZDict, objectify
 from libdlg.dlgUtilities import decode_bytes
-from libdlg.dlgQuery_and_operators import AND, OR
 from libpy4.py4SpecIO import SpecIO
 
 '''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 474 $] [$Revision: #17 $]
@@ -61,8 +60,8 @@ class Py4Run(object):
         '''
         tablename = self.tabledata.tablename
         is_spec = self.tabledata.is_spec or False
-        if AND(
-                (is_spec is True),
+        if (
+                (is_spec is True) &
                 (tablename in self.objp4.spec_takes_no_lastarg)
         ):
             return
@@ -89,8 +88,8 @@ class Py4Run(object):
                 cmdargs.insert(0, tablename)
             ''' Down this way if we have a spec...
             '''
-            if AND(
-                    (is_spec is True),
+            if (
+                    (is_spec is True) &
                     (not '--explain' in cmdargs)
             ):
                 cmdargs += self.options
@@ -128,12 +127,10 @@ class Py4Run(object):
                             rkey = cmdkwdict[skey.lower()]
                             cmdkwargs.delete(rkey)
 
-                if AND(
-                        (is_spec is True),
-                        AND(
-                            (specname is None),
-                            (lastarg is not None)
-                        )
+                if (
+                        (is_spec is True) &
+                        (specname is None) &
+                        (lastarg is not None)
                 ):
                     specname = lastarg
                 ''' Even if we want to create/update a spec, we will, in all cases, 
@@ -163,8 +160,8 @@ class Py4Run(object):
                     otherwise we'll let the env deal with it.
                 '''
                 if (not cmdargs(-1).startswith('-')):
-                    if OR(
-                            (cmdargs(-1) != tablename),
+                    if (
+                            (cmdargs(-1) != tablename) |
                             (cmdargs(-1) == tablename == 'spec')
                     ):
                         ''' just guessing... as in %> p4 client -o myClientName
@@ -175,8 +172,8 @@ class Py4Run(object):
                                 else cmdargs(-1)
                             if (not tablename in cmdargs):
                                 cmdargs.insert(0, tablename)
-                            if AND(
-                                    (len(cmdargs) == 1),
+                            if (
+                                    (len(cmdargs) == 1) &
                                     (specname == tablename == 'spec')
                             ):
                                 cmdargs.append('spec')
@@ -221,13 +218,20 @@ class Py4Run(object):
             if (is_match is None):
                 cmdargs = Lst(oP4Globals + cmdargs)
             if (not 'input' in cmdkwargs.keys()):
-                if AND(
-                      OR(
-                            (tablename in self.objp4.nocommands),
+                if (
+                        (
+                            (tablename in self.objp4.nocommands) |
                             ('--explain' in cmdargs)
-                        ),
-                      (tablename not in ('help'))
+                        ) &
+                        (tablename not in ('help'))
                 ):
+                #if AND(
+                #      OR(
+                #            (tablename in self.objp4.nocommands),
+                #            ('--explain' in cmdargs)
+                #        ),
+                #      (tablename not in ('help'))
+                #):
                     output = self.objp4.p4OutPut_noCommands(tablename, *cmdargs)
                 else:
                     output = self.objp4.p4OutPut(
@@ -236,8 +240,8 @@ class Py4Run(object):
                                                     **cmdkwargs
                     )
 
-                    if AND(
-                            (tablename == 'print'),
+                    if (
+                            (tablename == 'print') &
                             (len(output) >= 2)
                     ):
                         if (output(0).type not in (
@@ -268,9 +272,9 @@ class Py4Run(object):
                                             'data': data
                                         }
                                     )
-                    if AND(
-                            (tablename in self.objp4.nocommands),
-                            (type(output).__name__ == 'DLGRecords')
+                    if (
+                            (tablename in self.objp4.nocommands) &
+                            (type(output).__name__ == 'Records')
                     ):
                         if (len(output) == 1):
                             output = output(0)

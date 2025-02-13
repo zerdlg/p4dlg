@@ -1,0 +1,402 @@
+from libdlg.dlgStore import Lst, ZDict, objectify
+
+qtypes = ('DLGQuery', 'DLGExpression')
+
+def is_recordType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ == 'Record') &
+                    (type(right).__name__ == 'Record')
+        ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ == 'Record') \
+            else False
+    return ret
+
+
+def is_recordsType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ == 'Records') &
+                    (type(right).__name__ == 'Records')
+            ) \
+                else False
+    else:
+        ret = True \
+            if (type(left).__name__ == 'Records') \
+            else False
+    return ret
+
+
+def is_strType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (isinstance(left, str) is True) &
+                    (isinstance(right, str) is True)
+        ) \
+            else False
+    else:
+        ret = True \
+            if (isinstance(left, str) is True) \
+            else False
+    return ret
+
+
+def is_qType_or_field(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (
+                        (is_query_or_expressionType(left) is True) |
+                        (is_fieldType(left) is True)
+                    ) &
+                    (
+                        (is_query_or_expressionType(right) is True) |
+                        (is_fieldType(right) is True)
+                    )
+                ) \
+            else False
+    else:
+        ret = True \
+            if (
+                    (is_query_or_expressionType(left) is True) |
+                    (is_fieldType(left) is True)
+                ) \
+            else False
+    return ret
+
+
+def is_q_or_dicttype(left, right=None):
+    def istype(ttype):
+        return True \
+            if (
+                (is_query_or_expressionType(ttype) is True)
+                | (is_dictType(ttype) is True)
+        ) \
+            else False
+
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    isleft = True \
+        if (istype(left) is True) \
+        else False
+    if (right is not None):
+        isright = True \
+            if (istype(right) is True) \
+            else False
+        ret = True \
+            if (
+                    (isleft is True) |
+                    (isright is True)
+        ) \
+            else False
+    else:
+        ret = True \
+            if (isleft is True) \
+            else False
+    return ret
+
+
+def query_is_reference(query):
+    if (is_query_or_expressionType(query) is True):
+        if (is_fieldType(query.left, query.right) is True):
+            return True
+    return False
+
+
+def is_list_of_fields(iterable):
+    try:
+        return True \
+            if (sum([int(is_fieldType(litem)) for litem in iterable]) == len(iterable)) \
+            else False
+    except Exception as err:
+        print(err)
+    return False
+
+
+def is_list_of_queries(iterable):
+    try:
+        return True \
+            if (sum([int(is_queryType(litem)) for litem in iterable]) == len(iterable)) \
+            else False
+    except Exception as err:
+        print(err)
+    return False
+
+
+def is_dictType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (isinstance(left, dict) is True) &
+                    (isinstance(right, dict) is True)
+        ) \
+            else False
+    else:
+        ret = True \
+            if (isinstance(left, dict) is True) \
+            else False
+    return ret
+
+
+def is_query_or_expressionType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ in qtypes) |
+                    (type(right).__name__ in qtypes)
+        ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ in qtypes) \
+            else False
+    return ret
+
+
+def is_expressionType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ == 'DLGExpression') &
+                    (type(right).__name__ == 'DLGExpression')
+                ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ == 'DLGExpression') \
+            else False
+    return ret
+
+
+def is_queryType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ == 'DLGQuery') &
+                    (type(right).__name__ == 'DLGQuery')
+            ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ == 'DLGQuery') \
+            else False
+    return ret
+
+
+def is_fieldType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ in ('Py4Field', 'JNLField')) &
+                    (type(right).__name__ in ('Py4Field', 'JNLField'))
+        ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ in ('Py4Field', 'JNLField')) \
+            else False
+    return ret
+
+
+def is_tableType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                   (type(left).__name__ in ('Py4Table', 'JNLTable')) &
+                   (type(right).__name__ in ('Py4Table', 'JNLTable'))
+        ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ in ('Py4Table', 'JNLTable')) \
+            else False
+    return ret
+
+
+def is_field_tableType(left, right=None):
+    def istype(ttype):
+        return True \
+            if (
+                    (is_tableType(ttype) is True) |
+                    (is_fieldType(ttype) is True)
+        ) \
+            else False
+
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+
+    isleft = True \
+        if (istype(left) is True) \
+        else False
+    if (right is not None):
+        isright = True \
+            if (istype(right) is True) \
+            else False
+        ret = True \
+            if (
+                    (isleft is True) &
+                    (isright is True)
+        ) \
+            else False
+    else:
+        ret = True \
+            if (isleft is True) \
+            else False
+    return ret
+
+
+SQLType = objectify(
+    {
+        'objects': (
+            'Py4',
+            'P4Jnl',
+            'PyNO',
+            'PyRCS',
+            'PyD',
+            'P4DB',
+        ),
+        'tables': (
+            'Py4Table',
+            'JNLTable',
+            'NOTable',
+            'RCSTable',
+            'PyDTable',
+            'P4DTable'
+        ),
+        'fields': (
+            'Py4Field',
+            'JNLField',
+            'NOField',
+            'RCSField',
+            'PyDField',
+            'P4DBField'
+        )
+    }
+)
+objecttypes = SQLType.objects
+tabletypes = SQLType.tables
+fieldtypes = SQLType.fields
+
+
+def is_Py4Exception(*args, **kwargs):
+    (args, record) = (Lst(args), ZDict(kwargs))
+    if (
+            (len(record) == 0)
+            & (isinstance(args(0), list) is True)
+    ):
+        record = ZDict(args(0))
+
+    exceptkeys = ['code', 'data', 'generic', 'severity']
+    intersect = record.getkeys().intersect(exceptkeys)
+
+    if (
+            (len(intersect) == len(exceptkeys))
+            & (kwargs.code == 'error')
+    ):
+        return True
+    return False
+
+
+def is_P4JnlException(*args, **kwargs):
+    pass
+
+
+def is_Py4(p4obj):
+    return True \
+        if (type(p4obj).__name__ == 'Py4') \
+        else False
+
+
+def is_P4Jnl(p4obj):
+    return True \
+        if (type(p4obj).__name__ == 'P4Jnl') \
+        else False
+
+
+def is_NOSource(p4obj):
+    return True \
+        if (type(p4obj).__name__ == 'NOFile') \
+        else False
+
+
+def fieldType(p4obj):
+    return 'Py4Field' \
+        if (is_Py4(p4obj) is True) \
+        else 'JNLField' \
+        if (is_P4Jnl(p4obj) is True) \
+        else 'NOField' \
+        if (is_NOSource(p4obj) is True) \
+        else None
+
+
+def tableType(p4obj):
+    return 'Py4Table' \
+        if (is_Py4(p4obj) is True) \
+        else 'JNLTable' \
+        if (is_P4Jnl(p4obj) is True) \
+        else 'NOTable'  \
+        if (is_NOSource(p4obj) is True) \
+        else None

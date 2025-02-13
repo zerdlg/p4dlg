@@ -1,11 +1,8 @@
-import logging
 import re
 from marshal import loads, load, dump, dumps
 from types import *
 from subprocess import Popen, PIPE, STDOUT
-from pprint import pformat
 
-from libdlg.dlgError import *
 from libpy4.py4Options import Py4Options
 from libpy4.py4Run import Py4Run
 from libpy4.py4Sqltypes import Py4Table, Py4Field
@@ -14,7 +11,7 @@ from libdlg.dlgStore import (
     objectify,
     Lst
 )
-from libdlg.dlgQuery_and_operators import *
+from libsql.sqlQuery import *
 from libdlg.dlgUtilities import (
     noneempty,
     bail,
@@ -24,7 +21,6 @@ from libdlg.dlgUtilities import (
     Flatten,
     annoying_ipython_attributes,
     reg_envvariable,
-    fieldType,
     set_localport,
     reg_filename,
     reg_rev_change_specifier,
@@ -34,14 +30,15 @@ from libdlg.dlgUtilities import (
     table_alias
 )
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgFileIO import *
-from libdlg.dlgRecordset import DLGRecordSet
-from libdlg.dlgRecords import DLGRecords
-from libdlg.dlgRecord import DLGRecord
-from libdlg.dlgInvert import invert
+from libfs.fsFileIO import *
+from libsql.sqlRecordset import RecordSet
+from libsql.sqlRecords import Records
+from libsql.sqlInvert import invert
 from libhelp.hlpCmds import DLGHelp
-from libdlg.dlgSchemaTypes import SchemaType
-from libdlg.dlgSchema import SchemaXML, to_releasename
+from libsql.sqlSchemaTypes import SchemaType
+from libsql.sqlSchema import SchemaXML
+from libsql.sqlValidate import query_is_reference, is_query_or_expressionType, is_expressionType, fieldType
+from libsql import is_queryType, is_fieldType, is_tableType
 import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
@@ -295,12 +292,15 @@ class Py4(object):
                 kwargs.version,                                 # the user may have passed in either (or both)
                 kwargs.oSchema
             )
-        if AND(
-                (oSchema is None),
+        if (
+                (oSchema is None) &
                 (version is not None)
         ):
             oSchema = SchemaXML(schemadir, version)
-        if (version is None):                                   # the user provided no such thing
+        if (
+                (version is None) &
+                (oSchema is None)
+        ):                                                      # the user provided no such thing
             try:
                 info = Py4Run(self, tablename='info')()(0)      # do p4 info
                 strServerversion = info.serverVersion           # we just need the version string
@@ -355,8 +355,8 @@ class Py4(object):
         self.oSchemaType = SchemaType(self)
 
     def __call__(self, query=None, *options, **kwargs):
-        if AND(
-                (len(options) + len(kwargs) == 0),
+        if (
+                (len(options) + len(kwargs) == 0) &
                 (query is None)
         ):
             return self
@@ -409,8 +409,8 @@ class Py4(object):
                         qries = Lst([query])
                     elif (isinstance(query, str)):
                         qries = objectify(Lst(queryStringToStorage(q) for q in query.split()).clean())
-                    elif OR(
-                            (isinstance(query, dict)),
+                    elif (
+                            (isinstance(query, dict)) |
                             (type(query) is LambdaType)
                     ):
                         qries = objectify(Lst([query]))
@@ -481,8 +481,8 @@ class Py4(object):
                         break
                 if (lastarg is None):
                     (lastarg, options) = self.define_lastarg(tablename, *options, query=p4Queries)
-            if AND(
-                    (isinstance(lastarg, str) is True),
+            if (
+                    (isinstance(lastarg, str) is True) &
                     (not lastarg in options)
             ):
                 options.append(lastarg)
@@ -530,8 +530,8 @@ class Py4(object):
         ''' just in case p4args has a lastarg arg AND in the wrong position, 
             force it the last position.
         '''
-        if AND(
-                (lastarg is not None),
+        if (
+                (lastarg is not None) &
                 (isinstance(lastarg, str) is True)
         ):
             if (lastarg in self.p4args):
@@ -591,20 +591,20 @@ class Py4(object):
             'maxrows'
         )
         kwargs.delete(*delkwargs)
-        ''' Py4IO's callable returns a set of records (P4QRecordset). 
+        ''' Py4IO's callable returns a set of records (Recordset). 
         '''
         [
             setattr(self, item, kwargs[item]) for item in
             ('maxrows', 'compute') if (kwargs[item] is not None)
         ]
-        ''' Define a DLGRecordSet based on the result of running 
+        ''' Define a RecordSet based on the result of running 
             a p4 cmd (Py4Run), or an empty RecordSet if tablename
             happens to be None (in which case, we will rely on the
-            DLGRecordSet methods being invoked by the user.
+            RecordSet methods being invoked by the user.
         '''
-        oRecordSet = DLGRecordSet(self, DLGRecords(), **tabledata) \
+        oRecordSet = RecordSet(self, Records(), **tabledata) \
             if (tablename is None) \
-            else DLGRecordSet(
+            else RecordSet(
             self,
             Py4Run(
                 self,
@@ -617,8 +617,8 @@ class Py4(object):
             p4Queries and reference, return the RecordSet (
             swinging by __call__ if need be).  
         '''
-        if AND(
-                (len(p4Queries) == 0),
+        if (
+                (len(p4Queries) == 0) &
                 (is_tableType(query) is True)
         ):
             if (reference is None):
@@ -652,7 +652,7 @@ class Py4(object):
         ]
         envvariables = ZDict()
         p4UserConfig = Py4Run(self, **cdata)()
-        if (type(p4UserConfig).__name__ == 'DLGRecords'):
+        if (type(p4UserConfig).__name__ == 'Records'):
             p4UserConfig = p4UserConfig(0).data
         if (len(p4UserConfig) > 0):
             for line in re.split('\n', p4UserConfig):
@@ -772,11 +772,10 @@ class Py4(object):
                 except Exception as err:
                     self.logerror(err)
                     break
-            elif OR(
-                    OR(
-                        (tablename in self.commands + self.initcommands),
-                        ('--explain' in self.p4args)),
-                    (not '-G' in self.p4globals)
+            elif (
+                        (tablename in self.commands + self.initcommands) |
+                        ('--explain' in self.p4args) |
+                        (not '-G' in self.p4globals)
             ):
                 try:
                     return self.__dict__[tablename]
@@ -798,8 +797,8 @@ class Py4(object):
                 except KeyError:
                     usageinfo = self.helpmemo[tablename] = self.help(tablename)
                 return usageinfo
-            elif AND(
-                        (len(valid_tablenames) > 0),
+            elif (
+                    (len(valid_tablenames) > 0) &
                     (tablename not in valid_tablenames)
             ):
                 #self.logerror(invalidAttributeError)
@@ -838,8 +837,8 @@ class Py4(object):
         lastarg = None
         tabledata = self.memoizetable(tablename)
 
-        if OR(
-                (tablename in self.nocommands),
+        if (
+                (tablename in self.nocommands) |
                 (noneempty(tabledata.tableoptions) is True)
         ):
             return (None, None)
@@ -857,8 +856,8 @@ class Py4(object):
                             altarg = tabledata.fieldsmap[altarg.lower()]
                             lastarg = kwargs[altarg]
                         elif (query is not None):
-                            if AND(
-                                    (isinstance(query.right, str)),
+                            if (
+                                    (isinstance(query.right, str)) &
                                     (query.left.fieldname.lower() == altarg.lower())
                             ):
                                 lastarg = query.right
@@ -950,8 +949,8 @@ class Py4(object):
                 else self.query
             for q in query:
                 specifiers = []
-                if OR(
-                        (isinstance(q.right, ZDict)),
+                if (
+                        (isinstance(q.right, ZDict)) |
                         (q.right.__name__ == fieldType(self.objp4))
                 ):
                     q = q.left
@@ -1002,13 +1001,21 @@ class Py4(object):
             opname = op.__name__ \
                 if (callable(op) is True) \
                 else op
-            if OR(
-                  AND(
-                      (hasattr(left, 'left') is True),
-                      (is_query_or_expressionType(left.left) is True)
-                  ),
+            if (
+                    (
+                            (hasattr(left, 'left') is True) &
+                            (is_query_or_expressionType(left.left) is True)
+                    ) |
                     (opname in (andops + orops + xorops))
             ):
+            #if OR(
+            #        (
+            #                (hasattr(left, 'left') is True) &
+            #                (is_query_or_expressionType(left.left) is True)
+            #        ),
+            #        (opname in (andops + orops + xorops))
+            #):
+
                 left = getleft(left)
             return left
         left = getleft(qry)
@@ -1104,12 +1111,10 @@ class Py4(object):
                             left.tablename,
                             left.fieldname
                         )
-            elif OR(
-                    OR(
-                        (is_queryType(left) is True),
-                        (is_expressionType(left) is True)
-                    ),
-                (is_fieldType(left) is True)
+            elif (
+                        (is_queryType(left) is True) |
+                        (is_expressionType(left) is True) |
+                        (is_fieldType(left) is True)
             ):
                 (
                     tablename,
@@ -1118,8 +1123,8 @@ class Py4(object):
                     self.get_tablename_fieldname_from_qry(qry)
                 )
         if (isinstance(right, str)):
-            if AND(
-                    (isdepotfile(right) is True),
+            if (
+                    (isdepotfile(right) is True) &
                     (tablename is not None)
             ):
                 (lastarg, options) = self.define_lastarg(tablename, *options, query=qry)
@@ -1245,8 +1250,8 @@ class Py4(object):
             speckeys = specinput.getkeys()
             for speckey in speckeys:
                 if (speckey.lower() in tabledata.fieldsmap.getkeys()):
-                    if AND(
-                            (specname is None),
+                    if (
+                            (specname is None) &
                             (speckey.lower() == altarg)
                     ):
                         specname = specinput[speckey]
@@ -1288,13 +1293,9 @@ class Py4(object):
             if isinstance(lastarg, str):
                 p4args.append(lastarg)
         if (
-                OR(
-                    OR(
-                        (tablename in self.nocommands),
-                        ('--explain' in p4args)
-                    ),
-                        (not '-G' in self.p4globals)
-                )
+                (tablename in self.nocommands) |
+                ('--explain' in p4args) |
+                (not '-G' in self.p4globals)
         ):
             p4opener = Popen(p4args, stdout=PIPE, stderr=PIPE)
             try:
@@ -1312,8 +1313,8 @@ class Py4(object):
                 return out
             finally:
                 ''' this is bad! please fix! '''
-                if AND(
-                        (hasattr(p4opener, 'close') is True),
+                if (
+                        (hasattr(p4opener, 'close') is True) &
                         (hasattr(p4opener, 'closed') is True)
                 ):
                     if (p4opener.closed is False):
@@ -1334,17 +1335,17 @@ class Py4(object):
         )
         ''' remember, it is entirely possible that p4args be empty...
         '''
-        if AND(
-                (len(p4args) > 0),
+        if (
+                (len(p4args) > 0) &
                 (not '--explain' in p4args)
         ):
-            if AND(
-                    (kwargs.lastarg is not None),
+            if (
+                    (kwargs.lastarg is not None) &
                     (kwargs.lastarg != p4args(-1))
             ):
                 (specname, p4args) = self.define_lastarg(tablename, *p4args)
-                if AND(
-                        (isinstance(specname, str) is True),
+                if (
+                        (isinstance(specname, str) is True) &
                         (specname != p4args[-1])
                 ):
                     p4args.append(specname)
@@ -1376,8 +1377,8 @@ class Py4(object):
                 self.logger.error(f"err: {err}")
         ''' all done, close the file descriptor
         '''
-        if AND(
-                (hasattr(oFile, 'close') is True),
+        if (
+                (hasattr(oFile, 'close') is True) &
                 (oFile.closed is False)
         ):
             oFile.close()
@@ -1387,7 +1388,7 @@ class Py4(object):
                 return records(0)
             return records
         tabledata = self.memoizetable(tablename)
-        return DLGRecords(
+        return Records(
             records=Lst(rec for rec in records),
             objp4=self,
             **tabledata
@@ -1440,8 +1441,8 @@ class Py4(object):
                     out = dict(out(0)) \
                         if (isinstance(out(0), (list, tuple))) \
                         else dict(out)
-                if OR(
-                        (isinstance(out, dict)),
+                if (
+                        (isinstance(out, dict)) |
                         (
                             set(
                                 map(
@@ -1521,8 +1522,8 @@ class Py4(object):
                         tdvalue.insert(0, 'idx')
                     elif (not 'idx' in tdvalue.getkeys()):
                         tdvalue.merge({'idx': 'idx'})
-                elif AND(
-                            (tditem == 'fieldsmap'),
+                elif (
+                            (tditem == 'fieldsmap') &
                             (len(tabledata.fieldnames) > 0)
                 ):
                     tdvalue = ZDict(
@@ -1543,8 +1544,8 @@ class Py4(object):
             for (okey, ovalue) in optionsdata.items():
                 if (not okey in tabledata.getkeys()):
                     tabledata.merge({okey:optionsdata[okey]})
-                elif AND(
-                        (noneempty(ovalue) is False),
+                elif (
+                        (noneempty(ovalue) is False) &
                         (noneempty(tabledata[okey]) is True)
                 ):
                     tabledata.merge({okey: ovalue})

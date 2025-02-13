@@ -6,8 +6,8 @@ from libdlg.dlgStore import (
     objectify,
     Lst,
 )
-from libdlg.dlgQuery_and_operators import *
-from libdlg.dlgRecords import DLGRecords
+from libsql.sqlQuery import *
+from libsql.sqlRecords import Records
 from libdlg.dlgUtilities import (
     reg_ipython_builtin,
     serializable,
@@ -121,7 +121,10 @@ class NOTable(object):
         if (len(key_dismiss_attr) > 0):
             return
 
-        if AND(('tablename' in self.__dict__.keys()), (not 'fieldname' in self.__dict__.keys())):
+        if (
+                ('tablename' in self.__dict__.keys()) &
+                (not 'fieldname' in self.__dict__.keys())
+        ):
             if (self.tablename is None):
                 return NOField()
 
@@ -129,7 +132,7 @@ class NOTable(object):
     def insert(self, *args, **kwargs):
         kwargs = ZDict(kwargs)
         records = self.iterQuery(*args, **kwargs)
-        records = DLGRecords(records=records, cols=self.oQuery.cols, objp4=self.objp4)
+        records = Records(records=records, cols=self.oQuery.cols, objp4=self.objp4)
         records = self.modify_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -145,7 +148,7 @@ class NOTable(object):
     def update(self, *args, **kwargs):
         kwargs = ZDict(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+        records = Records(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -153,7 +156,7 @@ class NOTable(object):
     def delete(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), ZDict(kwargs))
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+        records = Records(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -161,7 +164,7 @@ class NOTable(object):
     def insert(self, *args, **kwargs):
         kwargs = ZDict(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
-        records = DLGRecords(records=records, cols=self.oQuery.cols, objP4=self.objP4)
+        records = Records(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
         self.oQuery.query = Lst()
         return records
@@ -208,8 +211,10 @@ class NOField(DLGExpression):
 
         super(NOField, self).__init__(objp4, None, self, )
         self.__dict__ = objectify(self.__dict__)
-        if OR((not isinstance(fieldname, str)),
-              (reg_valid_table_field.match(fieldname) is None)):
+        if (
+                (not isinstance(fieldname, str)) |
+                (reg_valid_table_field.match(fieldname) is None)
+        ):
             error = f'Invalid field name `{fieldname}`'
             objp4.LOGERROR(error)
             bail(error)

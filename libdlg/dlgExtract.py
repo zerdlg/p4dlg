@@ -1,13 +1,12 @@
 import os
 import re
 import tarfile
-from libdlg.dlgFileIO import (
+from libfs.fsFileIO import (
     fileopen,
     bail,
     Lst,
     is_compressed,
 )
-from libdlg.dlgUtilities import IsMatch
 
 '''  [$File: //dev/p4dlg/libdlg/dlgExtract.py $] [$Change: 411 $] [$Revision: #3 $]
      [$DateTime: 2024/06/25 07:02:28 $]

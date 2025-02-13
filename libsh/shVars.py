@@ -9,7 +9,7 @@ from pickle import load
 
 from libdlg.dlgStore import ZDict, objectify, Lst
 from libdlg.dlgUtilities import noneempty, casttype
-from libdlg.dlgFileIO import loadpickle, dumppickle
+from libfs.fsFileIO import loadpickle, dumppickle
 
 (
     OSetattr,

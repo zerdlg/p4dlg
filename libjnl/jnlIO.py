@@ -1,11 +1,10 @@
 import os
 from types import *
 import datetime
-from itertools import tee
 
 from libdlg.dlgStore import ZDict, Lst, objectify
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgQuery_and_operators import *
+from libsql.sqlQuery import *
 from libdlg.dlgUtilities import (
     annoying_ipython_attributes,
     bail,
@@ -15,14 +14,14 @@ from libdlg.dlgUtilities import (
     fix_name,
     getTableOpKeyValue
 )
-from libdlg.dlgRecordset import *
-from libdlg.dlgSchemaTypes import *
-from libdlg.dlgFileIO import loadpickle
-from libdlg.dlgSchema import getObjSchema
-from libdlg.dlgInvert import invert
+from libsql.sqlRecordset import *
+from libsql.sqlSchemaTypes import *
+from libfs.fsFileIO import loadpickle
+from libsql.sqlSchema import getObjSchema
+from libsql.sqlInvert import invert
 from libjnl.jnlFile import JNLFile
 #from libjnl.jnlGuess import GuessRelease
-from libjnl.jnlSqltypes import JNLTable, JNLField
+from libjnl.jnlSqltypes import JNLTable
 
 import schemaxml
 from os.path import dirname
@@ -326,15 +325,26 @@ class P4Jnl(object):
             opname = op.__name__ \
                 if (callable(op) is True) \
                 else op
-            if OR(
-                  OR(
-                      AND(
-                        (hasattr(left, 'left')),
-                        (is_query_or_expressionType(left.left) is True)),
-                      (is_query_or_expressionType(left) is True))
-                  ,
+
+            if (
+                    (
+                            (
+                                    (hasattr(left, 'left')) &
+                                    (is_query_or_expressionType(left.left) is True)
+                            ) |
+                            (is_query_or_expressionType(left) is True)
+                    ) |
                     (opname in (andops + orops + xorops))
             ):
+            #if OR(
+            #      OR(
+            #          AND(
+            #            (hasattr(left, 'left')),
+            #            (is_query_or_expressionType(left.left) is True)),
+            #          (is_query_or_expressionType(left) is True))
+            #      ,
+            #        (opname in (andops + orops + xorops))
+            #):
                 left = getleft(left)
             return left
         left = getleft(qry)
@@ -357,8 +367,8 @@ class P4Jnl(object):
                     qry.left,
                     qry.right
                 )
-            if AND(
-                    (inversion is None),
+            if (
+                    (inversion is None) &
                     (qry.inversion is not None)
             ):
                 inversion = qry.inversion
@@ -418,13 +428,13 @@ class P4Jnl(object):
                     if (hasattr(avalue, 'op') is True):
                         if (avalue.op is not None):
                             avalue = self.build(avalue, inversion)
-                    if AND(
-                            AND(
-                                (hasattr(avalue, 'tablename')),
-                                (hasattr(avalue, 'fieldname'))
-                            ),
+                    if (
                             (
-                                    (avalue.tablename is not None),
+                                (hasattr(avalue, 'tablename')) &
+                                (hasattr(avalue, 'fieldname'))
+                            ) &
+                            (
+                                    (avalue.tablename is not None) &
                                     (avalue.fieldname is not None)
                             )
                     ):
@@ -613,18 +623,19 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 if (fieldtype in self.oSchemaType.flagnames()):
                     right = self.oSchemaType.datatype_flag(right, fieldtype)
                     qry.right = str(right)
-                if AND(
-                        (hasattr(right, 'left')),
+                if (
+                        (hasattr(right, 'left')) &
                         (hasattr(right, 'right'))
                 ):
                     if (right.left is not None):
                         qry = self.resolve_datatype_value(right)
-        elif AND(
-                (hasattr(left, 'tablename')),
+        elif (
+                (hasattr(left, 'tablename')) &
                 (hasattr(left, 'fieldname'))
         ):
-            if AND(
-                    (left.tablename is not None), (left.fieldname is not None)
+            if (
+                    (left.tablename is not None) &
+                    (left.fieldname is not None)
             ):
                 ''' Left is well formed, moving on.
                 '''
@@ -646,13 +657,13 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                     qry.left = left
                     right = self.resolve_datatype_value(right)
                     qry.right = right
-                elif AND(
-                        (hasattr(left, 'left')),
+                elif (
+                        (hasattr(left, 'left')) &
                         (hasattr(left, 'right'))
                 ):
                     qry = self.resolve_datatype_value(left)
-        elif AND(
-                (hasattr(left, 'left')),
+        elif (
+                (hasattr(left, 'left')) &
                 (hasattr(left, 'right'))
         ):
             qry = self.resolve_datatype_value(left)
@@ -692,8 +703,8 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         qries =  Lst([query])
                     elif (isinstance(query, str)):
                         qries = objectify(Lst(queryStringToStorage(q) for q in query.split()).clean())
-                    elif OR(
-                            (isinstance(query, dict)),
+                    elif (
+                            (isinstance(query, dict)) |
                             (type(query) is LambdaType)
                     ):
                         qries = objectify(Lst([query]))
@@ -764,7 +775,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             )
 
         oJNLFile = JNLFile(self.journal, reader=self.reader)
-        oRecordSet = DLGRecordSet(
+        oRecordSet = RecordSet(
             self,
             oJNLFile,
             **tabledata
@@ -773,11 +784,11 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         if (len(jnlQueries) == 0):
             if (is_tableType(query) is True):        # A single query is defined, its just a _table.
                 if (reference is None):              # No references in this run
-                    return oRecordSet                # Bypass DLGRecordSet.__call__ altogether!
+                    return oRecordSet                # Bypass RecordSet.__call__ altogether!
                 return oRecordSet(                   # A single query is defined, its really a reference
                     reference=reference
                 )
-        return oRecordSet(*jnlQueries)               # jnlQueries > 0, pass them onto DLGRecordSet.__call__
+        return oRecordSet(*jnlQueries)               # jnlQueries > 0, pass them onto RecordSet.__call__
 
     def getfieldmaps(self, tablename):
         ''' mapping of all table names  -> {lower_case_fieldname: actual_fieldname}

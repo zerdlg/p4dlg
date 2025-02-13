@@ -1,16 +1,16 @@
 import os
 import re
 from subprocess import PIPE, Popen
-import unittest
-from pprint import pprint
 
 from libdlg.dlgStore import ZDict, Lst
-from libdlg.dlgFileIO import is_writable, make_writable
-from libdlg.dlgUtilities import decode_bytes, set_localport
+from libfs.fsFileIO import is_writable, make_writable
+from libdlg.dlgUtilities import (
+    decode_bytes,
+    set_localport
+)
+from libsql.sqlSchema import SchemaXML
 from libpy4.py4IO import Py4
 from libdlg import bail
-from libpy4.py4Run import Py4Run
-from libdlg.dlgSchema import SchemaXML, to_releasename
 
 __all__ = ['ObjP4']
 
@@ -133,7 +133,7 @@ class ObjP4(object):
 
     def delete(self, name, key):
         if (self.varsdef(name) is None):
-            print(f'Key Error - No such key "{key}"')
+            print(f'DeleteError - No such name "{name}"')
         else:
             try:
                 kwargs = self.varsdef(name)
@@ -148,12 +148,15 @@ class ObjP4(object):
                 print(f'{err}')
 
     def delete_new(self, name, key):
-        try:
-            [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
-        except KeyError as err:
-            print(err)
-        ZDict(self.shellObj.__dict__).delete(name)
-        self.setstored()
+        if (self.varsdef(name) is None):
+            print(f'DeleteError:\nNo such key "{name}"')
+        else:
+            try:
+                [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
+            except KeyError as err:
+                print(err)
+            ZDict(self.shellObj.__dict__).delete(name)
+            self.setstored()
 
     def setstored(self):
         self.stored = Lst(key for key in self.varsdef().keys() if (key != '__session_loaded_on__'))
@@ -165,6 +168,8 @@ class ObjP4(object):
         return self
 
     def update(self, name, **kwargs):
+        if (self.varsdef(name) is None):
+            print(f'UpdateError:\nNo such key "{name}"')
         kwargs = ZDict(self.fixkeys(**kwargs))
         if (kwargs.port is not None):
             kwargs.port = set_localport(kwargs.p4droot)
@@ -183,48 +188,73 @@ class ObjP4(object):
 
     def create(self, name, *args, **kwargs):
         if (self.varsdef(name) is not None):
-            print(f'CreateError:\nName already exists "{name}" - use op4.update({name}) instead')
+            print(f'CreateError:\nName already exists "{name}" - use p4con.update({name}, **kwargs) instead')
         try:
             (args, kwargs) = (Lst(args), ZDict(self.fixkeys(**kwargs)))
-            (objp4, StopError) = (None, None)
-            if (False in (
-                    (kwargs.user is not None),
-                    (kwargs.port is not None)
-                    )
+            (
+                objp4,
+                oSchema,
+                StopError
+            ) = \
+                (
+                    None,
+                    None,
+                    None
+                )
+            if (
+                    (kwargs.user is None) |
+                    (kwargs.port is None)
             ):
-                StopError = 'p4 globals (user, port) are required!'
+                StopError = 'p4 globals `user` & `port` are required!'
             if (kwargs.client is None):
                 kwargs.client = 'unset'
             if (kwargs.port == 'localport'):
-                (port, p4droot) = (kwargs.port, kwargs.p4droot)
+                (
+                    port,
+                    p4droot
+                ) = \
+                    (
+                        kwargs.port,
+                        kwargs.p4droot
+                    )
                 if (p4droot is None):
-                    StopError = 'p4droot must be set to use an RSH port!'
+                    StopError = 'A RSH port requires p4droot to be set'
                 else:
                     p4droot = os.path.abspath(p4droot)
                     if (port == 'localport'):
                         if (p4droot is not None):
                             if (os.path.exists(p4droot) is True):
-                                ''' check that path to /p4d is valid 
+                                ''' Check that p4droot is valid 
                                 '''
                                 kwargs.port = set_localport(p4droot)
                             else:
-                                StopError = f"p4droot path is invalid {p4droot}"
+                                StopError = f"No such p4droot path ({p4droot})."
                         else:
                             StopError = f"A RSH port requires p4droot to be set"
-
-            oSchema = kwargs.oSchema
-            if (oSchema is None):
-                if (kwargs.version is not None):
-                    oSchema = self.shellObj.memoize_schema(kwargs.version)
-                    kwargs.delete('version')
-                else:
-                    objp4 = Py4(**kwargs)
-                    oSchema = objp4.oSchema
-            kwargs.oSchema = oSchema
+            (connected, info_or_failure) = self.is_connected(kwargs.port)
+            if (connected is True):
+                if (kwargs.oSchema is None):
+                    if (kwargs.version is not None):
+                        oSchema = SchemaXML(version=kwargs.version)
+                    else:
+                        try:
+                            objp4 = Py4(**kwargs)
+                            oSchema = objp4.oSchema
+                        except Exception as err:
+                            StopError = f"Error increate py4 object: {err}"
+            if (oSchema is not None):
+                kwargs.update(
+                    **{
+                        'oSchema': oSchema,
+                        'version': oSchema.version
+                    }
+                )
+            else:
+                StopError = f"Error in creating a connectio: {info_or_failure}."
         except Exception as err:
             StopError = f"Error: {err}"
         if (StopError is not None):
-            print(f'Error:\n{StopError}')
+            print(f'Error: {StopError}')
         else:
             self.varsdef(name, kwargs)
             self.setstored()
@@ -240,7 +270,7 @@ class ObjP4(object):
                     else errFile)
             if (out.startswith(failure)):
                 return (False, failure)
-            return (True, None)
+            return (True, out)
         except Exception as err:
             bail(err)
         finally:
@@ -250,7 +280,7 @@ class ObjP4(object):
 
     def load(self, name, objp4=None):
         if (self.varsdef(name) is None):
-            print(f'KeyError:\n No such key "{name}"')
+            print(f'LoadErrror: No such name: "{name}"')
         else:
             try:
                 kwargs = self.varsdef(name)
@@ -259,6 +289,8 @@ class ObjP4(object):
                 (connected, connect_msg) = self.is_connected(p4port)
                 if (connected is True):
                     if (objp4 is None):
+                        if (kwargs.version is not None):
+                            kwargs.delete('version')
                         objp4 = Py4(**kwargs)
                     self.shellObj.kernel.shell.push({name: objp4})
                     self.setstored()
@@ -271,9 +303,7 @@ class ObjP4(object):
 
     def unload(self, name):
         if (self.varsdef(name) is None):
-            bail(
-                f'Attribute Error:\n No such attribute "{name}"'
-            )
+            print(f'UNLoadErrror: No such name: "{name}"')
         else:
             try:
                 [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
@@ -287,7 +317,7 @@ class ObjP4(object):
 
     def purge(self, name):
         if (self.varsdef(name) is None):
-            print(f'KeyError:\nNo such key "{name}"')
+            print(f'PurgeError:\nNo such key "{name}"')
         else:
             filename = self.shellObj.varsdata.p4vars.path
             self.unload(name)

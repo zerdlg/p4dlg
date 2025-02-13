@@ -1,10 +1,9 @@
 import re
 
 from libdlg.dlgStore import *
-from libdlg.dlgQuery_and_operators import AND, OR
-from libdlg.dlgRecord import DLGRecord
+from libsql.sqlRecord import Record
 from libdlg.dlgUtilities import Flatten, bail
-from libpy4.py4Run import *
+
 
 class SpecIO(object):
     def __init__(self, objp4):
@@ -59,11 +58,11 @@ class SpecIO(object):
                 if (dsum > 0) \
                 else True
             is_delete = False \
-                if AND(
-                OR(
-                    (is_input is True),
-                    (is_output is True)
-                ),
+                if (
+                (
+                        (is_input is True) |
+                        (is_output is True)
+                ) &
                 (dsum == 0)
             ) \
                 else True
@@ -128,8 +127,8 @@ class SpecIO(object):
                     outputargs.insert(idx, '--force')
                 else:
                     outputargs.append('--force')
-        elif AND(
-                (True in (is_input, is_output)),
+        elif (
+                (True in (is_input, is_output)) &
                 (not True in has_outputkey)
         ):
             ''' make sure the output args endswith [..., tablename, '--output', specname] 
@@ -142,13 +141,13 @@ class SpecIO(object):
                     outputargs.append(specname)
             elif (tablename == outputargs(-1)):
                 outputargs.append('--output')
-                if AND(
-                        (specname not in outputargs),
+                if (
+                        (specname not in outputargs) &
                         (specname is not None)
                 ):
                     outputargs.append(specname)
-            elif AND(
-                    (tablename == outputargs(-2)),
+            elif (
+                    (tablename == outputargs(-2)) &
                     (specname == outputargs(-1))
             ):
                 outputargs.insert(-1, '--output')
@@ -158,12 +157,12 @@ class SpecIO(object):
             if (type(outrecord) is Lst):
                 outrecord = outrecord(0) or ZDict()
             if (outrecord not in (Lst(), None)):
-                if AND(
-                        (outrecord.generic is not None),
+                if (
+                        (outrecord.generic is not None) &
                         (outrecord.data is not None)
                 ):
                     return (outrecord)
-            if (isinstance(outrecord, DLGRecord)):
+            if (isinstance(outrecord, Record)):
                 outrecord = outrecord.as_dict()
             '''     we will likely need to flatten a record's fields when using -G. I.e.:
 
@@ -188,7 +187,7 @@ class SpecIO(object):
             ''' no user input, get out now
             '''
             if (is_input is False):
-                return DLGRecord(outrecord)
+                return Record(outrecord)
         finally:
             self.objp4.close()
         ''' To save a new or updated spec, the output becomes the input's base record (except for change). 
@@ -206,8 +205,8 @@ class SpecIO(object):
          if key.lower() in ('access', 'update', 'code')]
         ''' THIS BLOC NEEDS WORK!!!
         '''
-        if OR(
-                (tablename in ('user',)),
+        if (
+                (tablename in ('user',)) |
                 (requires_force is True)
         ):
             if (not '-f' in inputargs):
@@ -217,8 +216,8 @@ class SpecIO(object):
         inputargs.append('--input')
         for oldkey in specinputcopy.keys():
             newkey = fieldsmap[oldkey.lower()]
-            if AND(
-                    (isinstance(outrecord[newkey], list)),
+            if (
+                    (isinstance(outrecord[newkey], list)) &
                     (isinstance(specinput[newkey], list))
             ):
                 outrecord[newkey] += specinput[newkey]
