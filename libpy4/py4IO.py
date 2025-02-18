@@ -27,7 +27,11 @@ from libdlg.dlgUtilities import (
     reg_p4global,
     is_marshal,
     Plural,
-    table_alias
+    table_alias,
+    spec_lastarg_pairs,
+    reg_changelist,
+    reg_job,
+    reg_server_or_remote
 )
 from libdlg.dlgControl import DLGControl
 from libfs.fsFileIO import *
@@ -38,7 +42,7 @@ from libhelp.hlpCmds import DLGHelp
 from libsql.sqlSchemaTypes import SchemaType
 from libsql.sqlSchema import SchemaXML
 from libsql.sqlValidate import query_is_reference, is_query_or_expressionType, is_expressionType, fieldType
-from libsql import is_queryType, is_fieldType, is_tableType
+from libsql.sqlValidate import is_queryType, is_fieldType, is_tableType, is_job
 import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
@@ -206,29 +210,38 @@ class Py4(object):
             'stream',
             'typemap'
         ]
+        self.spec_args_are_optional =[
+            'change',
+            'changelist',
+            'job',
+            'workspace',
+            'client',
+        ]
         self.p4spec_requires_lastarg = Lst(
                             [
-                                'change',
-                                'changelist',
                                 'server',
                                 'group',
-                                'job',
-                                'workspace',
                                 'ldap',
                                 'user',
                                 'spec',
-                                'remote'
-                            ] + self.domain_specs
+                                'remote',
+                                'branch',
+                                'depot',
+                                'label',
+                                'stream',
+                                'typemap'
+                            ]
         )
-        self.p4spec = (
+        self.p4spec = list(set(
                 self.p4spec_requires_lastarg +
                 self.domain_specs +
+                self.spec_args_are_optional +
                 self.spec_takes_no_lastarg
-        )
-
+        ))
         self.p4specs = self.pluralize_specs(
             exclude=self.spec_takes_no_lastarg
         )
+
         self.specfield_headers = [
             'code',
             'name',
@@ -271,6 +284,30 @@ class Py4(object):
             'set',
             'spec',
             'help'
+        ]
+        self.file_action_commands= [
+            'add',
+            'annotate',
+            'clean',
+            'copy',
+            'describe',
+            'diff',
+            'diff2',
+            'edit',
+            'delete',
+            'grep',
+            'integ',
+            'integrate',
+            'lock',
+            'merge',
+            'move',
+            'rename',
+            'print',
+            'revert',
+            'submit',
+            'flush',
+            'shelve',
+            'unshelve'
         ]
         self.p4globals = Lst(['p4', '-G'] + self.p4credential_globals)
         (
@@ -486,43 +523,7 @@ class Py4(object):
                     (not lastarg in options)
             ):
                 options.append(lastarg)
-        ''' No p4Queries, a straight up p4 cmd (with or without options)
 
-                e.g.
-                >>> oP4.files('-a', '//depot/my_projects/project/...lin64...')
-
-            __call__ accepts any p4 global argument.
-
-            P4 Syntax:
-                >>> p4 [global options] command [cmd options] [arg/lastarg ...]
-
-                executable                                                    command
-                    |                           `                               |
-                >>> p4 -u zerdlg -P martspassword -p localhost:1666 -c clientname files //depot/...
-                       |                                                      |         |
-                       |_________________global arguments >___________________|       arg/lastarg
-
-            Generally, global args are passed in and defined when we instantiate 
-            a reference to class Py4. I.e.:
-
-                >>> objp4 = Py4(*args, **{'user': 'zerdlg',
-                                          'password': 'martspassword',
-                                          'port': 'localhost:1666',
-                                          'client': 'defaultclient'})
-
-            Globals persist so long as the class reference exists (regardless of any 
-            environmental interference).
-
-            P4 Globals as args to __call__:
-            they persist only for the life of this cmd, after which they will be dropped.
-
-                I.e.    tablename = None                <-- name of the current cmd call
-                        is_spec = False                 <-- True, cmd is a spec
-                        closed = True                   <-- True until cmd has completed execution
-                        p4globals = ['p4', '-G']        <-- hard coded
-                        credentialglobals = [**kwargs]  <-- those passed in on instantiation, these persist
-                        supglobals = []                 <-- dropped
-        '''
         ''' add any global options to supglobals for temporary use
         '''
         self.supglobals += globaloptions
@@ -824,58 +825,34 @@ class Py4(object):
 
     def define_lastarg(self, tablename, *cmdargs, **kwargs):
         if (tablename is None):
-            return (None, None)
+            return (None, cmdargs)
         (cmdargs, kwargs) = (Lst(cmdargs), ZDict(kwargs))
-        query = kwargs.query
-        if (query is not None):
-            query = query(0) \
-                if (isinstance(query, Lst)) \
-                else query.left \
-                if (type(query.left) is DLGQuery) \
-                else query
-
-        lastarg = None
         tabledata = self.memoizetable(tablename)
-
+        usage = tabledata.tableoptions.usage
         if (
                 (tablename in self.nocommands) |
-                (noneempty(tabledata.tableoptions) is True)
+                (noneempty(tabledata.tableoptions) is True) |
+                (re.match(r'^.*\scould not be set.', usage) is not None)
         ):
-            return (None, None)
+            return (None, cmdargs)
 
-        usage = tabledata.tableoptions.usage
+        lastarg = None
+        query = kwargs.query
+        if (query is not None):
+            if (isinstance(query, Lst) is True):
+                query = query(0)
+            elif (type(query.left) is DLGQuery):
+                query = query.left
+
         requires_filearg = (reg_filename.search(usage) is not None)
-
-        if (requires_filearg is False):
-            if (not tablename in self.spec_takes_no_lastarg):
-                is_spec = True if (tablename in self.p4spec) else False
-                if (is_spec is True):
-                    altarg = tabledata.altarg
-                    if (altarg is not None):
-                        if (altarg.lower() in LOWER(kwargs.getkeys())):
-                            altarg = tabledata.fieldsmap[altarg.lower()]
-                            lastarg = kwargs[altarg]
-                        elif (query is not None):
-                            if (
-                                    (isinstance(query.right, str)) &
-                                    (query.left.fieldname.lower() == altarg.lower())
-                            ):
-                                lastarg = query.right
-                    arg = getattr(self, tablename)
-                    if (len(cmdargs) > 0):
-                        lastarg = cmdargs.pop(-1)
-                    if (lastarg is None):
-                        if (arg is not None):
-                            lastarg = arg
-                return (lastarg, cmdargs)
-        else:
+        if (requires_filearg is True):
             ''' filearg is required!
 
-                search priority:
-                    1) cmdargs
-                    2) check kwargs.queries as they may contain a clue about a specified lastarg
-                    3) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
-            '''
+                            search priority:
+                                1) cmdargs
+                                2) check kwargs.queries as they may contain a clue about a specified lastarg
+                                3) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
+                        '''
             if (cmdargs(-1) is not None):
                 if (isanyfile(cmdargs(-1)) is True):
                     lastarg = cmdargs.pop(-1)
@@ -907,18 +884,94 @@ class Py4(object):
                                 NE,
                                 '=',
                                 '!='
-                            )
+                        )
                         ):
                             p4args = self.p4globals + ['where', query.right]
                             out = self.p4OutPut(tablename, *p4args)
                             lastarg = out.depotFile
                     else:
                         lastarg = None
+                    return (lastarg, cmdargs)
             ''' lastly... use the clientFile
             '''
             if (noneempty(lastarg) is True):
                 lastarg = f'//{self._client}/...'
-            return (lastarg, cmdargs)
+                return (lastarg, cmdargs)
+
+        elif (tabledata.is_spec is True):
+            ''' takes no args
+            '''
+            if (
+                    (tablename in self.spec_takes_no_lastarg) |
+                    (((lastarg is None) | (cmdargs(-1) is None)) is True)
+            ):
+                return (lastarg, cmdargs)
+            ''' job
+            '''
+            requires_jobid = (reg_job.search(usage) is not None)
+            if (requires_jobid is True):
+                if (reg_job.match(cmdargs(-1)) is not None):
+                    lastarg = cmdargs.pop(-1)
+                    return (lastarg, cmdargs)
+
+            ''' server | remote
+            '''
+            requires_num = (tablename in ('server', 'remote'))
+            if (requires_num is True):
+                if reg_server_or_remote.match(str(cmdargs(-1)) is not None):
+                    lastarg = cmdargs.pop(-1)
+                    return (lastarg, cmdargs)
+
+            ''' change / changelist
+            '''
+            requires_changelist_arg = (reg_changelist.search(usage) is not None)
+            if (requires_changelist_arg is True):
+                if (isnum(cmdargs(-1)) is True):
+                    lastarg = cmdargs.pop(-1)
+                    return (lastarg, cmdargs)
+
+            # should we need to handle specs that have an optional arg separately?
+
+            ''' any other spec
+            '''
+            requires_spec_arg = (tablename in spec_lastarg_pairs.keys())
+            if (requires_spec_arg is True):
+                if (
+                        (isinstance(cmdargs(-1), str) is True) &
+                        (isnum(cmdargs(-1)) is False) &
+                        (not cmdargs(-1).startswith('-'))
+                ):
+                    lastarg = cmdargs.pop(-1)
+                    return (lastarg, cmdargs)
+
+            altarg = tabledata.altarg
+            if (altarg is not None):
+                if (altarg.lower() in LOWER(kwargs.getkeys())):
+                    altarg = tabledata.fieldsmap[altarg.lower()]
+                    lastarg = kwargs[altarg]
+
+            if (query is not None):
+                if (
+                        (isinstance(query.right, str)) &
+                        (query.left.fieldname.lower() == altarg.lower())
+                ):
+                    lastarg = query.right
+                    return (lastarg, cmdargs)
+
+            if (tablename in cmdargs):
+                tablename_idx = cmdargs.index(tablename)
+                if (tablename_idx != cmdargs(-1)):
+                    if (tablename == 'job'):
+                        if (is_job(cmdargs(-1)) is True):
+                            lastarg = cmdargs.pop(-1)
+                    elif (
+                            (tablename in ('server', 'change')) &
+                            (isnum(cmdargs.pop(-1)) is True)
+                    ):
+                        lastarg = cmdargs.pop(-1)
+                    elif (re.match(r'^-\w$',cmdargs(-1)) is None):
+                        lastarg = cmdargs(-1)
+                return (lastarg, cmdargs)
 
     def get_recordsIterator(self):
         return enumerate(self.records, start=1) \
@@ -1008,14 +1061,6 @@ class Py4(object):
                     ) |
                     (opname in (andops + orops + xorops))
             ):
-            #if OR(
-            #        (
-            #                (hasattr(left, 'left') is True) &
-            #                (is_query_or_expressionType(left.left) is True)
-            #        ),
-            #        (opname in (andops + orops + xorops))
-            #):
-
                 left = getleft(left)
             return left
         left = getleft(qry)
@@ -1241,20 +1286,20 @@ class Py4(object):
                 Lst()
         )
 
-    def parseInputKeys(self, tabledata, specname, **specinput):
+    def parseInputKeys(self, tabledata, specname=None, **specinput):
         specinput = ZDict(specinput)
         if (type(specname).__name__ == 'Py4Table'):
             specname = specname.tablename
+        elif (specname is None):
+            specname = tabledata.tablename
         try:
             altarg = tabledata.altarg
-            speckeys = specinput.getkeys()
-            for speckey in speckeys:
+            specinputkeys = specinput.getkeys()
+            for speckey in specinputkeys:
+                ''' make sure specinut keys are well formatted. They should
+                    be Capitalized (except for altarg).
+                '''
                 if (speckey.lower() in tabledata.fieldsmap.getkeys()):
-                    if (
-                            (specname is None) &
-                            (speckey.lower() == altarg)
-                    ):
-                        specname = specinput[speckey]
                     rspeckey = tabledata.fieldsmap[speckey.lower()]
                     if (rspeckey != speckey):
                         specinput.rename(speckey, rspeckey)
@@ -1264,11 +1309,11 @@ class Py4(object):
                             speckey = tabledata.fieldsmap[key.lower()]
                             if (key != speckey):
                                 specinput.rename(key, speckey)
-            if (altarg is not None):
-                if (specname is None):
-                    specname = specinput[altarg] or specinput[altarg.lower()]
-                #if (specname is not None):
-                #    specinput[tabledata.fieldsmap[altarg.lower()]] = specname
+            if (
+                    (altarg is not None) &
+                    (specname is None)
+            ):
+                specname = specinput[altarg] or specinput[altarg.lower()]
             self.loginfo(f'parsing input for spec {specname}: {specinput}')
             return (specname, specinput, altarg)
         except Exception as err:

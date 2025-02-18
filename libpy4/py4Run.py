@@ -1,7 +1,7 @@
 import re
 
 from libdlg.dlgStore import Lst, ZDict, objectify
-from libdlg.dlgUtilities import decode_bytes
+from libdlg.dlgUtilities import decode_bytes, ALLLOWER
 from libpy4.py4SpecIO import SpecIO
 
 '''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 474 $] [$Revision: #17 $]
@@ -53,6 +53,9 @@ class Py4Run(object):
         self.logerror = logger.logerror if (logger is not None) else self.loglist.append
         self.logcritical = logger.logcritical if (logger is not None) else self.loglist.append
 
+    def spec(self, tablename, *cmdargs, **kwargs):
+        pass
+
     def __call__(self, *cmdargs, **cmdkwargs):
         (cmdargs, cmdkwargs) = (Lst(cmdargs), ZDict(cmdkwargs))
         join_datachunks = cmdkwargs.joindata_chunks or False
@@ -64,17 +67,22 @@ class Py4Run(object):
                 (is_spec is True) &
                 (tablename in self.objp4.spec_takes_no_lastarg)
         ):
+            ''' don't bother if this command doesn't take/need a last position arg 
+            '''
             return
-        ''' don't bother if this command doesn't take/need a last position arg 
-        '''
-        noargs_cmds = (
-                self.objp4.nocommands
-                + self.objp4.fetchfirst
-                + self.objp4.spec_takes_no_lastarg
+
+        noargs_cmds = Lst(
+            set(
+                self.objp4.nocommands +
+                self.objp4.fetchfirst +
+                self.objp4.spec_takes_no_lastarg
+            )
         )
         lastarg = None
+
         if (not tablename in noargs_cmds):
             (lastarg, cmdargs) = self.objp4.define_lastarg(tablename, *cmdargs)
+
         self.objp4.p4globals += self.objp4.supglobals
         ''' tablename must be cmdargs' 1st argument. so either insert 
             if missing or, if suspected to be in the wrong position, 
@@ -105,11 +113,17 @@ class Py4Run(object):
                             }
                         )
                 '''
-                (
-                    specname,
-                    specinput,
-                    altarg
-                ) = (
+                # BUG: if (lastarg is None AND cmdargs is empty):
+                #          specname should not equal tablename!
+                #   i.e.: p4.client()
+                #
+                #   implemented in py4IO at line 906
+                #
+                #   should also unmangle the specname spectype vs
+                #   tablename fiasco. even though the results are
+                #   good (it's just too messy!)
+                #
+                (specname, specinput, altarg) = (
                     self.objp4.parseInputKeys(
                         self.tabledata,
                         lastarg,
@@ -117,79 +131,57 @@ class Py4Run(object):
                     )
                 )
                 if (len(specinput) > 0):
-                    cmdkwdict = {ckey.lower(): ckey for ckey in cmdkwargs.keys()}
                     ''' for whatever its worth... the same key can't exist in 
                         both cmdkwargs and in specinput. Delete from cmdkwargs
                         as needed
                     '''
-                    for skey in specinput.keys():
-                        if (skey.lower() in cmdkwdict.keys()):
-                            rkey = cmdkwdict[skey.lower()]
-                            cmdkwargs.delete(rkey)
 
-                if (
-                        (is_spec is True) &
-                        (specname is None) &
-                        (lastarg is not None)
-                ):
-                    specname = lastarg
-                ''' Even if we want to create/update a spec, we will, in all cases, 
-                    need -o to begin with, then can we look at -i if (cmdkwargs > 0)
+                    [cmdkwargs.delete(ckey) for ckey in cmdkwargs.copy().keys() if
+                     (ckey.lower() in [key.lower() for key in specinput.keys()])]
+                ''' keep in mind, input (-i) can't happen without output (-o)
                 '''
-                specargs = objectify(
-                            {
-                                    'o': {
-                                          'short': '-o',
-                                          'keyword': '--output'
-                                },
-                                    'i': {
-                                          'short': '-i',
-                                          'keyword': '--input'
-                                    }
-                            }
-                )
-                ''' at this time, let's remove -o/-i from cmdargs
-                '''
-                for sparg in specargs.keys():
-                    poparg = cmdargs.index(specargs[sparg].short) \
-                        if (specargs[sparg].short in cmdargs) \
-                        else cmdargs.index(specargs[sparg].keyword) if (specargs[sparg].keyword in cmdargs) else None
-                    if (poparg is not None):
-                        cmdargs.pop(poparg)
-                ''' specname *should* be cmdargs(-1) by now, 
-                    otherwise we'll let the env deal with it.
+                io_option = cmdargs.intersect(['-o', '--output', '-i', '--input'])(0)
+                if (io_option is not None):
+                    idx = cmdargs.index(io_option)
+                    cmdargs.pop(idx)
+
+                ''' 'p4 spec <specname>' - source of ambiguity?
+                    no doubt.
                 '''
                 if (not cmdargs(-1).startswith('-')):
                     if (
                             (cmdargs(-1) != tablename) |
                             (cmdargs(-1) == tablename == 'spec')
                     ):
-                        ''' just guessing... as in %> p4 client -o myClientName
-                        '''
-                        if (specname is None):
-                            specname = specinput[tablename] \
-                                if (tablename in specinput.keys()) \
-                                else cmdargs(-1)
-                            if (not tablename in cmdargs):
-                                cmdargs.insert(0, tablename)
-                            if (
-                                    (len(cmdargs) == 1) &
-                                    (specname == tablename == 'spec')
-                            ):
-                                cmdargs.append('spec')
-                            elif (cmdargs(0) != tablename):
-                                cmdargs.pop(cmdargs.index(tablename))
-                                cmdargs.insert(0, tablename)
+                        if (not tablename in cmdargs):
+                            cmdargs.insert(0, tablename)
+                        if (
+                                (len(cmdargs) == 1) &
+                                (specname == tablename == 'spec')
+                        ):
+                            cmdargs.append('spec')
+                        elif (cmdargs(0) != tablename):
+                            cmdargs.pop(cmdargs.index(tablename))
+                            cmdargs.insert(0, tablename)
+                        elif (len(cmdargs) > 0):
+                           if (tablename == 'spec'):
+                               if (cmdargs(-1) != 'spec'):
+                                   if (cmdargs(-1) in self.objp4.p4spec):
+                                       if (tablename not in cmdargs):
+                                           cmdargs.insert(-2, tablename)
+                if (lastarg is not None):
+                    cmdargs.append(lastarg)
                 ''' no matter what, be it input or output, 
                     we need a spec's output
                 '''
                 try:
-                    return SpecIO(self.objp4).out(
+                    specres = SpecIO(self.objp4).out(
                         tablename,
-                        specname,
+                        lastarg,
                         *cmdargs,
-                        **cmdkwargs
+                        **specinput#**cmdkwargs
                     )
+                    return specres
                 finally:
                     self.objp4.close()
         ''' does this cmd have and/or require a final cmd line 
@@ -225,13 +217,6 @@ class Py4Run(object):
                         ) &
                         (tablename not in ('help'))
                 ):
-                #if AND(
-                #      OR(
-                #            (tablename in self.objp4.nocommands),
-                #            ('--explain' in cmdargs)
-                #        ),
-                #      (tablename not in ('help'))
-                #):
                     output = self.objp4.p4OutPut_noCommands(tablename, *cmdargs)
                 else:
                     output = self.objp4.p4OutPut(

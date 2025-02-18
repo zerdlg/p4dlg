@@ -511,8 +511,8 @@ class DLGDateTimeConvert(object):
         self.objp4 = objp4
         self.oDateTime = DLGDateTime()
 
-    def __call__(self, *fields, record=None, tablename=None, datetype='datetime', **kwargs):
-        fieldlist = record.getkeys() if (len(fields) == 0) else Lst(fields)
+    def __call__(self, record=None, tablename=None, datetype='datetime', **kwargs):
+        fieldlist = record.getkeys()
         fieldnames = fieldlist.storageindex(reversed=True)
         fieldlist = Lst(fieldnames[fidx] \
                             if (isinstance(fvalue, str) is True) \

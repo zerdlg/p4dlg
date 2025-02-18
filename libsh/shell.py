@@ -30,16 +30,10 @@ from qtconsole.inprocess import QtInProcessKernelManager
 from IPython.lib import guisupport
 from IPython.core.debugger import Pdb
 
-
 ''' p4dlg import
 '''
 from libdlg import *
-#from libdlg.dlgStore import *
-#from libdlg.dlgSchema import *
-#from libdlg.dlgUtilities import *
-
-from libjnl.jnlInit import JnlInitialize
-from libsh import varsdata
+from libsql.sqlSchema import *
 from libsh.shVars import *
 ''' connectors to objects P4, JNL, DB & NO
 '''
@@ -255,6 +249,19 @@ class DLGShell(object):
         '''
         self.instlocals()
 
+    def cmd_formatrecorddate(
+            self,
+            objp4,
+            record=None,
+            tablename=None,
+            dateformat='datetime'):
+        record = DLGDateTimeConvert(objp4)(
+            record=record,
+            tablename = tablename,
+            datetype = dateformat
+        )
+        return record
+
     def cmd_ktxt(self):
         ''' header for new files
         '''
@@ -419,21 +426,22 @@ class DLGShell(object):
                 if (not qdir in sys.path):
                     sys.path.insert(0, qdir)
                 searchPrefixes = [
-                                  'objp4',
-                                  'ObjP4db',
-                                  'misc',
-                                  'smp',
-                                  'log',
-                                  'con',
-                                  'no',
-                                  'hlp',
-                                  'jnl',
-                                  'p4dlg',
-                                  'dlg',
-                                  'py4',
-                                  'db',
-                                  'qry',
-                                  'sh'
+                    'objp4',
+                    'ObjP4db',
+                    'misc',
+                    'smp',
+                    'log',
+                    'con',
+                    'no',
+                    'hlp',
+                    'jnl',
+                    'p4dlg',
+                    'dlg',
+                    'py4',
+                    'db',
+                    'qry',
+                    'sh',
+                    'sql',
                 ]
                 searchdirs = os.listdir(qdir)
                 for _file in searchdirs:

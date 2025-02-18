@@ -18,6 +18,7 @@ from libdlg.dlgUtilities import (
     ignore_actions,
     reg_dbtablename,
 )
+from libsql.sqlQuery import *
 
 '''  [$File: //dev/p4dlg/libdlg/sqlSelect.py $] [$Change: 479 $] [$Revision: #56 $]
      [$DateTime: 2024/09/20 07:42:22 $]

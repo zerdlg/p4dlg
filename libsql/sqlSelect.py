@@ -14,25 +14,6 @@ from libdlg.dlgUtilities import (
 
 __all__ = ('Select',)
 
-def is_fieldType(left, right=None):
-    if (
-            (isinstance(left, (int, bool)) is True) |
-            (isinstance(right, (int, bool)) is True)
-    ):
-        return False
-    if (right is not None):
-        ret = True \
-            if (
-                    (type(left).__name__ in ('Py4Field', 'JNLField')) &
-                    (type(right).__name__ in ('Py4Field', 'JNLField'))
-        ) \
-            else False
-    else:
-        ret = True \
-            if (type(left).__name__ in ('Py4Field', 'JNLField')) \
-            else False
-    return ret
-
 class Select(DLGSql):
     def select(
             self,
@@ -247,12 +228,12 @@ class Select(DLGSql):
                                 fnames = fieldnames.getvalues() \
                                     if (type(fieldnames).__name__ == 'StorageIndex') \
                                     else fieldnames
-                                record = (DLGDateTimeConvert(self.objp4)
+                                record = (
+                                    DLGDateTimeConvert(self.objp4)
                                           (
-                                    *fnames,
-                                    record=record,
-                                    tablename=tablename,
-                                    datetype=datetype
+                                        record=record,
+                                        tablename=tablename,
+                                        datetype=datetype
                                     )
                                 )
                                 ''' check if any other field values need to be converted from 

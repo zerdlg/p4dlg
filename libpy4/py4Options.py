@@ -1,5 +1,6 @@
 import re
 
+from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 from libdlg.dlgStore import (
     Lst,
@@ -15,6 +16,7 @@ from libdlg.dlgUtilities import (
     reg_p4help_for_usage,
     reg_filename,
     reg_option,
+    spec_lastarg_pairs
 )
 
 '''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 473 $] [$Revision: #29 $]
@@ -81,62 +83,6 @@ class Py4Options(object):
             'critical'
         )
         ]
-        self.spec_lastarg_pairs = objectify(
-                {'change': {
-                    'lastarg': 'changelist#',
-                    'default': '1'
-                },
-                'depot': {
-                    'lastarg': 'depotname',
-                    'default': 'nodepot'
-                },
-                'server': {
-                    'lastarg': 'serverID',
-                    'default': '0'
-                },
-                'group': {
-                    'lastarg': 'groupname',
-                    'default': 'nogroup'
-                },
-                'job': {
-                    'lastarg': 'jobname',
-                    'default': 'job0001'
-                },
-                'label': {
-                    'lastarg': 'labelname',
-                    'default': 'nolabel'
-                },
-                'client': {
-                    'lastarg': 'clientname',
-                    'default': 'noclient'
-                },
-                'ldap': {
-                    'lastarg': 'ldapname',
-                    'default': 'noldap'
-                },
-                'user': {
-                    'lastarg': 'username',
-                    'default': 'nouser'
-                },
-                'stream': {
-                    'lastarg': 'streamname',
-                    'default': 'nostream'
-                },
-                'remote': {
-                    'lastarg': 'remoteID',
-                    'default': 'noremote'
-                },
-                'spec': {
-                    'lastarg': 'type',
-                    'default': 'nospec'
-                },
-                'branch': {
-                    'lastarg': 'branchname',
-                    'default': 'nobranch'
-                }
-            }
-        )
-
         self.optiondefaults = ZDict()
         self.optionsdata = objectify(optionsdata)
 
@@ -257,11 +203,17 @@ class Py4Options(object):
                 '''
                 usage = re.sub('[\[\]]', '', usage)  # TODO: do something with | statements in usage line
                 cmdargs = self.objp4.p4globals + [self.tablename]
-                (lastarg, more_cmdargs) = (None, [])
+                lastarg = None
                 if (reg_filename.search(usage) is not None):
-                    more_cmdargs = self.get_more_table_options(keywords)
+                    cmdargs += self.get_more_table_options(keywords)
                     rightside_mapping = f'//{self.objp4._client}/...'
-                    more_cmdargs += [rightside_mapping]
+                    cmdargs += [rightside_mapping]
+                elif (self.optionsdata.is_spec is True):
+                    if (self.tablename in spec_lastarg_pairs.getkeys()):
+                        lastarg = spec_lastarg_pairs[self.tablename].default
+                        cmdargs += ['--output', lastarg]
+                    else:
+                        cmdargs += ['--output']
                 elif (not self.tablename in (self.objp4.nocommands + self.objp4.initcommands)):
                     if (
                             (
@@ -270,52 +222,49 @@ class Py4Options(object):
                             ) |
                             (self.optionsdata.is_specs is True)
                     ):
-                    #if OR(
-                    #        AND(
-                    #            (self.optionsdata.is_command is True),
-                    #            (self.optionsdata.is_spec is False)
-                    #        ),
-                    #        (self.optionsdata.is_specs is True)
-                    #):
-                        more_cmdargs = self.get_more_table_options(keywords)
+                        cmdargs += self.get_more_table_options(keywords)
                         if (reg_changelist.search(usage) is not None):
-                            more_cmdargs.append('1')
-                    elif (self.optionsdata.is_spec is True):
-                        if (self.tablename in self.spec_lastarg_pairs is True):
-                            lastarg = self.spec_lastarg_pairs[self.tablename].default
-                            more_cmdargs += ['--output', lastarg]
-                        else:
-                            more_cmdargs += ['--output']
+                            cmdargs.append('1')
                     else:
-                        more_cmdargs = self.get_more_table_options(keywords)
-                cmdargs = cmdargs + more_cmdargs
+                        cmdargs += self.get_more_table_options(keywords)
                 records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)
-                if (isinstance(records, Lst) is True):
-                    if (isinstance(records(0), ZDict)):
-                        rec0 = records(0)
-                        fieldnames = rec0.getkeys()
+                if (
+                        (
+                                (is_recordsType(records) is True) |
+                                (isinstance(records, list))
+                        ) &
+                        (
+                                (is_recordType(records(0)) is True) |
+                                (isinstance(records(0), ZDict))
+                        ) &
+                        (len(records) > 0)
+                ):
+                    rec0 = records(0)
+                    fieldnames = rec0.getkeys()
+                    if (
+                            (len(fieldnames) == 1) &
+                            (fieldnames(0) == 'code')
+                    ):
+                        rec0.delete('code')
+                        fieldnames.pop(0)
+                    else:
+                        rec_results = Lst(
+                            'code',
+                            'generic',
+                            'severity',
+                            'data'
+                        ).intersect(fieldnames)
                         if (
-                                (len(fieldnames) == 1) &
-                                (fieldnames(0) == 'code')
+                                (len(rec_results) == 4) &
+                                (rec0.code == 'error')
                         ):
-                            rec0.delete('code')
-                            fieldnames.pop(0)
+                            error = rec0.data
+                            fieldnames = Lst()
                         else:
-                            rec_results = Lst(
-                                'code',
-                                'generic',
-                                'severity',
-                                'data'
-                            ).intersect(fieldnames)
-                            if (
-                                    (len(rec_results) == 4) &
-                                    (rec0.code == 'error')
-                            ):
-                                error = rec0.data
-                                fieldnames = Lst()
-                            else:
-                                rec0 = Flatten(**ZDict(rec0)).reduce()
-                                fieldnames = rec0.getkeys()
+                            rec0 = Flatten(**ZDict(rec0)).reduce()
+                            ''' once flattened, retake the inventory of this record's fields
+                            '''
+                            fieldnames = rec0.getkeys()
             else:
                 usage = f'usage string for cmd `{self.tablename}` could not be set.'
         if (

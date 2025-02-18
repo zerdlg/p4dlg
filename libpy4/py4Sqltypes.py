@@ -193,8 +193,8 @@ class Py4Table(object):
                 bail(err)
             ''' got something!!!
             '''
-            if (p4ret.data is not None):
-                p4ret = p4ret.data
+            #if (p4ret.data is not None):
+            #    p4ret = p4ret.data
         if (isinstance(p4ret, Lst)):
             p4ret = Records(p4ret, cols=p4ret(0).getkeys(), objp4=self.objp4)
         return p4ret

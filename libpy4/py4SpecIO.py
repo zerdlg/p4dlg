@@ -3,7 +3,7 @@ import re
 from libdlg.dlgStore import *
 from libsql.sqlRecord import Record
 from libdlg.dlgUtilities import Flatten, bail
-
+from libpy4.py4Mapping import P4Mapping
 
 class SpecIO(object):
     def __init__(self, objp4):
@@ -15,22 +15,24 @@ class SpecIO(object):
     def out(
             self,
             tablename,
-            specname,
-            *args,
+            lastarg,
+            *cmdargs,
             **specinput
     ):
-        (args, specinput) = (Lst(args), ZDict(specinput))
+        (cmdargs, specinput) = (Lst(cmdargs), ZDict(specinput))
         tabledata = self.objp4.memoizetable(tablename)
         fieldsmap = tabledata.fieldsmap
+        argsio = Lst(self.objp4.p4globals + cmdargs.copy())
         (
             outputargs,
             inputargs
         ) \
             = \
             (
-                Lst(self.objp4.p4globals + args.copy()),
-                Lst(self.objp4.p4globals + args.copy())
+                argsio,
+                argsio
             )
+
         ''' what do we have? --output, --input or --delete?
         '''
         (
@@ -70,14 +72,6 @@ class SpecIO(object):
             ''' TODO: need more rules for requires_force
             '''
             requires_force = True if (tablename != 'spec') else False
-        altarg = tabledata.altarg
-        if (specname is None):
-            if (len(specinput) > 0):
-                (specname, specinput, altarg) = self.objp4.parseInputKeys(
-                    tabledata,
-                    specname,
-                    **specinput
-                )
         ''' for now, force self._<spec> on specname... though it would best to 
             make sure the previous command resets it's specname. Anyways ... 
         '''
@@ -88,18 +82,6 @@ class SpecIO(object):
         )
         ):
             is_output = True
-
-        ''' for reporting
-        specoptions = ZDict(
-            {
-                'is_input': is_input,
-                'is_output': is_output,
-                'is_delete': is_delete,
-                'requires_force': requires_force
-            }
-        )
-        self.loginfo(f"spec command options: {specoptions}")
-        '''
 
         p4globals = ''.join(self.objp4.p4globals)
         for argsitem in (outputargs, inputargs):
@@ -123,7 +105,7 @@ class SpecIO(object):
                     else (outputargs.index('--delete') + 1) \
                     if ('--delete' in outputargs) \
                     else -1
-                if (specname == outputargs(-1)):
+                if (lastarg == outputargs(-1)):
                     outputargs.insert(idx, '--force')
                 else:
                     outputargs.append('--force')
@@ -131,24 +113,32 @@ class SpecIO(object):
                 (True in (is_input, is_output)) &
                 (not True in has_outputkey)
         ):
-            ''' make sure the output args endswith [..., tablename, '--output', specname] 
+            ''' make sure the output args endswith [tablename, '--output', specname]
+            
+                but, rule out that tablename is 'spec', otherwise handle it. 
             '''
-            if (specname == tablename):
+            if (tablename == 'spec'):
+                if (outputargs(-1) != tablename):
+                    if (outputargs(-1) in self.objp4.p4spec):
+                        outputargs.insert(-1, '--output')
+            elif (lastarg == tablename):
                 if (outputargs.count(tablename) > 1):
                     outputargs.insert(-1, '--output')
                 else:
                     outputargs.append('--output')
-                    outputargs.append(specname)
+                    if (lastarg is not None):
+                        outputargs.append(lastarg)
             elif (tablename == outputargs(-1)):
                 outputargs.append('--output')
                 if (
-                        (specname not in outputargs) &
-                        (specname is not None)
+                        (lastarg not in outputargs) &
+                        (lastarg is not None)
                 ):
-                    outputargs.append(specname)
+                    outputargs.append(lastarg)
             elif (
+                    (lastarg is not None) &
                     (tablename == outputargs(-2)) &
-                    (specname == outputargs(-1))
+                    (lastarg == outputargs(-1))
             ):
                 outputargs.insert(-1, '--output')
         try:
@@ -192,7 +182,7 @@ class SpecIO(object):
             self.objp4.close()
         ''' To save a new or updated spec, the output becomes the input's base record (except for change). 
         '''
-        if (inputargs(-1) == specname):
+        if (inputargs(-1) == lastarg):
             inputargs.pop(-1)
         specinputcopy = ZDict(specinput.copy())
         ''' - cleanup p4d-generated & managed field values
@@ -203,6 +193,7 @@ class SpecIO(object):
         '''
         [specinputcopy.delete(key) for key in specinput.keys() \
          if key.lower() in ('access', 'update', 'code')]
+
         ''' THIS BLOC NEEDS WORK!!!
         '''
         if (
@@ -214,6 +205,25 @@ class SpecIO(object):
         ''' TODO: needs an options playbook ...
         '''
         inputargs.append('--input')
+
+        for (leftkey, leftvalue) in specinputcopy.items():
+            rightkey = fieldsmap[leftkey.lower()]
+            rightvalue = outrecord[rightkey]
+            if (
+                    (isinstance(rightvalue, list)) &
+                    (isinstance(leftvalue, list))
+            ):
+                #oMap = P4Mapping(leftvalue)
+                #newleftvalue = oMap.merge(rightvalue)
+
+                newleftvalue = P4Mapping(leftvalue)(rightvalue)
+                outrecord[rightkey] += specinput[rightkey]
+
+            elif (not rightkey in numfields):
+                if (rightkey != leftkey):
+                    specinput.rename(leftkey, rightkey)
+            outrecord.merge(specinput)
+        '''
         for oldkey in specinputcopy.keys():
             newkey = fieldsmap[oldkey.lower()]
             if (
@@ -225,6 +235,8 @@ class SpecIO(object):
                 if (newkey != oldkey):
                     specinput.rename(oldkey, newkey)
         outrecord.merge(specinput)
+        '''
+
         ''' revert back to a flattened record/spec.
         '''
         outrecord = Flatten(**outrecord).expand()

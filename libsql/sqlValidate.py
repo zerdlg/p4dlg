@@ -1,6 +1,22 @@
+import re
+
 from libdlg.dlgStore import Lst, ZDict, objectify
 
+__all__ = [
+    'is_expressionType', 'is_strType', 'is_recordType', 'is_dictType',
+    'is_field_tableType', 'is_tableType', 'is_list_of_fields', 'is_fieldType',
+    'is_q_or_dicttype', 'is_queryType', 'is_list_of_queries', 'is_recordsType',
+    'is_Py4', 'is_Py4Exception', 'is_P4JnlException', 'is_P4Jnl', 'is_query_or_expressionType',
+    'is_qType_or_field', 'is_NOSource', 'query_is_reference', 'fieldType', 'qtypes',
+    'objecttypes', 'tabletypes', 'fieldtypes', 'SQLType', 'tableType',
+]
+
 qtypes = ('DLGQuery', 'DLGExpression')
+
+def is_job(right):
+    return True \
+        if (re.match(r'^job[0-9]+$', right) is not None) \
+        else False
 
 def is_recordType(left, right=None):
     if (

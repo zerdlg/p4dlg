@@ -1,7 +1,7 @@
 import sys, os
 import datetime
 from io import StringIO
-
+import socket
 try:
     import cPickle as pickle
 except:
@@ -102,24 +102,19 @@ __all__ = [
            'p4charsymbols', 'p4ops', 'journal_actions', 'ignore_actions', 'fixep4names',
            'relative_change_Operators', 'relative_revision_operators', 'revision_actions',
     #
-           'isdepotfile',
-           'isfsfile',
-    #
-           'is_expression', 'is_mode', 'is_marshal',
+           'isdepotfile', 'isfsfile', 'is_expression', 'is_mode', 'is_marshal',
            'versionname_to_releasename',
     #
            'reg_option', 'reg_depotfile_specifier', 'reg_rev_change_specifier',
-           'reg_p4help_for_usage', 'reg_escape', 'reg_p4global', 'reg_aplphanumeric',
+           'reg_p4help_for_usage', 'reg_escape', 'reg_p4global',
            'reg_p4dtime', 'reg_dbtablename', 'reg_explain', 'reg_usage',
            'reg_releaseversion', 'reg_marshal', 'reg_input', 'reg_output',
            'reg_classvar', 'reg_filename', 'reg_rcs_quotes', 'reg_datetime_fieldtype',
-           'reg_datetime_fieldname', 'reg_time', 'reg_epochtime', 'reg_type',
+           'reg_datetime_fieldname', 'reg_epochtime', 'reg_server_or_remote',
     #
-           'reg_type', 'reg_dbname', 'reg_w', 'reg_dot_field', 'reg_no_greedy_entity',
-           'reg_upload_pattern', 'reg_cleanup_fn', 'reg_unpack', 'reg_python_keywords',
-           'reg_select_as_parser', 'reg_const_string', 'reg_square_brackets',
-           'reg_store_pattern', 'reg_quotes', 'reg_alphanumeric', 'reg_valid_table_field',
+           'reg_alphanumeric',
            'reg_ipython_builtin', 'reg_envvariable', 'reg_changelist', 'reg_spec_usage',
+           'reg_p4map', 'reg_default', 'reg_objdict', 'reg_job', 'reg_depotpath',
     #
            'now', 'cacheprop', 'casttype', 'noneempty', 'IsMatch',
            'storageIndexToList', 'Casttype', 'is_int_hex_or_str', 'itemgrouper_filler',
@@ -127,10 +122,8 @@ __all__ = [
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
            'ALLLOWER', 'ALLUPPER', 'PY2', 'fix_tablename',
     #
-            'table_alias',
-    #
            'Flatten', 'fractions2Float', 'percents2Float', 'isnum', 'is_iterable', 'is_array',
-           'decode_bytes', 'Plural',
+           'decode_bytes', 'Plural', 'table_alias',
     #
            'reload', 'unquote', 'HTMLParser', 'urlparse', 'urllib2', 'builtin', 'thread', 'Queue',
            'MIMEBase', 'MIMEMultipart', 'MIMEText', 'Encoders', 'Header', 'Charset', 'add_charset',
@@ -142,10 +135,10 @@ __all__ = [
            'integer_types', 'string_types', 'text_type', 'basestring', 'xrange', 'long', 'unichr',
            'unicode', 'maketrans', 'ClassType', 'ProtocolError',
     #
-           'to_bytes', 'to_native', 'to_unicode', 'serializable', 'dttypes', 'reg_objdict',
-           'reg_default', 'datefields',
+           'to_bytes', 'to_native', 'to_unicode', 'serializable', 'dttypes',
+           'datefields',
     #
-           'sanitizename',  #
+           'sanitizename', 'spec_lastarg_pairs', 'reg_valid_table_field',
 ]
 
 (mloads, mload, mdump, mdumps) = (loads, load, dump, dumps)
@@ -167,10 +160,8 @@ def reg_spec_usage(specname, usageline):
             return res
     except:pass
 
-#reg_filename = re.compile(r'^.*\sfile(s|name)?(\s)?(\.)?')
 reg_filename = re.compile(r'\sfile(s|name)?(\s)?(\.\.\.)?')
 reg_changelist = re.compile(r'\schange(list)?(#)?')
-
 ''' reg = re.compile(f'^.*(file(s|name)?)?(\[)?({rname})?(name|list|ID|type)?(#)?(\.)?(\])?$')
 
     reg_filename & reg_change are used for parsing p4 usage messages
@@ -218,6 +209,12 @@ reg_changelist = re.compile(r'\schange(list)?(#)?')
             'triggers'      None
             'protect'       None
 '''
+p4path_re = '^//[\w\.\*]*/.*'
+reg_job = re.compile(r'^job[0-9]+$')
+reg_server_or_remote = re.compile(r'^\d+$')
+depotpath_pattern = '//[\w\.\*]*/.*'
+reg_depotpath = re.compile(f'^{depotpath_pattern}$')
+reg_p4map = re.compile(f'^{depotpath_pattern}\s{depotpath_pattern}$')
 reg_envvariable = re.compile(r'^P4[A-Z]')
 reg_explain = re.compile(r'^--[a-zA-Z0-9_\-]+(\s\(-[a-zA-Z]\))?:.*$')
 reg_usage = re.compile(r'^Usage:.*$')
@@ -232,31 +229,11 @@ reg_rev_change_specifier = re.compile(r'.*([#,@]).*$')
 reg_p4help_for_usage = re.compile(r'^[\s]*p4\s-h\sfor\susage\.?\s*$')
 reg_escape = re.compile(r"\'")
 reg_p4global = re.compile(r"^\t--.*:.*$")
-reg_aplphanumeric = re.compile('^[0-9a-zA-Z]\w*$')
 reg_p4dtime = p4dtime = re.compile('^\d*(\.(\d){2}){5}$')
 reg_dbtablename = re.compile(r'^db\..*$')
-
-
+reg_rcs_quotes = re.compile("@[^@]*@")
 reg_ipython_builtin = re.compile(r"^_ipython_|_repr_|getdoc")
 reg_alphanumeric = re.compile('^[0-9a-zA-Z]\w*$')
-reg_time = re.compile('((?P<h>[0-9]+))([^0-9 ]+(?P<m>[0-9 ]+))?([^0-9ap ]+(?P<s>[0-9]*))?((?P<d>[ap]m))?')
-reg_type = re.compile('^([\w\_\:]+)')
-reg_rcs_quotes = re.compile("@[^@]*@")
-reg_python_keywords = re.compile('^(and|del|from|not|while|as|elif|global|or|\
-with|assert|else|if|pass|yield|break|except|import|print|class|exec|in|raise|\
-continue|finally|is|return|def|for|lambda|try|False|True|nonlocal)$')
-reg_dbname = re.compile('^(\w+)(\:\w+)*')
-reg_w = re.compile('^\w+$')
-reg_dot_field = re.compile('^(\w+)\.([^.]+)$')
-reg_no_greedy_entity = r'(.+?)'
-reg_upload_pattern = re.compile('(?P<table>[\w\-]+)\.(?P<field>[\w\-]+)\.(?P<uuidkey>[\w\-]+)(\.(?P<name>\w+))?\.\w+$')
-reg_cleanup_fn = re.compile('[\'"\s;]+')
-reg_unpack = re.compile('(?<!\|)\|(?!\|)')
-reg_select_as_parser = re.compile("\s+AS\s+(\S*[^\s)])$")
-reg_const_string = re.compile('(\"[^\"]*?\")|(\'[^\']*?\')')
-reg_square_brackets = re.compile('^.+\[.+\]$')
-reg_store_pattern = re.compile('\.(?P<e>\w{1,5})$')
-reg_quotes = re.compile("'[^']*'")
 reg_valid_table_field = re.compile(r'^[^\d_][_0-9a-zA-Z-]*\Z')
 reg_default = {
     'id':       '[1-9]\d*',
@@ -272,6 +249,63 @@ reg_default = {
 reg_epochtime = re.compile(r'^\d*(\.\d+)?$')
 reg_datetime_fieldname = re.compile(r'[dD]ate|[aA]ccess|[modtT]ime]|[uP]date]|[tT]ime|[dD]ate[tT]ime]')
 reg_datetime_fieldtype = re.compile(r'^[dD]ate')
+
+spec_lastarg_pairs = objectify(
+                {'change': {
+                    'lastarg': 'changelist#',
+                    'default': '1'
+                },
+                'depot': {
+                    'lastarg': 'depotname',
+                    'default': 'nodepot'
+                },
+                'server': {
+                    'lastarg': 'serverID',
+                    'default': '0'
+                },
+                'group': {
+                    'lastarg': 'groupname',
+                    'default': 'nogroup'
+                },
+                'job': {
+                    'lastarg': 'jobname',
+                    'default': 'job0001'
+                },
+                'label': {
+                    'lastarg': 'labelname',
+                    'default': 'nolabel'
+                },
+                'client': {
+                    'lastarg': 'clientname',
+                    'default': 'noclient'
+                },
+                'ldap': {
+                    'lastarg': 'ldapname',
+                    'default': 'noldap'
+                },
+                'user': {
+                    'lastarg': 'username',
+                    'default': 'nouser'
+                },
+                'stream': {
+                    'lastarg': 'streamname',
+                    'default': 'nostream'
+                },
+                'remote': {
+                    'lastarg': 'remoteID',
+                    'default': '1'
+                },
+                'spec': {
+                    'lastarg': 'type',
+                    'default': 'client'
+                },
+                'branch': {
+                    'lastarg': 'branchname',
+                    'default': 'nobranch'
+                }
+            }
+        )
+
 p4charsymbols = {
                 '*': '%2A',
                 '#': '%23',
