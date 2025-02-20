@@ -127,6 +127,7 @@ class Py4Run(object):
                     self.objp4.parseInputKeys(
                         self.tabledata,
                         lastarg,
+                        *cmdargs,
                         **cmdkwargs
                     )
                 )
@@ -138,13 +139,19 @@ class Py4Run(object):
 
                     [cmdkwargs.delete(ckey) for ckey in cmdkwargs.copy().keys() if
                      (ckey.lower() in [key.lower() for key in specinput.keys()])]
-                ''' keep in mind, input (-i) can't happen without output (-o)
+
+                ''' temp fix - need o fix this issue in parseInputKeys (or before)
+                '''
+                if (specname == tablename):
+                    specname = None
+
+                ''' input (-i) can't happen without output (-o),
+                    remove those io flags for now.
                 '''
                 io_option = cmdargs.intersect(['-o', '--output', '-i', '--input'])(0)
                 if (io_option is not None):
                     idx = cmdargs.index(io_option)
                     cmdargs.pop(idx)
-
                 ''' 'p4 spec <specname>' - source of ambiguity?
                     no doubt.
                 '''

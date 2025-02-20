@@ -13,7 +13,8 @@ from libdlg.dlgUtilities import (
     serializable,
     isnum,
     is_array,
-    basestring
+    basestring,
+    isanyfile
 )
 from libsql.sqlValidate import *
 
@@ -856,6 +857,14 @@ class QClass(object):
 
         return ZDict({'op': OP, 'left': left, 'right': right, 'inversion': inversion})
 
+    def strQryItems(self, lrq):
+        (tablename, fieldname, value, op) = (None, None, None, None)
+        if (isanyfile(lrq) is False):
+            try:
+                (tablename, fieldname, value, op) = getTableOpKeyValue(lrq)
+            except: pass
+        return (tablename, fieldname, value, op)
+
     def build(self, qry):
         (op, left, right) = getTableOpKeyValue(qry) \
             if (isinstance(qry, str)) \
@@ -1023,7 +1032,10 @@ class QClass(object):
                     value = qry.right
                     op = qry.op
                 elif (isinstance(qry, str)):
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(qry)
+                    try:
+                        (tablename, fieldname, value, op) = getTableOpKeyValue(qry)
+                    except:
+                        (tablename, fieldname, value, op) = (None, None, None, None)
                 elif (isinstance(qry, list)):
                     qry = Lst(qry)
                     (field, value, op) = (qry(0), qry(1), qry(2))
@@ -1190,7 +1202,7 @@ class clsAND(QClass):
                 elif (type(left).__name__ == 'DLGExpression'):
                     qres = DLGExpression(left.objp4, AND, left, right)
                 elif (isinstance(left, str) is True):
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                    (tablename, fieldname, value, op) = self.strQryItems(left)
                     qres = ZDict(
                         {
                             'op': AND,
@@ -1279,7 +1291,7 @@ class clsOR(QClass):
                 qres = reduce(lambda left, right: (left | right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict(
                     {
                         'op': OR,
@@ -1321,7 +1333,7 @@ class clsXOR(QClass):
                 qres = reduce(lambda left, right: (left ^ right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict(
                     {'op': XOR,
                      'left': {
@@ -1372,7 +1384,7 @@ class clsINVERT(QClass):
             elif ((isinstance(left, (bool, int)))):
                 qres = not left
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict(
                     {'op': INVERT,
                      'left': {
@@ -1423,7 +1435,7 @@ class clsNOT(QClass):
             elif ((isinstance(left, (bool, int)))):
                 qres = not left
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict(
                     {'op': NOT,
                      'inversion': True,
@@ -1480,7 +1492,7 @@ class clsNE(QClass):
                 qres = reduce(lambda left, right: (left != right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = DLGQuery(
                     **objectify(
                         {
@@ -1550,7 +1562,7 @@ class clsEQ(QClass):
                 qres = reduce(lambda left, right: (left == right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = DLGQuery(
                                 **objectify({
                                   'objp4': self,
@@ -1596,7 +1608,7 @@ class clsLT(QClass):
                 qres = reduce(lambda left, right: (left < right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict({'op': LT,
                                 'left': {
                                             'tablename': tablename,
@@ -1638,7 +1650,7 @@ class clsLE(QClass):
                 qres = reduce(lambda left, right: (left <= right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict({'op': LE,
                                 'left': {
                                             'tablename': tablename,
@@ -1680,7 +1692,7 @@ class clsGT(QClass):
                 qres = reduce(lambda left, right: (left > right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict({'op': GT,
                                 'left':
                                         {
@@ -1723,7 +1735,7 @@ class clsGE(QClass):
                 qres = reduce(lambda left, right: (left >= right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 qres = ZDict({'op': GE,
                                 'left': {
                                             'tablename': tablename,
@@ -1765,10 +1777,7 @@ class clsCONTAINS(QClass):
                 qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                try:
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                except:
-                    (tablename, fieldname, value, op) = (None, None, None, None)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                                   self.getSequence(*exps))
@@ -1839,7 +1848,7 @@ class clsBELONGS(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, (str, int)) is True):
                 left = str(left)
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left in right),
                                 self.getSequence(*exps))
@@ -1887,10 +1896,7 @@ class clsON(QClass):
                 qres = reduce(lambda left, right: (re.match(f"^{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                try:
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                except:
-                    (tablename, fieldname, value, op) = (None, None, None, None)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.match(f"^{right}.*$", left) is not None),
                                   self.getSequence(*exps))
@@ -1939,10 +1945,7 @@ class clsSTARTSWITH(QClass):
                 qres = reduce(lambda left, right: (re.match(f"^{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                try:
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                except:
-                    (tablename, fieldname, value, op) = (None, None, None, None)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     condition = (re.match(f"^{right}.*$", left) is not None)
                     qres = reduce(lambda left, right: condition,
@@ -1990,10 +1993,7 @@ class clsENDSWITH(QClass):
                 qres = reduce(lambda left, right: (re.match(f".*{right}$", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                try:
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                except:
-                    (tablename, fieldname, value, op) = (None, None, None, None)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.match(f"^.*{right}$", left) is not None),
                                   self.getSequence(*exps))
@@ -2039,10 +2039,7 @@ class clsMATCH(QClass):
                 qres = reduce(lambda left, right: (re.match(f"{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                try:
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                except:
-                    (tablename, fieldname, value, op) = (None, None, None, None)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.match(f"{right}", left) is not None),
                                   self.getSequence(*exps))
@@ -2088,10 +2085,7 @@ class clsSEARCH(QClass):
                 qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                try:
-                    (tablename, fieldname, value, op) = getTableOpKeyValue(left)
-                except:
-                    (tablename, fieldname, value, op) = (None, None, None, None)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                               self.getSequence(*exps))
@@ -2136,7 +2130,7 @@ class clsADD(QClass):
             ):
                 qres = reduce(lambda left, right: (left + right), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left + right), self.getSequence(*exps))
                 else:
@@ -2180,7 +2174,7 @@ class clsSUB(QClass):
             ):
                 qres = reduce(lambda left, right: (left - right), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left - right), self.getSequence(*exps))
                 else:
@@ -2224,7 +2218,7 @@ class clsMUL(QClass):
             ):
                 qres = reduce(lambda left, right: (left * right), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left * right), self.getSequence(*exps))
                 else:
@@ -2268,7 +2262,7 @@ class clsTRUEDIV(QClass):
             ):
                 qres = reduce(lambda left, right: (left / right), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left / right), self.getSequence(*exps))
                 else:
@@ -2312,7 +2306,7 @@ class clsMOD(QClass):
             ):
                 qres = reduce(lambda left, right: (left % right), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left / right), self.getSequence(*exps))
                 else:
@@ -2561,7 +2555,7 @@ John No
                 qres = reduce(lambda left, right: (left ^ right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left ^ right),
                                   self.getSequence(*exps))
@@ -2603,7 +2597,7 @@ class clsCASEELSE(QClass):
                 qres = reduce(lambda left, right, other: ((left ^ right) | other),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right, other: ((left ^ right) | other),
                                   self.getSequence(*exps))
@@ -2661,7 +2655,7 @@ class REGEX(QClass):
                 ismatch = (re.search(left, right) is not None)
                 qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     ismatch = (re.search(left, right) is not None)
                     qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
@@ -2719,7 +2713,7 @@ class clsLIKE(QClass):
                 ismatch = (re.search(left, right) is not None)
                 qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     ismatch = (re.search(left, right) is not None)
                     qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
@@ -2777,7 +2771,7 @@ class clsILIKE(QClass):
                 ismatch = (re.search(left, right) is not None)
                 qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     ismatch = (re.search(left, right) is not None)
                     qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
@@ -2825,7 +2819,7 @@ class clsLOWER(QClass):
             elif (isinstance(left, (bool, int))):
                 return left.lower()
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if (tablename, fieldname) == (None, None):
                     qres = left.lower()
                 else:
@@ -2872,7 +2866,7 @@ class clsUPPER(QClass):
             elif (isinstance(left, (bool, int))):
                 qres = reduce(lambda left: left.upper(), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if (tablename, fieldname) == (None, None):
                     qres = left.upper()
                 else:
@@ -2914,7 +2908,7 @@ class clsEPOCH(QClass):
             elif (isinstance(left, (int, float, datetime.datetime)) is True):
                 qres = oDateTime.to_epoch(left)
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     left = oDateTime.to_p4date(left)
                     qres = oDateTime.to_epoch(left)
@@ -2951,7 +2945,7 @@ class clsDIFF(QClass):
                 qres = reduce(lambda left, right: (left - right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = getTableOpKeyValue(left)
+                (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left - right),
                                   self.getSequence(*exps))

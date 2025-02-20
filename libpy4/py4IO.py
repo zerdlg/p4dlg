@@ -829,14 +829,32 @@ class Py4(object):
         (cmdargs, kwargs) = (Lst(cmdargs), ZDict(kwargs))
         tabledata = self.memoizetable(tablename)
         usage = tabledata.tableoptions.usage
+        lastarg = None
+        ''' Is it even worth the time to carry on?
+        
+            return (None, []) if any of the following conditions are True:
+                1- tablename is a `nocommand` or
+                2- there are no options associated to this table/cmd or  
+                3- `usage` matches an error msg 
+                     
+        '''
         if (
                 (tablename in self.nocommands) |
                 (noneempty(tabledata.tableoptions) is True) |
                 (re.match(r'^.*\scould not be set.', usage) is not None)
         ):
-            return (None, cmdargs)
+            return (lastarg, cmdargs)
 
-        lastarg = None
+        ''' Some spec tables/cmds have an optional last position argument (no arg, specform, or -i (stdin))
+            Specifically: change            
+                          changelist        
+                          job              
+                          workspace         
+                          client  
+        '''
+        lastarg_is_optional = True \
+            if (tablename in self.spec_args_are_optional) \
+            else False
         query = kwargs.query
         if (query is not None):
             if (isinstance(query, Lst) is True):
@@ -844,139 +862,134 @@ class Py4(object):
             elif (type(query.left) is DLGQuery):
                 query = query.left
 
+        ''' filename argument
+        '''
         requires_filearg = (reg_filename.search(usage) is not None)
         if (requires_filearg is True):
-            ''' filearg is required!
-
-                            search priority:
-                                1) cmdargs
-                                2) check kwargs.queries as they may contain a clue about a specified lastarg
-                                3) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
-                        '''
+            ''' search priority:
+                    1) cmdargs
+                    2) check kwargs.queries as they may contain a clue about a specified lastarg
+                    3) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
+            '''
             if (cmdargs(-1) is not None):
                 if (isanyfile(cmdargs(-1)) is True):
-                    lastarg = cmdargs.pop(-1)
-                    ''' stop looking, we  have it!
-                        * at least we have a file/dir on the local FS, 
-                            - or we have a clientFile 
-                            - or we have a depotFile
+                    '''  We have a file/dir on the local FS,  or we have a clientFile, or we have a depotFile.
                     '''
-                    return (lastarg, cmdargs)
-            ''' priorities 1 & 2
-            '''
-            if (len(cmdargs) > 0):
-                fileitem = cmdargs.pop(-1)
-                if (fileitem is not None):
-                    if (isanyfile(fileitem) is True):
-                        return (fileitem, cmdargs)
-            ''' priority 3
-            '''
-            if (isinstance(query, str) is True):
-                if (isanyfile(query.right) is True):
-                    if (query.left.fieldname.lower() in (
-                            'depotfile',
-                            'clientfile',
-                            'path'
-                    )
-                    ):
-                        if (query.op in (
-                                EQ,
-                                NE,
-                                '=',
-                                '!='
-                        )
-                        ):
-                            p4args = self.p4globals + ['where', query.right]
-                            out = self.p4OutPut(tablename, *p4args)
-                            lastarg = out.depotFile
-                    else:
-                        lastarg = None
-                    return (lastarg, cmdargs)
-            ''' lastly... use the clientFile
-            '''
-            if (noneempty(lastarg) is True):
-                lastarg = f'//{self._client}/...'
-                return (lastarg, cmdargs)
+                    lastarg = cmdargs.pop(-1)
 
+            elif (len(cmdargs) > 0):
+                ''' priorities 1 & 2
+                '''
+                fileitem = cmdargs.pop(-1)
+                if (
+                        (fileitem is not None) &
+                        (isanyfile(fileitem) is True)
+                ):
+                    lastarg = fileitem
+
+            elif (isinstance(query, str) is True):
+                ''' priority 3
+                '''
+                if (
+                        (
+                                (isanyfile(query.right) is True) &
+                                (query.left.fieldname.lower() in ( 'depotfile', 'clientfile', 'path')) &
+                                (query.op in (EQ, NE, '=', '!='))
+                        )
+                ):
+                    p4args = self.p4globals + ['where', query.right]
+                    out = self.p4OutPut(tablename, *p4args)
+                    lastarg = out.depotFile
+
+            elif (noneempty(lastarg) is True):
+                ''' lastly... use the clientFile
+                '''
+                lastarg = f'//{self._client}/...'
+            return (lastarg, cmdargs)
         elif (tabledata.is_spec is True):
-            ''' takes no args
+            ''' no args
             '''
             if (
-                    (tablename in self.spec_takes_no_lastarg) |
-                    (((lastarg is None) | (cmdargs(-1) is None)) is True)
+                    (
+                            (tablename in self.spec_takes_no_lastarg) &
+                            (lastarg is None) &
+                            (cmdargs(-1) is None)
+                    ) |
+                    (
+                            (lastarg_is_optional is True) &
+                            (len(cmdargs) == 0)
+                    )
             ):
                 return (lastarg, cmdargs)
-            ''' job
-            '''
-            requires_jobid = (reg_job.search(usage) is not None)
-            if (requires_jobid is True):
+
+            if (reg_job.match(usage) is not None):
+                ''' job
+                '''
                 if (reg_job.match(cmdargs(-1)) is not None):
                     lastarg = cmdargs.pop(-1)
-                    return (lastarg, cmdargs)
 
-            ''' server | remote
-            '''
-            requires_num = (tablename in ('server', 'remote'))
-            if (requires_num is True):
+
+            elif ((tablename in ('server', 'remote')) is True):
+                ''' server | remote
+                '''
                 if reg_server_or_remote.match(str(cmdargs(-1)) is not None):
                     lastarg = cmdargs.pop(-1)
-                    return (lastarg, cmdargs)
 
-            ''' change / changelist
-            '''
-            requires_changelist_arg = (reg_changelist.search(usage) is not None)
-            if (requires_changelist_arg is True):
+            elif (reg_changelist.match(usage) is not None):
+                ''' change / changelist
+                '''
                 if (isnum(cmdargs(-1)) is True):
                     lastarg = cmdargs.pop(-1)
-                    return (lastarg, cmdargs)
 
-            # should we need to handle specs that have an optional arg separately?
-
-            ''' any other spec
-            '''
-            requires_spec_arg = (tablename in spec_lastarg_pairs.keys())
-            if (requires_spec_arg is True):
+            elif (tablename in spec_lastarg_pairs.keys()):
+                ''' any other spec
+                '''
                 if (
                         (isinstance(cmdargs(-1), str) is True) &
                         (isnum(cmdargs(-1)) is False) &
                         (not cmdargs(-1).startswith('-'))
                 ):
                     lastarg = cmdargs.pop(-1)
-                    return (lastarg, cmdargs)
+            elif (query is not None):
+                ''' query
+                '''
+                #if (isinstance(query.right, str) is True):
+                lastarg = query.right
 
-            altarg = tabledata.altarg
-            if (altarg is not None):
-                if (altarg.lower() in LOWER(kwargs.getkeys())):
-                    altarg = tabledata.fieldsmap[altarg.lower()]
-                    lastarg = kwargs[altarg]
-
-            if (query is not None):
-                if (
-                        (isinstance(query.right, str)) &
-                        (query.left.fieldname.lower() == altarg.lower())
-                ):
-                    lastarg = query.right
-                    return (lastarg, cmdargs)
-
-            if (tablename in cmdargs):
-                tablename_idx = cmdargs.index(tablename)
-                if (tablename_idx != cmdargs(-1)):
-                    if (tablename == 'job'):
-                        if (is_job(cmdargs(-1)) is True):
-                            lastarg = cmdargs.pop(-1)
-                    elif (
-                            (tablename in ('server', 'change')) &
-                            (isnum(cmdargs.pop(-1)) is True)
-                    ):
-                        lastarg = cmdargs.pop(-1)
-                    elif (re.match(r'^-\w$',cmdargs(-1)) is None):
-                        lastarg = cmdargs(-1)
-                return (lastarg, cmdargs)
-
-    def get_recordsIterator(self):
-        return enumerate(self.records, start=1) \
-                if (type(self.records) is not enumerate) \
-                else self.records
+            elif (
+                    (
+                            (tablename in cmdargs) &
+                            (cmdargs.index(tablename) != cmdargs(-1))
+                    ) &
+                    (
+                            (
+                                    (
+                                            (tablename == 'job') &
+                                            (is_job(cmdargs(-1)) is True)
+                                    ) |
+                                    (
+                                            (tablename in ('server', 'change')) &
+                                            (isnum(cmdargs.pop(-1)) is True)
+                                    )
+                            ) |
+                            (
+                                    (not tablename in (
+                                            'server',
+                                            'remote',
+                                            'job')) &
+                                    (isinstance(cmdargs(-1), str) is True) &
+                                    (not cmdargs(-1).startswith('-'))
+                            ) |
+                            (re.match(r'^-\w$',cmdargs(-1)) is not None)
+                    )
+            ):
+                lastarg = cmdargs.pop(-1)
+        if (query is not None):
+            ''' query
+            '''
+            # if (isinstance(query.right, str) is True):
+            lastarg = query.right
+        return (lastarg, cmdargs)
 
     def get_sourcefiles(self, sourceFile):
         ''' unused... but why?
@@ -1208,41 +1221,13 @@ class Py4(object):
                             '''
                             if (isinstance(qry.left, Py4Field)):
                                 for (name, val) in {
-                                                    'specifier': specifier,
-                                                    'specifier_value': specifier_value
+                                    'specifier': specifier,
+                                    'specifier_value': specifier_value
                                 }:
                                     setattr(qry.left, name, val)
                                 ''' if not #head, try to use relative revision specifiers instead!
                                 '''
                             break
-            """ 
-            if (specifier is not None):
-                for fldname in ('rev', 'change', 'revision', 'changelist'):
-                    if (fldname in self.tablememo[tablename].fieldsmap.getkeys()):
-                        ''' might need a relative operator
-                        '''
-                        if (re.search(',', specifier_value) is not None):
-                            ''' we have a range!
-                            '''
-                            (s, e) = specifier_value.split(',')
-                            
-                        '''    
-                        s: >2   e: <4
-                        s: op must be > (GT)                        
-                        s: right must be 2
-
-                        e:  <4
-                        e: op must be < (LT)                        
-                        e: right must be 4
-                        '''
-
-                        p4table = getattr(self, tablename)
-                        p4field = getattr(p4table, fldname)
-                        right_q = (p4field == specifier_value)
-                        right_q = right_q.as_dict()
-                        q = AND((q), (right_q))
-                        break
-                        """
         return (
                 qry,
                 left,
@@ -1286,12 +1271,18 @@ class Py4(object):
                 Lst()
         )
 
-    def parseInputKeys(self, tabledata, specname=None, **specinput):
-        specinput = ZDict(specinput)
+    def parseInputKeys(self, tabledata, specname=None, *cmdargs, **specinput):
+        (cmdargs, specinput) = (Lst(cmdargs), ZDict(specinput))
         if (type(specname).__name__ == 'Py4Table'):
             specname = specname.tablename
-        elif (specname is None):
+        elif (
+                (specname is None) &
+                (len(cmdargs) > 0) &
+                (tabledata.tablename != cmdargs(-1))
+        ):
             specname = tabledata.tablename
+        if (len(specinput) == 0):
+            return (specname, specinput, None)
         try:
             altarg = tabledata.altarg
             specinputkeys = specinput.getkeys()
@@ -1357,10 +1348,9 @@ class Py4(object):
                 out = decode_bytes(out)
                 return out
             finally:
-                ''' this is bad! please fix! '''
                 if (
-                        (hasattr(p4opener, 'close') is True) &
-                        (hasattr(p4opener, 'closed') is True)
+                        (hasattr(p4opener, 'close')) &
+                        (hasattr(p4opener, 'closed'))
                 ):
                     if (p4opener.closed is False):
                         p4opener.close()
@@ -1382,11 +1372,9 @@ class Py4(object):
         '''
         if (
                 (len(p4args) > 0) &
-                (not '--explain' in p4args)
-        ):
-            if (
-                    (kwargs.lastarg is not None) &
-                    (kwargs.lastarg != p4args(-1))
+                (not '--explain' in p4args) &
+                (kwargs.lastarg is not None) &
+                (kwargs.lastarg != p4args(-1))
             ):
                 (specname, p4args) = self.define_lastarg(tablename, *p4args)
                 if (

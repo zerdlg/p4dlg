@@ -102,7 +102,7 @@ __all__ = [
            'p4charsymbols', 'p4ops', 'journal_actions', 'ignore_actions', 'fixep4names',
            'relative_change_Operators', 'relative_revision_operators', 'revision_actions',
     #
-           'isdepotfile', 'isfsfile', 'is_expression', 'is_mode', 'is_marshal',
+           'isdepotfile', 'isfsfile', 'isanyfile', 'is_expression', 'is_mode', 'is_marshal',
            'versionname_to_releasename',
     #
            'reg_option', 'reg_depotfile_specifier', 'reg_rev_change_specifier',
@@ -160,8 +160,8 @@ def reg_spec_usage(specname, usageline):
             return res
     except:pass
 
-reg_filename = re.compile(r'\sfile(s|name)?(\s)?(\.\.\.)?')
-reg_changelist = re.compile(r'\schange(list)?(#)?')
+reg_filename = re.compile(r'^.*\sfile(s|name)?(\s)?(\.\.\.)?')
+reg_changelist = re.compile(r'^.*\schange(list)?(#)?$')
 ''' reg = re.compile(f'^.*(file(s|name)?)?(\[)?({rname})?(name|list|ID|type)?(#)?(\.)?(\])?$')
 
     reg_filename & reg_change are used for parsing p4 usage messages
@@ -210,7 +210,7 @@ reg_changelist = re.compile(r'\schange(list)?(#)?')
             'protect'       None
 '''
 p4path_re = '^//[\w\.\*]*/.*'
-reg_job = re.compile(r'^job[0-9]+$')
+reg_job = re.compile(r'^.*job[0-9]+$')
 reg_server_or_remote = re.compile(r'^\d+$')
 depotpath_pattern = '//[\w\.\*]*/.*'
 reg_depotpath = re.compile(f'^{depotpath_pattern}$')
@@ -1470,11 +1470,14 @@ def equivalence_table():
     )
 
 
-def isfsfile(_file):
-    return (re.match(r'^\/[^/]|^[^/].*\/.*$', _file) is not None)
+def isfsfile(filename):
+    return (re.match(r'^\/[^/]|^[^/].*\/.*$', filename) is not None)
 
-def isdepotfile(_file):
-    return (re.match(r'//.*$', _file) is not None)
+def isdepotfile(filename):
+    return (re.match(r'//.*$', filename) is not None)
+
+def isanyfile(filename):
+    return ((isdepotfile(filename)) | (isfsfile(filename)))
 
 def real_tablename(tablename):
     if (re.match(r'^db\.', tablename) is None):

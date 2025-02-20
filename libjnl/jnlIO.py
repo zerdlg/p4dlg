@@ -22,7 +22,7 @@ from libsql.sqlInvert import invert
 from libjnl.jnlFile import JNLFile
 #from libjnl.jnlGuess import GuessRelease
 from libjnl.jnlSqltypes import JNLTable
-
+from libsql.sqlValidate import *
 import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
@@ -32,16 +32,15 @@ schemadir = dirname(schemaxml.__file__)
      [$Author: zerdlg $]
 '''
 
-'''     Journals (and checkpoints) are the textual representation of of the p4 db (the metadata). 
-        In a nutshell, a journal is a textual representation of the metadata stored in a p4 DB. 
+'''     Journals (and checkpoints) are the textual representation of the metadata stored in a p4 DB. 
 
-        P4DLG is an program that tries to make sense of the rules, references, lookups, conversions, 
+        P4DLG is a program that tries to make sense of the workflows, rules, references, lookups, conversions, 
         guesses, etc. needed to interact with checkpoint or journal (or set of journals).  
 
         As an example, I use it for reading (query), writing (create), updating (edit/modify), and 
         deleting journal records. Beware and be careful as modified journals and checkpoints can 
         then be replayed against (like `imported` into) a P4D instance, thereby, and effectively, 
-        committing changes the DB.  
+        committing changes the DB.
 
         *Note: Every software release correlates to a dedicated DB schema. Make sure your server 
         version and schema version line up (though P4DLG manages that well enough for us).

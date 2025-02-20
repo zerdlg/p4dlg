@@ -539,32 +539,32 @@ class DLGSql(DLGControl):
                     )
                 )
         ):
-            if (opfunc is not None):
-                qright = qry.right
+            if (opfunc is None):
+                receval = self.evaluate(qry, record=record)
+            else:
                 value = record[qry.left.fieldname]
                 ''' cast numeric fields to int so that
                     the record's field value and the qry's
                     right side are both living on the same 
-                    plaing field
+                    planet (int <--> int)
                 '''
-                if (isnum(qright) is True):
-                    qright = int(qright)
+                if (isnum(qry.right) is True):
+                    qright = int(qry.right)
                     if (isnum(value) is True):
                         value = int(value)
                 ''' TODO: revisit this - I don't remember why
                     evaluating left against right in one case
                     and evaluating right against left in the
-                    other...
+                    other... '//depot/pycharmprojects/git-fusion/build/vmware-studio/git-fusion-vpkgs/librtmp0_2.4~20110711.gitc28f1bab-1_amd64.deb'
                 '''
-                receval = opfunc(value, qright) \
+                receval = opfunc(value, qry.right) \
                     if (type(qry).__name__ in (
                     'DLGQuery',
                     'DLGExpression'
                 )
                         ) \
-                    else opfunc(qright, value)
-            else:
-                receval = self.evaluate(qry, record=record)
+                    else opfunc(qry.right, value)
+
             if (isinstance(receval, bool) is True):
                 receval = int(receval)
             out = ((receval & 1) | 0)
