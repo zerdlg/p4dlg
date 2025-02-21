@@ -1,8 +1,8 @@
 from libdlg.dlgStore import ZDict, Lst
 from libfs.fsFileIO import is_writable, make_writable
 
-'''  [$File: //dev/p4dlg/libconnect/conNO.py $] [$Change: 472 $] [$Revision: #9 $]
-     [$DateTime: 2024/09/03 03:46:02 $]
+'''  [$File: //dev/p4dlg/libconnect/conNO.py $] [$Change: 609 $] [$Revision: #7 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

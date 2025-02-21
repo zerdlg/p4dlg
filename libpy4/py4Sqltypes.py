@@ -17,8 +17,8 @@ from libdlg.dlgUtilities import (
 from libsql.sqlJoin import Join
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 479 $] [$Revision: #33 $]
-     [$DateTime: 2024/09/20 07:42:22 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 609 $] [$Revision: #25 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

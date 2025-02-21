@@ -8,6 +8,7 @@ from libdlg.dlgStore import (
     ZDict
 )
 from libdlg.dlgUtilities import (
+    bail,
     noneempty,
     Flatten,
     reg_explain,
@@ -19,8 +20,8 @@ from libdlg.dlgUtilities import (
     spec_lastarg_pairs
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 473 $] [$Revision: #29 $]
-     [$DateTime: 2024/09/08 08:15:23 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 609 $] [$Revision: #15 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 
@@ -124,6 +125,9 @@ class Py4Options(object):
             )
 
         if (not self.tablename in [None] + self.objp4.usage_items):
+            ''' field `generic` gets an arbitrary value, say 1... who cares, really?
+ 
+            '''
             (data, generic, code, severity) = (None, 1, 'error', 3)
             cmdargs = Lst(
                             self.objp4.p4globals \
@@ -153,7 +157,6 @@ class Py4Options(object):
                     data = Lst(data.splitlines()).clean()
                 if (
                         (len(data) > 0) &
-                        (generic == 1) &
                         (code == 'error') &
                         (severity == 3)
                 ):
@@ -257,6 +260,7 @@ class Py4Options(object):
                         if (
                                 (len(rec_results) == 4) &
                                 (rec0.code == 'error')
+                                #& (rec0.severity >= 3)
                         ):
                             error = rec0.data
                             fieldnames = Lst()
@@ -381,6 +385,9 @@ class Py4Options(object):
             ]
         )
         spec = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=spectype)(0)
+        if (spec.code is not None):
+            if (spec.code == 'error'):
+                bail(spec.dada)
         specrec = Flatten(spec).reduce()
         specfields = specrec.Fields
         specitems = [re.split(r'\s', item) for item in specfields]

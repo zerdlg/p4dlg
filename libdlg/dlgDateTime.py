@@ -8,8 +8,8 @@ from libdlg.dlgUtilities import (
     reg_datetime_fieldname
 )
 
-'''  [$File: //dev/p4dlg/libdlg/dlgDateTime.py $] [$Change: 452 $] [$Revision: #13 $]
-     [$DateTime: 2024/07/30 12:39:25 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgDateTime.py $] [$Change: 609 $] [$Revision: #13 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

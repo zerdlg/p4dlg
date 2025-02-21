@@ -15,8 +15,8 @@ from libdlg.dlgUtilities import (
     bail
 )
 
-'''  [$File: //dev/p4dlg/libno/noSqltypes.py $] [$Change: 431 $] [$Revision: #5 $]
-     [$DateTime: 2024/07/11 09:50:13 $]
+'''  [$File: //dev/p4dlg/libno/noSqltypes.py $] [$Change: 609 $] [$Revision: #8 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

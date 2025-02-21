@@ -1,5 +1,5 @@
-'''  [$File: //dev/p4dlg/libdlg/__init__.py $] [$Change: 463 $] [$Revision: #14 $]
-     [$DateTime: 2024/08/19 18:03:01 $]
+'''  [$File: //dev/p4dlg/libdlg/__init__.py $] [$Change: 609 $] [$Revision: #7 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

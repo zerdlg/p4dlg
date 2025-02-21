@@ -7,8 +7,8 @@ from libdlg.dlgUtilities import (
     reg_dbtablename,
 )
 
-'''  [$File: //dev/p4dlg/libdlg/sqlSelect.py $] [$Change: 479 $] [$Revision: #56 $]
-     [$DateTime: 2024/09/20 07:42:22 $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 609 $] [$Revision: #7 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

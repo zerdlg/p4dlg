@@ -60,8 +60,8 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 474 $] [$Revision: #69 $]
-     [$DateTime: 2024/09/09 06:39:06 $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 609 $] [$Revision: #33 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 
@@ -1300,11 +1300,12 @@ class Py4(object):
                             speckey = tabledata.fieldsmap[key.lower()]
                             if (key != speckey):
                                 specinput.rename(key, speckey)
+
             if (
                     (altarg is not None) &
                     (specname is None)
             ):
-                specname = specinput[altarg] or specinput[altarg.lower()]
+                specname =  tabledata.tablename
             self.loginfo(f'parsing input for spec {specname}: {specinput}')
             return (specname, specinput, altarg)
         except Exception as err:

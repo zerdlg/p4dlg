@@ -20,8 +20,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libdlg/sqlSelect.py $] [$Change: 479 $] [$Revision: #56 $]
-     [$DateTime: 2024/09/20 07:42:22 $]
+'''  [$File: //dev/p4dlg/libsql/__init__.py $] [$Change: 609 $] [$Revision: #8 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

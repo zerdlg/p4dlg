@@ -22,16 +22,8 @@ class SpecIO(object):
         (cmdargs, specinput) = (Lst(cmdargs), ZDict(specinput))
         tabledata = self.objp4.memoizetable(tablename)
         fieldsmap = tabledata.fieldsmap
-        argsio = Lst(self.objp4.p4globals + cmdargs.copy())
-        (
-            outputargs,
-            inputargs
-        ) \
-            = \
-            (
-                argsio,
-                argsio
-            )
+        outputargs = Lst(self.objp4.p4globals + cmdargs.copy())
+        inputargs = Lst(self.objp4.p4globals + cmdargs.copy())
 
         ''' what do we have? --output, --input or --delete?
         '''
@@ -85,17 +77,16 @@ class SpecIO(object):
 
         p4globals = ''.join(self.objp4.p4globals)
         for argsitem in (outputargs, inputargs):
-            if (None in argsitem):
-                argsitem.remove(None)
-            is_match = re.match(f'^{p4globals}', ''.join(argsitem))
-            if (is_match is None):
+            argsitem = argsitem.clean()
+            is_match = (re.match(f'^{p4globals}', ''.join(argsitem)) is not None)
+            if (is_match is False):
                 self.objp4.p4globals += argsitem
         has_outputkey = (
-            ('-o' in outputargs),
+            ('-o' in outputargs) |
             ('--output' in outputargs)
         )
         has_forcekey = (
-            ('-f' in outputargs),
+            ('-f' in outputargs) |
             ('--force' in outputargs)
         )
         if (is_delete is True):
@@ -110,8 +101,11 @@ class SpecIO(object):
                 else:
                     outputargs.append('--force')
         elif (
-                (True in (is_input, is_output)) &
-                (not True in has_outputkey)
+                (
+                        (is_output is True) |
+                        (is_input is True)
+                ) &
+                (has_outputkey is False)
         ):
             ''' make sure the output args endswith [tablename, '--output', specname]
             
@@ -147,12 +141,10 @@ class SpecIO(object):
             if (type(outrecord) is Lst):
                 outrecord = outrecord(0) or ZDict()
             if (outrecord not in (Lst(), None)):
-                if (
-                        (outrecord.generic is not None) &
-                        (outrecord.data is not None)
-                ):
+                err_record_keys = Lst('data', 'severity').intersect(outrecord.keys())
+                if (len(err_record_keys) > 0):
                     return (outrecord)
-            if (isinstance(outrecord, Record)):
+            if (type(outrecord).__name__ == 'Record'):
                 outrecord = outrecord.as_dict()
             '''     we will likely need to flatten a record's fields when using -G. I.e.:
 
@@ -182,8 +174,9 @@ class SpecIO(object):
             self.objp4.close()
         ''' To save a new or updated spec, the output becomes the input's base record (except for change). 
         '''
-        if (inputargs(-1) == lastarg):
-            inputargs.pop(-1)
+        if (lastarg is not None):
+            if (cmdargs(-1) == lastarg):
+                cmdargs.pop(-1)
         specinputcopy = ZDict(specinput.copy())
         ''' - cleanup p4d-generated & managed field values
             - remove read-only fields from input spec                    
@@ -205,7 +198,6 @@ class SpecIO(object):
         ''' TODO: needs an options playbook ...
         '''
         inputargs.append('--input')
-
         for (leftkey, leftvalue) in specinputcopy.items():
             rightkey = fieldsmap[leftkey.lower()]
             rightvalue = outrecord[rightkey]
@@ -213,30 +205,11 @@ class SpecIO(object):
                     (isinstance(rightvalue, list)) &
                     (isinstance(leftvalue, list))
             ):
-                #oMap = P4Mapping(leftvalue)
-                #newleftvalue = oMap.merge(rightvalue)
-
-                newleftvalue = P4Mapping(leftvalue)(rightvalue)
-                outrecord[rightkey] += specinput[rightkey]
-
+                outrecord[rightkey] = P4Mapping(leftvalue)(rightvalue)
             elif (not rightkey in numfields):
                 if (rightkey != leftkey):
                     specinput.rename(leftkey, rightkey)
             outrecord.merge(specinput)
-        '''
-        for oldkey in specinputcopy.keys():
-            newkey = fieldsmap[oldkey.lower()]
-            if (
-                    (isinstance(outrecord[newkey], list)) &
-                    (isinstance(specinput[newkey], list))
-            ):
-                outrecord[newkey] += specinput[newkey]
-            elif (not newkey in numfields):
-                if (newkey != oldkey):
-                    specinput.rename(oldkey, newkey)
-        outrecord.merge(specinput)
-        '''
-
         ''' revert back to a flattened record/spec.
         '''
         outrecord = Flatten(**outrecord).expand()

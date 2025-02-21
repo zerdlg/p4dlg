@@ -9,8 +9,8 @@ import schemaxml
 schemadir = dirname(schemaxml.__file__)
 default_xmlschema_version = 'r16.2'
 
-'''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 457 $] [$Revision: #9 $]
-     [$DateTime: 2024/08/02 05:45:11 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 609 $] [$Revision: #8 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

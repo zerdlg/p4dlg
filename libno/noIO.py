@@ -5,8 +5,8 @@ from libsql.sqlRecordset import RecordSet
 from libdlg.dlgUtilities import queryStringToStorage, bail, noneempty, ALLLOWER
 from libno.noSqltypes import NOTable
 
-'''  [$File: //dev/p4dlg/libno/noIO.py $] [$Change: 452 $] [$Revision: #7 $]
-     [$DateTime: 2024/07/30 12:39:25 $]
+'''  [$File: //dev/p4dlg/libno/noIO.py $] [$Change: 609 $] [$Revision: #10 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

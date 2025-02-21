@@ -5,8 +5,8 @@ from libdlg.contrib.pydal.pydal import DAL
 from libfs.fsFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import set_localport
 
-'''  [$File: //dev/p4dlg/libconnect/conDB.py $] [$Change: 468 $] [$Revision: #9 $]
-     [$DateTime: 2024/08/28 01:16:41 $]
+'''  [$File: //dev/p4dlg/libconnect/conDB.py $] [$Change: 609 $] [$Revision: #9 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

@@ -8,8 +8,8 @@ from libfs.fsFileIO import (
     is_compressed,
 )
 
-'''  [$File: //dev/p4dlg/libdlg/dlgExtract.py $] [$Change: 411 $] [$Revision: #3 $]
-     [$DateTime: 2024/06/25 07:02:28 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgExtract.py $] [$Change: 609 $] [$Revision: #7 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

@@ -18,10 +18,10 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libdlg/sqlQuery.py $] 
-     [$Change: 452 $] 
-     [$Revision: #10 $]
-     [$DateTime: 2024/07/30 12:39:25 $]
+'''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
+     [$Change: 609 $] 
+     [$Revision: #3 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

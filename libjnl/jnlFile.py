@@ -16,8 +16,8 @@ def xrange(x):
 
 __all__=['JNLFile']
 
-'''  [$File: //dev/p4dlg/libjnl/jnlFile.py $] [$Change: 458 $] [$Revision: #9 $]
-     [$DateTime: 2024/08/07 05:21:26 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlFile.py $] [$Change: 609 $] [$Revision: #7 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

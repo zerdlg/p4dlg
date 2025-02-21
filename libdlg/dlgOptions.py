@@ -28,8 +28,8 @@ from libdlg.dlgStore import ZDict, objectify, Lst
                                    "If you mess up, try try again!"},                           
 '''
 
-'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 467 $] [$Revision: #6 $]
-     [$DateTime: 2024/08/24 08:15:42 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 609 $] [$Revision: #5 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

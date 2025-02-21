@@ -1,4 +1,4 @@
-'''  [$File: //dev/p4dlg/libpy4/__init__.py $] [$Change: 411 $] [$Revision: #4 $]
-     [$DateTime: 2024/06/25 07:02:28 $]
+'''  [$File: //dev/p4dlg/libpy4/__init__.py $] [$Change: 609 $] [$Revision: #3 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''

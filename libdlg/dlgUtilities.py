@@ -91,8 +91,8 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 471 $] [$Revision: #13 $]
-     [$DateTime: 2024/09/01 06:30:49 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 609 $] [$Revision: #31 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 
@@ -106,7 +106,7 @@ __all__ = [
            'versionname_to_releasename',
     #
            'reg_option', 'reg_depotfile_specifier', 'reg_rev_change_specifier',
-           'reg_p4help_for_usage', 'reg_escape', 'reg_p4global',
+           'reg_p4help_for_usage', 'reg_escape', 'reg_p4global', 'reg_valid_table_field',
            'reg_p4dtime', 'reg_dbtablename', 'reg_explain', 'reg_usage',
            'reg_releaseversion', 'reg_marshal', 'reg_input', 'reg_output',
            'reg_classvar', 'reg_filename', 'reg_rcs_quotes', 'reg_datetime_fieldtype',
@@ -138,13 +138,42 @@ __all__ = [
            'to_bytes', 'to_native', 'to_unicode', 'serializable', 'dttypes',
            'datefields',
     #
-           'sanitizename', 'spec_lastarg_pairs', 'reg_valid_table_field',
+           'sanitizename', 'spec_lastarg_pairs', 'p4_error_severity',
 ]
 
 (mloads, mload, mdump, mdumps) = (loads, load, dump, dumps)
 hashlib_md5 = lambda s: hashlib.md5(bytes(s, 'utf-8'))
 reg_objdict = re.compile('^(\w+)\.([^.]+)$')
 PY2 = sys.version_info[0] == 2
+
+''' p4_error_severity table
+
+    0 -> nothing
+    1 -> info
+    2 -> warning
+    3 -> user error
+    4 -> system error (should be fatal)
+
+    * perforce sends back an info, warning, or error message, typically 
+      with the following keys:
+  
+        code        -   error, text, ...
+        data        -   the error message
+        generic     -   whatever
+        severity    -   one of [0, 1, 2, 3, 4]
+    
+    Note: Though the message is, of course, quite helpful, the `severity` 
+          value is a clear, and better, indication of what happens next.
+'''
+p4_error_severity = ZDict(
+    {
+        0: 'empty',     # nothing happened
+        1: 'info',      # informative msg - good
+        2: 'warning',   # doh! not great  - but typically not the worst
+        3: 'user',      # user error      - bad
+        4: 'system'     # system error    - fatal
+    }
+)
 
 ''' regex for getting usage string args,
     essentially cmds take require positional 

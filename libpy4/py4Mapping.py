@@ -31,8 +31,8 @@ from libdlg.dlgUtilities import bail
      '//depot/dir/projdir/... //clientname/depot/dir/projdir/...']
 """
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 474 $] [$Revision: #69 $]
-     [$DateTime: 2024/09/09 06:39:06 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Mapping.py $] [$Change: 609 $] [$Revision: #2 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

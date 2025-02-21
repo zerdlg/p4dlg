@@ -17,8 +17,8 @@ from libdlg.dlgTables import *
 # from libdlg.p4qLogger import LogHandler
 from libdlg.dlgError import *
 
-'''  [$File: //dev/p4dlg/libdlg/sqlRecords.py $] [$Change: 479 $] [$Revision: #36 $]
-     [$DateTime: 2024/09/20 07:42:22 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 609 $] [$Revision: #4 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 
