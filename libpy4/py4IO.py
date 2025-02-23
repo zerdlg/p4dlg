@@ -1,3 +1,4 @@
+import os
 import re
 from marshal import loads, load, dump, dumps
 from types import *
@@ -12,28 +13,7 @@ from libdlg.dlgStore import (
     Lst
 )
 from libsql.sqlQuery import *
-from libdlg.dlgUtilities import (
-    noneempty,
-    bail,
-    decode_bytes,
-    isnum,
-    queryStringToStorage,
-    getTableOpKeyValue,
-    Flatten,
-    annoying_ipython_attributes,
-    reg_envvariable,
-    set_localport,
-    reg_filename,
-    reg_rev_change_specifier,
-    reg_p4global,
-    is_marshal,
-    Plural,
-    table_alias,
-    spec_lastarg_pairs,
-    reg_changelist,
-    reg_job,
-    reg_server_or_remote
-)
+from libdlg.dlgUtilities import *
 from libdlg.dlgControl import DLGControl
 from libfs.fsFileIO import *
 from libsql.sqlRecordset import RecordSet
@@ -44,6 +24,7 @@ from libsql.sqlSchemaTypes import SchemaType
 from libsql.sqlSchema import SchemaXML
 from libsql.sqlValidate import query_is_reference, is_query_or_expressionType, is_expressionType, fieldType
 from libsql.sqlValidate import is_queryType, is_fieldType, is_tableType, is_job
+from libdlg.dlgDateTime import DLGDateTime
 import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
@@ -61,8 +42,8 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 612 $] [$Revision: #35 $]
-     [$DateTime: 2025/02/22 20:26:15 $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 613 $] [$Revision: #36 $]
+     [$DateTime: 2025/02/23 12:30:36 $]
      [$Author: mart $]
 '''
 
@@ -832,9 +813,7 @@ class Py4(object):
         usage = tabledata.tableoptions.usage
         lastarg = None
         query = kwargs.query
-        ''' Is it even worth the time to carry on?
-        
-            return (None, []) if any of the following conditions are True:
+        ''' return (None, []) if any of the following conditions are True:
                 1- tablename is a `nocommand` or
                 2- there are no options associated to this table/cmd or  
                 3- `usage` matches an error msg 
@@ -845,17 +824,14 @@ class Py4(object):
                 (re.match(r'^.*\scould not be set.', usage) is not None)
         ):
             return (lastarg, cmdargs, query)
-
-        ''' Some spec tables/cmds have an optional last position argument (no arg, specform, or -i (stdin))
-            Specifically: change            
-                          changelist        
-                          job              
-                          workspace         
-                          client  
+        ''' Some spec tables/cmds have an optional last position argument 
+            (no arg, specform, or -i (stdin)). Specifically: change,             
+            changelist, job, workspace & client.
         '''
         lastarg_is_optional = True \
             if (tablename in self.spec_args_are_optional) \
             else False
+
         ''' filename argument
         '''
         requires_filearg = (reg_filename.search(usage) is not None)
@@ -908,15 +884,49 @@ class Py4(object):
                 '''
                 lastarg = f'//{self._client}/...'
 
+            ''' whatever the case, is the query's fieldname a revision 
+                or changelist specifier, or time specifier (relative or 
+                not), or revision action specifier? If yes, then paas that 
+                on to the filename argument in proper p4 syntax so as to 
+                let p4d deal with the narrowing of the fileset *before* 
+                executing the p4 action (nothing will do this faster than p4d).
+                
+                TODO: add support for in_range operators eg '@>n1,<n2'
+                
+            '''
             if ((requires_filearg is True) & (query is not None)):
                 fieldname = query.left.fieldname
-                if (fieldname in ('rev', 'change')):
+                if (fieldname in (
+                        'rev',
+                        'change',
+                        'time',
+                        'action',
+                    )
+                ):
                     specifier = ''
+                    opname = qry.op.__name__ \
+                        if (callable(qry.op) is True) \
+                        else qry.op
                     if (isanyfile(lastarg) is True):
                         if (fieldname == 'rev'):
-                            specifier = f"#{query.right}"
+                            if (opname in relative_operators.keys()):
+                                specifier = f"{relative_revision_operators[opname]}{qry.right}"
+                            else:
+                                specifier = f"#{query.right}"
                         elif (fieldname == 'change'):
-                            specifier = f"@{query.right}"
+                            if (opname in relative_operators.keys()):
+                                specifier = f"{relative_change_operators[opname]}{qry.right}"
+                            else:
+                                specifier = f"@{query.right}"
+                        elif (fieldname == 'time'):
+                            dt2epoch = re.sub('\.\d+', '', str(DLGDateTime().to_epoch(qry.right)))
+                            p4dt = round(int(DLGDateTime().to_epoch(dt2epoch)))
+                            if (opname in relative_operators.keys()):
+                                specifier = f"{relative_change_operators[opname]}{p4dt}"
+                            else:
+                                specifier = f"@{p4dt}"
+                        elif (fieldname == 'action'):
+                            specifier = revision_actions[qry.right]
                         lastarg = f"{lastarg}{specifier}"
             return (lastarg, cmdargs, query)
 
@@ -991,7 +1001,20 @@ class Py4(object):
                     )
             ):
                 lastarg = cmdargs.pop(-1)
-
+        ''' Is not a spec and does not require a filename argument. Check if p4d
+            would be better suited to handle the query as a cmd option.
+            
+            eg: The following query would filter a set of records which would select
+                files affected by changelist 600, *after* the recordset has been defined.
+                
+                    >>> qry = (p4.files.change == 600)
+                    
+                However, p4d will do the job much quicker than anything else, so derive 
+                a cmd option instead.
+                
+                    >>> p4 files -c 600
+            
+        '''
         if (query is not None):
             ''' query
             '''
@@ -1413,7 +1436,9 @@ class Py4(object):
                     p4args.append(specname)
         ''' process the thing
         '''
-        print(f"\np4 cmd: {' '.join(p4args)}\n")
+        cdir = os.getcwd()
+        #print(f"{cdir}/%> {' '.join(p4args)}\n")
+        self.loginfo(f"{cdir} %> {' '.join(p4args)}")
         oFile = Popen(p4args, stdout=PIPE, stderr=PIPE).stdout
         loader = mload \
             if (hasattr(oFile, 'read')) \

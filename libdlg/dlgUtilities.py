@@ -91,8 +91,8 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 611 $] [$Revision: #32 $]
-     [$DateTime: 2025/02/22 19:35:04 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 613 $] [$Revision: #33 $]
+     [$DateTime: 2025/02/23 12:30:36 $]
      [$Author: mart $]
 '''
 
@@ -100,7 +100,8 @@ __all__ = [
     # pretty much all p4 stuff related stuff
            'set_localport', 'fix_name', 'friendly_tablename', 'real_tablename',
            'p4charsymbols', 'p4ops', 'journal_actions', 'ignore_actions', 'fixep4names',
-           'relative_change_Operators', 'relative_revision_operators', 'revision_actions',
+           'relative_operators', 'relative_change_operators', 'relative_revision_operators',
+            'revision_actions',
     #
            'isdepotfile', 'isfsfile', 'isanyfile', 'is_expression', 'is_mode', 'is_marshal',
            'versionname_to_releasename',
@@ -392,28 +393,35 @@ fixep4names = ZDict(
         'desc': 'describe'
     }
 )
-relative_change_Operators = [
-    '@<',
-    '@<=',
-    '@>',
-    '@>=',
-    '@='
-]
-relative_revision_operators = [
-    '#<',
-    '#<=',
-    '#>',
-    '#>=',
-    '#='
-]
-revision_actions = [
-    '#add',
-    '#edit',
-    '#delete',
-    '#branch',
-    '#integrate',
-    '#import'
-]
+relative_operators = {
+    'LT': '<',
+    'LE': '<=',
+    'GT': '>',
+    'GE': '>=',
+    'EQ': '='
+}
+relative_change_operators = {
+    'LT': '@<',
+    'LE': '@<=',
+    'GT': '@>',
+    'GE': '@>=',
+    'EQ': '@='
+}
+relative_revision_operators = {
+    'LT': '#<',
+    'LE': '#<=',
+    'GT': '#>',
+    'GE': '#>=',
+    'EQ': '#='
+}
+revision_actions = {
+    'add': '#add',
+    'edit': '#edit',
+    'delete': '#delete',
+    'branch': '#branch',
+    'integrate': '#integrate',
+    'import': '#import'
+}
 datefields=[
     'Access',
     'accessDate',
