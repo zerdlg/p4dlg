@@ -3,7 +3,10 @@ from types import *
 from pprint import pformat
 import timeit
 
-from libsql.sqlCount import Count
+from libsql.sqlOperators import (
+    Count,
+    Sum,
+)
 from libsql.sqlSelect import Select
 from libsql.sqlRecords import Records
 from libdlg.dlgStore import ZDict, Lst, objectify
@@ -16,9 +19,9 @@ from libjnl.jnlFile import JNLFile
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 609 $] [$Revision: #5 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 611 $] [$Revision: #6 $]
+     [$DateTime: 2025/02/22 19:35:04 $]
+     [$Author: mart $]
 '''
 
 class RecordSet(object):
@@ -929,6 +932,34 @@ class RecordSet(object):
             tablename=self.tablename
         )
         return oCount.count(distinct=distinct)
+
+    def sum(
+            self,
+            query = None,
+            records = None,
+            cols = None,
+            distinct = None
+    ):
+
+        if (cols is None):
+            cols = self.cols
+        if (records is None):
+            records = self.records
+
+        if (query is None):
+            query = self.query or []
+
+        objp4 = self.objp4 \
+            if (hasattr(self, 'objp4')) \
+            else self
+        oSum = Sum(
+            objp4,
+            records,
+            cols,
+            query,
+            tablename=self.tablename
+        )
+        return oSum.sum(distinct=distinct)
 
     def computecolumns(self, record):
         try:

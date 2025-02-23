@@ -18,6 +18,7 @@ from libdlg.dlgUtilities import (
     decode_bytes,
     isnum,
     queryStringToStorage,
+    getTableOpKeyValue,
     Flatten,
     annoying_ipython_attributes,
     reg_envvariable,
@@ -60,9 +61,9 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 609 $] [$Revision: #33 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 612 $] [$Revision: #35 $]
+     [$DateTime: 2025/02/22 20:26:15 $]
+     [$Author: mart $]
 '''
 
 '''     a perforce client program.
@@ -467,7 +468,7 @@ class Py4(object):
                         qry.right,
                         qry.inversion
                     )
-                qry = invert(qry)#, inversion=inversion)
+                qry = invert(qry)
                 if (tablename is None):
                     ''' grab the tablename and go!
                     '''
@@ -516,8 +517,8 @@ class Py4(object):
                     if (kwargs[item] is not None):
                         lastarg = kwargs[item]
                         break
-                if (lastarg is None):
-                    (lastarg, options) = self.define_lastarg(tablename, *options, query=p4Queries)
+                #if (lastarg is None):
+                #    (lastarg, options, p4Queries) = self.define_lastarg(tablename, *options, query=p4Queries) #1
             if (
                     (isinstance(lastarg, str) is True) &
                     (not lastarg in options)
@@ -830,20 +831,20 @@ class Py4(object):
         tabledata = self.memoizetable(tablename)
         usage = tabledata.tableoptions.usage
         lastarg = None
+        query = kwargs.query
         ''' Is it even worth the time to carry on?
         
             return (None, []) if any of the following conditions are True:
                 1- tablename is a `nocommand` or
                 2- there are no options associated to this table/cmd or  
                 3- `usage` matches an error msg 
-                     
         '''
         if (
                 (tablename in self.nocommands) |
                 (noneempty(tabledata.tableoptions) is True) |
                 (re.match(r'^.*\scould not be set.', usage) is not None)
         ):
-            return (lastarg, cmdargs)
+            return (lastarg, cmdargs, query)
 
         ''' Some spec tables/cmds have an optional last position argument (no arg, specform, or -i (stdin))
             Specifically: change            
@@ -855,13 +856,6 @@ class Py4(object):
         lastarg_is_optional = True \
             if (tablename in self.spec_args_are_optional) \
             else False
-        query = kwargs.query
-        if (query is not None):
-            if (isinstance(query, Lst) is True):
-                query = query(0)
-            elif (type(query.left) is DLGQuery):
-                query = query.left
-
         ''' filename argument
         '''
         requires_filearg = (reg_filename.search(usage) is not None)
@@ -871,41 +865,61 @@ class Py4(object):
                     2) check kwargs.queries as they may contain a clue about a specified lastarg
                     3) otherwise, grab the user's client View  (//CLIENT_NAME/...)              
             '''
-            if (cmdargs(-1) is not None):
-                if (isanyfile(cmdargs(-1)) is True):
-                    '''  We have a file/dir on the local FS,  or we have a clientFile, or we have a depotFile.
-                    '''
-                    lastarg = cmdargs.pop(-1)
-
-            elif (len(cmdargs) > 0):
+            if (len(cmdargs) > 0):
                 ''' priorities 1 & 2
                 '''
-                fileitem = cmdargs.pop(-1)
+                fileitem = cmdargs(-1)
                 if (
                         (fileitem is not None) &
                         (isanyfile(fileitem) is True)
                 ):
-                    lastarg = fileitem
+                    lastarg = cmdargs.pop(-1)
 
-            elif (isinstance(query, str) is True):
+            elif (query is not None):
+                qry = queryStringToStorage(query) \
+                    if (isinstance(query, str) is True) \
+                    else query
                 ''' priority 3
                 '''
-                if (
-                        (
-                                (isanyfile(query.right) is True) &
-                                (query.left.fieldname.lower() in ( 'depotfile', 'clientfile', 'path')) &
-                                (query.op in (EQ, NE, '=', '!='))
-                        )
-                ):
-                    p4args = self.p4globals + ['where', query.right]
-                    out = self.p4OutPut(tablename, *p4args)
-                    lastarg = out.depotFile
+                if (isinstance(qry.right, (str, int)) is True):
+                    if (
+                            (
+                                    (isanyfile(str(qry.right)) is True) &
+                                    (qry.left.fieldname.lower() in (
+                                            'depotfile',
+                                            'clientfile',
+                                            'path')
+                                    )
+                            )
+                    ):
+                        p4args = self.p4globals + ['where', qry.right]
+                        out = self.p4OutPut(tablename, *p4args)(0)
+                        lastarg = out.depotFile
+                        if (
+                                (isdepotfile(lastarg) is True) &
+                                (isdepotfile(qry.right) is True) &
+                                (lastarg != qry.right)
+                        ):
+                            qry.right = lastarg
 
-            elif (noneempty(lastarg) is True):
-                ''' lastly... use the clientFile
+            #elif ((noneempty(lastarg) is True) & (query is None)):
+            if (noneempty(lastarg) is True):
+                ''' If all else fails, just use the clientFile
                 '''
                 lastarg = f'//{self._client}/...'
-            return (lastarg, cmdargs)
+
+            if ((requires_filearg is True) & (query is not None)):
+                fieldname = query.left.fieldname
+                if (fieldname in ('rev', 'change')):
+                    specifier = ''
+                    if (isanyfile(lastarg) is True):
+                        if (fieldname == 'rev'):
+                            specifier = f"#{query.right}"
+                        elif (fieldname == 'change'):
+                            specifier = f"@{query.right}"
+                        lastarg = f"{lastarg}{specifier}"
+            return (lastarg, cmdargs, query)
+
         elif (tabledata.is_spec is True):
             ''' no args
             '''
@@ -920,14 +934,13 @@ class Py4(object):
                             (len(cmdargs) == 0)
                     )
             ):
-                return (lastarg, cmdargs)
+                return (lastarg, cmdargs, query)
 
             if (reg_job.match(usage) is not None):
                 ''' job
                 '''
                 if (reg_job.match(cmdargs(-1)) is not None):
                     lastarg = cmdargs.pop(-1)
-
 
             elif ((tablename in ('server', 'remote')) is True):
                 ''' server | remote
@@ -950,12 +963,6 @@ class Py4(object):
                         (not cmdargs(-1).startswith('-'))
                 ):
                     lastarg = cmdargs.pop(-1)
-            elif (query is not None):
-                ''' query
-                '''
-                #if (isinstance(query.right, str) is True):
-                lastarg = query.right
-
             elif (
                     (
                             (tablename in cmdargs) &
@@ -984,12 +991,30 @@ class Py4(object):
                     )
             ):
                 lastarg = cmdargs.pop(-1)
+
         if (query is not None):
             ''' query
             '''
-            # if (isinstance(query.right, str) is True):
-            lastarg = query.right
-        return (lastarg, cmdargs)
+            def processquery(qry):
+                cmdoptions = []
+                fieldname = qry.left.fieldname
+                keywords = self[tablename].keywords
+                if ((fieldname.lower() in keywords) & (isinstance(qry.right, str) is True)):
+                    cmdoptions = [f'--{fieldname.lower()}', qry.right]
+                return (cmdoptions, qry)
+
+            if (isinstance(query, list) is True):
+                qcopy = query.copy()
+                for qry in query:
+                    (cmdopts, q) = processquery(qry)
+                    cmdargs += cmdopts
+                    if (q is None):
+                        qidx = qcopy.index(q)
+                        qcopy.pop(qidx)
+            else:
+                (cmdopts, query) = processquery(query)
+                cmdargs += cmdopts
+        return (lastarg, cmdargs, query)
 
     def get_sourcefiles(self, sourceFile):
         ''' unused... but why?
@@ -1081,7 +1106,7 @@ class Py4(object):
             return (left.tablename, left.fieldname)
 
     def breakdown_query(self, qry, *options, **tabledata):
-        options=Lst(options)
+        (options, tabledata) = (Lst(options), objectify(tabledata))
         (
             op,
             left,
@@ -1126,19 +1151,22 @@ class Py4(object):
             if (callable(op) is True) \
             else op
         if (opname in (andops + orops + xorops + notops)):
-            (
-                q,
-                left,
-                right,
-                op,
-                tablename,
-                options,
-                lastarg,
-                inversion,
-                specifier,
-                specifier_value,
-                tabledata
-            ) = self.breakdown_query(left, *options, **tabledata)
+            for qlr in (qry.left, qry.right):
+                if (type(qlr).__name__ in ('DLGQuery', 'DLGExpression')):
+                    (
+                        q,
+                        left,
+                        right,
+                        op,
+                        tablename,
+                        options,
+                        lastarg,
+                        inversion,
+                        specifier,
+                        specifier_value,
+                        tabledata
+                    ) = self.breakdown_query(qlr, *options, **tabledata)
+
         if (isnum(right) is True):
             right = str(right)
         elif (right is None):
@@ -1185,12 +1213,11 @@ class Py4(object):
                     (isdepotfile(right) is True) &
                     (tablename is not None)
             ):
-                (lastarg, options) = self.define_lastarg(tablename, *options, query=qry)
+                (lastarg, options, qry) = self.define_lastarg(tablename, *options, query=qry) #2
         if (tablename is None):
             tablename = qry.tablename
         if (noneempty(tabledata) is True):
-            if (tablename is not None):
-                tabledata = self.memoizetable(tablename)
+            tabledata = self.memoizetable(tablename)
         if (fieldname is not None):
             if (fieldname.lower() not in tabledata.fieldsmap.getkeys()):
                 bail(
@@ -1201,33 +1228,34 @@ class Py4(object):
             qkwargs = {}
             if (qry is not None):
                 qkwargs = {'query': qry}
-            (lastarg, options) = self.define_lastarg(tablename, *options, **qkwargs)
+            (lastarg, options, qry) = self.define_lastarg(tablename, *options, **qkwargs)
         if (lastarg is not None):
             ''' is a rev | changelist specified in qry.right?
             '''
             if (isinstance(right, str) is True):
-                if (reg_rev_change_specifier.match(right) is not None):
-                    for item in ('#', '@'):
-                        right_bits = re.split(item, right, maxsplit=1)
-                        if (len(right_bits) == 2):
-                            qry.right = right_bits[0]
-                            specifier = item
-                            specifier_value = right_bits[1]
-                            ''' the query's q.right value cannot contain any
-                                revision specifiers because the value will
-                                be validated against the record's own value 
-                                thereby considering the record as bening 
-                                non-matching.
-                            '''
-                            if (isinstance(qry.left, Py4Field)):
-                                for (name, val) in {
-                                    'specifier': specifier,
-                                    'specifier_value': specifier_value
-                                }:
-                                    setattr(qry.left, name, val)
-                                ''' if not #head, try to use relative revision specifiers instead!
+                if (right in ('depotFile', 'clientFile', 'path')):
+                    if (reg_rev_change_specifier.match(right) is not None):
+                        for item in ('#', '@'):
+                            right_bits = re.split(item, right, maxsplit=1)
+                            if (len(right_bits) == 2):
+                                qry.right = right_bits[0]
+                                specifier = item
+                                specifier_value = right_bits[1]
+                                ''' the query's q.right value cannot contain any
+                                    revision specifiers because the value will
+                                    be validated against the record's own value 
+                                    thereby considering the record as being 
+                                    non-matching.
                                 '''
-                            break
+                                if (isinstance(qry.left, Py4Field)):
+                                    for (name, val) in {
+                                        'specifier': specifier,
+                                        'specifier_value': specifier_value
+                                    }:
+                                        setattr(qry.left, name, val)
+                                    ''' if not #head, try to use relative revision specifiers instead!
+                                    '''
+                                break
         return (
                 qry,
                 left,
@@ -1326,7 +1354,7 @@ class Py4(object):
                 False
         )
         if (not '--explain' in p4args):
-            (lastarg, p4args) = self.define_lastarg(tablename, *p4args)
+            (lastarg, p4args, noqry) = self.define_lastarg(tablename, *p4args) #4
             if isinstance(lastarg, str):
                 p4args.append(lastarg)
         if (
@@ -1377,7 +1405,7 @@ class Py4(object):
                 (kwargs.lastarg is not None) &
                 (kwargs.lastarg != p4args(-1))
             ):
-                (specname, p4args) = self.define_lastarg(tablename, *p4args)
+                (specname, p4args, noqry) = self.define_lastarg(tablename, *p4args)
                 if (
                         (isinstance(specname, str) is True) &
                         (specname != p4args[-1])
@@ -1385,6 +1413,7 @@ class Py4(object):
                     p4args.append(specname)
         ''' process the thing
         '''
+        print(f"\np4 cmd: {' '.join(p4args)}\n")
         oFile = Popen(p4args, stdout=PIPE, stderr=PIPE).stdout
         loader = mload \
             if (hasattr(oFile, 'read')) \

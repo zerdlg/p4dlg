@@ -20,9 +20,9 @@ from libdlg.dlgUtilities import (
     spec_lastarg_pairs
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 609 $] [$Revision: #15 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 611 $] [$Revision: #16 $]
+     [$DateTime: 2025/02/22 19:35:04 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Py4Options']
@@ -161,8 +161,8 @@ class Py4Options(object):
                         (severity == 3)
                 ):
                     ''' generic 1, code 'error' & severity 3...                    
-                        Such it is with perforce... 
-                        An error message, though not an error. 
+                        I would thought that level 2 would serve better, but,
+                        Such it is with perforce...  An error message, though not an error. 
                     '''
                     for line in data:
                         ''' Looking for usage lines to build the p4 cmd line.
@@ -225,9 +225,10 @@ class Py4Options(object):
                             ) |
                             (self.optionsdata.is_specs is True)
                     ):
-                        cmdargs += self.get_more_table_options(keywords)
                         if (reg_changelist.search(usage) is not None):
-                            cmdargs.append('1')
+                            changeargs = self.objp4.p4globals + ['changes', '-m1']
+                            cl = self.objp4.p4OutPut('changes', *changeargs)(0).change
+                            cmdargs.append(cl)
                     else:
                         cmdargs += self.get_more_table_options(keywords)
                 records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)

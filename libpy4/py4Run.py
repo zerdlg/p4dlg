@@ -4,9 +4,9 @@ from libdlg.dlgStore import Lst, ZDict, objectify
 from libdlg.dlgUtilities import decode_bytes, ALLLOWER
 from libpy4.py4SpecIO import SpecIO
 
-'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 609 $] [$Revision: #21 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 611 $] [$Revision: #22 $]
+     [$DateTime: 2025/02/22 19:35:04 $]
+     [$Author: mart $]
 '''
 
 ''' Usage example:
@@ -81,7 +81,7 @@ class Py4Run(object):
         lastarg = None
 
         if (not tablename in noargs_cmds):
-            (lastarg, cmdargs) = self.objp4.define_lastarg(tablename, *cmdargs)
+            (lastarg, cmdargs, noqry) = self.objp4.define_lastarg(tablename, *cmdargs)
 
         self.objp4.p4globals += self.objp4.supglobals
         ''' tablename must be cmdargs' 1st argument. so either insert 

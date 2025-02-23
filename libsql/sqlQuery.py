@@ -19,10 +19,10 @@ from libdlg.dlgUtilities import (
 from libsql.sqlValidate import *
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 609 $] 
-     [$Revision: #3 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+     [$Change: 611 $] 
+     [$Revision: #4 $]
+     [$DateTime: 2025/02/22 19:35:04 $]
+     [$Author: mart $]
 '''
 
 __all__ = [
@@ -125,6 +125,9 @@ class DLGQuery(object):
     __str__ = __repr__
 
     __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
+
+    def copy(self):
+        return DLGQuery(self.objp4, self.op, self.left, self.right, self.inversion)
 
     def __and__(self, value):
         return DLGQuery(self.objp4, AND, self, value)
@@ -437,11 +440,15 @@ class DLGExpression(object):
     def count(self, distinct=None):
         ''' USAGE:
                 >>> qry = (oP4.clients.client.count(dictinct=jnl.domain.type))
-                >>> records = oP4(qry).count(distinct=distinct)
+                >>> records = oP4(qry).select(distinct=distinct)
         '''
         return DLGExpression(self.objp4, COUNT, self, distinct=distinct)
 
     def sum(self):
+        ''' USAGE:
+                >>> qry = (self.)
+                >>>
+        '''
         return DLGExpression(self.objp4, SUM, self, None)
 
     def max(self):

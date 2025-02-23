@@ -91,9 +91,9 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 609 $] [$Revision: #31 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 611 $] [$Revision: #32 $]
+     [$DateTime: 2025/02/22 19:35:04 $]
+     [$Author: mart $]
 '''
 
 __all__ = [
@@ -189,8 +189,8 @@ def reg_spec_usage(specname, usageline):
             return res
     except:pass
 
-reg_filename = re.compile(r'^.*\sfile(s|name)?(\s)?(\.\.\.)?')
-reg_changelist = re.compile(r'^.*\schange(list)?(#)?$')
+reg_filename = re.compile(r'^.*\sfile(s|name)?(\s)?(\s?\.\.\.)?$')
+reg_changelist = re.compile(r'^.*\schange(list)?(#)?(\s?\.\.\.)?$')
 ''' reg = re.compile(f'^.*(file(s|name)?)?(\[)?({rname})?(name|list|ID|type)?(#)?(\.)?(\])?$')
 
     reg_filename & reg_change are used for parsing p4 usage messages

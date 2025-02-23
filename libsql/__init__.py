@@ -20,9 +20,9 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/__init__.py $] [$Change: 609 $] [$Revision: #8 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/__init__.py $] [$Change: 611 $] [$Revision: #9 $]
+     [$DateTime: 2025/02/22 19:35:04 $]
+     [$Author: mart $]
 '''
 
 __all__ = ('DLGSql',)
@@ -549,13 +549,13 @@ class DLGSql(DLGControl):
                     planet (int <--> int)
                 '''
                 if (isnum(qry.right) is True):
-                    qright = int(qry.right)
-                    if (isnum(value) is True):
-                        value = int(value)
+                    qry.right = int(qry.right)
+                if (isnum(value) is True):
+                    value = int(value)
                 ''' TODO: revisit this - I don't remember why
                     evaluating left against right in one case
                     and evaluating right against left in the
-                    other... '//depot/pycharmprojects/git-fusion/build/vmware-studio/git-fusion-vpkgs/librtmp0_2.4~20110711.gitc28f1bab-1_amd64.deb'
+                    other... '
                 '''
                 receval = opfunc(value, qry.right) \
                     if (type(qry).__name__ in (
