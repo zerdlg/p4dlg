@@ -3,8 +3,9 @@ from types import LambdaType
 
 from libdlg.dlgError import FieldNotBelongToTableError
 from libdlg.dlgDateTime import DLGDateTime
-from libsql.sqlValidate import is_queryType, is_fieldType, is_tableType, is_Py4, is_P4Jnl
+from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
+from libsql.sqlRecord import Record
 from libdlg.dlgControl import DLGControl
 from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgUtilities import (
@@ -20,8 +21,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/__init__.py $] [$Change: 611 $] [$Revision: #9 $]
-     [$DateTime: 2025/02/22 19:35:04 $]
+'''  [$File: //dev/p4dlg/libsql/__init__.py $] [$Change: 619 $] [$Revision: #13 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
      [$Author: mart $]
 '''
 
@@ -42,7 +43,7 @@ class DLGSql(DLGControl):
             query=None,
             **tabledata
     ):
-        tabledata = ZDict(tabledata)
+        self.tabledata = tabledata = ZDict(tabledata)
         self.closed = False
         self.objp4 = objp4
         if (self.objp4 is None):
@@ -121,7 +122,10 @@ class DLGSql(DLGControl):
                 tabledata.fieldsmap,
             )
 
-        if (self.tablename is None):
+        if (
+                (self.tablename is None) &
+                (query is not None)
+        ):
             qry = query \
                 if (isinstance(query, Lst) is False) \
                 else query(0)
@@ -158,7 +162,8 @@ class DLGSql(DLGControl):
             yield self[col]
 
     def validate_distinct(self, field):
-        if (field is None): return
+        if (field is None):
+            return
         if (is_fieldType(field) is True):
             field = field.fieldname
         field = self.fieldsmap[field.lower()]
@@ -175,15 +180,17 @@ class DLGSql(DLGControl):
             *fieldnames,
             **kwargs
     ):
-        query = query or self.query
-        cols = cols or self.cols
-        records = records or self.records
-
         (
+            query,
+            cols,
+            records,
             fieldnames,
             kwargs
         ) = \
             (
+                query or self.query,
+                cols or self.cols,
+                records or self.records,
                 Lst(fieldnames),
                 ZDict(kwargs)
             )
@@ -236,7 +243,6 @@ class DLGSql(DLGControl):
             ).intersect(record.getkeys())
 
             if (len(error_msg) == 4):
-
                 if (
                         (record.code == 'error') &
                         (record.severity >= 1) &
@@ -331,9 +337,14 @@ class DLGSql(DLGControl):
             else op
         if (not opname in operators):
             if (is_fieldType(left) is True):
-                fieldname = left.fieldname
-                tablename = left.tablename
-                return (fieldname, tablename)
+                (
+                    fieldname,
+                    tablename
+                ) = \
+                    (
+                        left.fieldname,
+                        left.tablename
+                    )
         else:
             (
                 fieldname,
@@ -342,7 +353,7 @@ class DLGSql(DLGControl):
                 (
                     self.recurseQuery(left)
                 )
-        return fieldname, tablename
+        return (fieldname, tablename)
 
     def evaluate(self, qry, record):
         try:
@@ -526,7 +537,6 @@ class DLGSql(DLGControl):
             skip_record = True
         return (record, skip_record)
 
-
     def parse(self, qry, record=None, opfunc=None):
         if (type(qry) is LambdaType):
             out = ((qry(record) & 1) | 0)
@@ -558,11 +568,7 @@ class DLGSql(DLGControl):
                     other... '
                 '''
                 receval = opfunc(value, qry.right) \
-                    if (type(qry).__name__ in (
-                    'DLGQuery',
-                    'DLGExpression'
-                )
-                        ) \
+                    if (is_query_or_expressionType(qry) is True) \
                     else opfunc(qry.right, value)
 
             if (isinstance(receval, bool) is True):
@@ -710,6 +716,14 @@ class DLGSql(DLGControl):
          filter,
          exclude,
          search,
+         count,
+         _sum,
+         _avg,
+         _min,
+         _max,
+         _len,
+         as_groups,
+         distinct,
          ) = (
             kwargs.orderby,
             kwargs.limitby,
@@ -719,6 +733,14 @@ class DLGSql(DLGControl):
             kwargs.filter,
             kwargs.exclude,
             kwargs.search,
+            kwargs.count,
+            kwargs.sum,
+            kwargs.avg,
+            kwargs.min,
+            kwargs.max,
+            kwargs.len,
+            kwargs.as_groups or False,
+            kwargs.distinct,
         )
 
         if (orderby is not None):
@@ -740,7 +762,7 @@ class DLGSql(DLGControl):
         if (groupby is not None):
             '''  groupby
             '''
-            records = records.groupby(groupby)
+            records = records.groupby(groupby, as_groups=as_groups)
         if (exclude is not None):
             '''  exclude
 
@@ -774,6 +796,18 @@ class DLGSql(DLGControl):
                         Charotte_client
         '''
             records = records.sort(sortby)
+        if (count is not None):
+            return count.op(records, distinct=True)
+        if (_sum is not None):
+            return _sum.op(_sum, records)
+        if (_avg is not None):
+            ''
+        if (_min is not None):
+            ''
+        if (_max is not None):
+            ''
+        if (_len is not None):
+            ''
         if (search is not None):
             for record in records:
                 if (record.depotFile is not None):
@@ -796,6 +830,7 @@ class DLGSql(DLGControl):
             if (type(records) is not enumerate) \
             else records
 
+
     def guess_records(self, query, tablename):
         (
             left,
@@ -808,22 +843,28 @@ class DLGSql(DLGControl):
                 None
             )
         grecords = None
-        if (isinstance(query, DLGExpression) is True):
-            if (reg_dbtablename.match(tablename) is not None):
-                tablename = self.oTableFix.normalizeTableName(tablename)
+        #if (is_expressionType(query) is True):
+        #    if (reg_dbtablename.match(tablename) is not None):
+        tablename = self.oTableFix.normalizeTableName(tablename)
+        (
+            left,
+            op,
+            objp4
+        ) = \
             (
-                left,
-                op,
-                objp4
-            ) = \
-                (
-                    query.left,
-                    query.op,
-                    query.objp4
-                )
-            right = getattr(objp4, tablename)()
-            opfunc = expression_table(op)
-            grecords = opfunc(left, right)
+                query.left,
+                query.op,
+                query.objp4
+            )
+        right = getattr(objp4, tablename)()
+        opfunc = expression_table(op)
+        grecords = opfunc(left, right)
+        if (
+                (is_expressionType(query) is True) &
+                (is_recordsType(grecords) is False)
+        ):
+            return grecords
+
         if (
                 (isinstance(right, Records) is True) &
                 (is_array(grecords) is True)
@@ -840,12 +881,11 @@ class DLGSql(DLGControl):
             **kwargs
     ):
         kwargs = ZDict(kwargs)
+        fieldnames = Lst(fieldnames)
         ''' query
         '''
         if (query is None):
-            query = self.query \
-                if (self.query is not None) \
-                else []
+            query = self.query or []
         if (isinstance(query, list) is False):
             query = Lst([query])
         ''' cols
@@ -866,16 +906,10 @@ class DLGSql(DLGControl):
                 self.objp4.logwarning(err)
         ''' tablename
         '''
-        tablename = self.tablename or kwargs.tablename
-        if (self.tablename is None):
-            self.tablename = tablename
-
+        tablename = self.tablename or self.tabledata.tablename
         if (tablename is None):
             try:
-                if (isinstance(query, Lst) is True):
-                    tablename = query(0).left.tablename
-                else:
-                    tablename = query.left.tablename
+                tablename = query(0).left.tablename if (isinstance(query, Lst) is True) else query.left.tablename
             except:
                 if (self.reference is not None):
                     tablename = self.reference.left.tablename
@@ -883,20 +917,37 @@ class DLGSql(DLGControl):
         '''
         if (records is None):
             records = self.records
-        ''' records is not enumerator & whatever 
-            it is, it is empty! Just do the few 
-            lines below and get out!
+        ''' records is not enumerator, let's start grasping.
         '''
         if (type(records) != enumerate):
-            records = self.guess_records(query, tablename)
-
-        fieldsmap = kwargs.fieldsmap or self.fieldsmap
-
-        if (len(fieldnames) == 1):
-            fieldtype = type(fieldnames[0]).__name__
-            if (fieldtype in ('JNLTable', 'Py4Table')):
-                fieldnames = cols
-        fieldnames = Lst(fieldnames or self.objp4.fieldnames).storageindex(reversed=True)
+            if (is_recordsType(records) is True):
+                if (len(records) == 0):
+                    if (tablename is None):
+                        if (fieldnames(0) is None):
+                            for key in kwargs.keys():
+                                if (is_expressionType(kwargs[key]) is True):
+                                    tablename = kwargs[key].tablename
+                        elif (is_expressionType(fieldnames(0)) is True):
+                            tablename = fieldnames(0).tablename
+                    records = self.objp4(self.objp4[tablename]).records
+                else:
+                    records = self.get_recordsIterator(records)
+            else:
+                recset = None
+                if (noneempty(query) is False):
+                    if (isinstance(query, str) is True):
+                        ''' TODO:
+                            comeback here & support str queries
+                        '''
+                    elif (is_queryType(query) is True):
+                        recset = self.objp4(query)
+                elif (fieldnames(0) is not None):
+                    recset = self.objp4(fieldnames(0).left._table) \
+                        if (is_fieldType_or_expressionType(fieldnames(0)) is True) \
+                        else self.objp4(self.objp4[tablename])
+                records = recset.records
+        fieldsmap = self.fieldsmap or self.tabledata.fieldsmap
+        fieldnames = Lst(fieldnames).storageindex(reversed=True)
         return (tablename, fieldnames, fieldsmap, query, cols, records)
 
     def computecolumns(self, record):
@@ -913,3 +964,10 @@ class DLGSql(DLGControl):
             return record
         except Exception as err:
             bail(err)
+
+    def fields2ints(self, record):
+        crecord = Record(record.copy())
+        for fkey in crecord.getkeys():
+            if (isnum(record[fkey]) is True):
+                record[fkey] = int(record[fkey])
+        return record

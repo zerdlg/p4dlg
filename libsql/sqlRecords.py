@@ -13,13 +13,14 @@ from libdlg.dlgUtilities import (
     noneempty
 )
 from libsql import is_P4Jnl
+from libsql.sqlValidate import *
 from libdlg.dlgTables import *
 # from libdlg.p4qLogger import LogHandler
 from libdlg.dlgError import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 609 $] [$Revision: #4 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 619 $] [$Revision: #10 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Records']
@@ -65,8 +66,30 @@ class Records(object):
     def empty_records(self):
         return Records(Lst(), Lst(), self.objp4)
 
-    def count(self, distinct=None):
-        return len(self)
+    def count(self, distinct=False, groupname=None):
+        if (groupname is None):
+            if (distinct is True):
+                distinctvalues = set()
+                fieldname = self.tabledata.tablename
+                for rec in self.records:
+                    distinctvalue = rec(fieldname)
+                    if (distinctvalue is not None):
+                        distinctvalues.add(distinctvalue)
+                return len(distinctvalues)
+            return len(self)
+        return self.groupcount(groupname)
+
+    def avg(self, exp):
+        ''
+
+    def min(self, exp):
+        ''
+
+    def max(self, exp):
+        ''
+
+    def sum(self, exp):
+        ''
 
     def __init__(
             self,
@@ -75,10 +98,22 @@ class Records(object):
             objp4=None,
             **tabledata
     ):
+
+        (
+            self.cols,
+            self.grid,
+            self.groupcount
+        ) = \
+            (
+                cols,
+                None,
+                ZDict()
+            )
+
         self.objp4 = objp4 or ZDict()
-        self.records = Lst(Record(record) for record in records) if (records is not None) else Lst()
-        self.cols = cols
-        self.grid = None
+        self.records = Lst(Record(record) for record in records) \
+            if (records is not None) \
+            else Lst()
         ''' thinking specifically for Py4 & Search
         '''
         self.tabledata = ZDict(tabledata)
@@ -96,6 +131,7 @@ class Records(object):
                 try:
                     delattr(self, item)
                 except: pass
+        self.as_groups = False
 
     def __call__(
             self,
@@ -135,12 +171,11 @@ class Records(object):
             cast
     ):
         defaultrecord = lambda: 0
-        ret = (default, False)
-        if (self.idx_is_valid(idx, length) is True):
-            ret = (self[idx], cast)
-        elif (default is defaultrecord):
-            ret = (default, cast)
-        return ret
+        return (self[idx], cast) \
+            if (self.idx_is_valid(idx, length) is True) \
+            else (default, cast) \
+            if (default is defaultrecord) \
+            else (default, False)
 
     def idx_is_valid(self, idx, length):
         try:
@@ -205,7 +240,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         ] + self.records)
         return self.__class__(records, self.cols, self.objp4)
 
-
     def __eq__(self, altrecords):
         return (self.records == altrecords.records) \
             if (type(altrecords).__name__ == 'Records') \
@@ -239,7 +273,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         records = self
         if (len(records) == 0):
             return Records(Lst(), self.cols, self.objp4)
-
         i = 0
         while (i < len(self)):
             if (func(self[i]) is True):
@@ -401,9 +434,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 records = records.limitby(limitby)
             else:
                 bail('limitby must be of type `tuple`')
-
         fieldname = field.fieldname \
-            if (type(field).__name__ in ('JNLField', 'Py4Field')) \
+            if (is_fieldType(field) is True) \
             else field
         outrecords = Lst(
             sorted(
@@ -429,7 +461,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         records = self \
             if (records is None) \
             else Records(records, self.cols, self.objp4) \
-            if (type(records).__name__ != 'Records') \
+            if (is_recordsType(records) is False) \
             else records
 
         if (len(records) == 0):
@@ -448,7 +480,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
         for field in fields:
             fieldname = field.fieldname \
-                if (type(field).__name__ in ('JNLField', 'Py4Field')) \
+                if (is_fieldType(field) is True) \
                 else field
             recordfields = records.records(0).getkeys()
             if fieldname not in recordfields:
@@ -468,45 +500,92 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             orderby=None,
             sortby=None,
             reverse=False,
-            groupdict=False,
+            as_groups=False,
             records=None
     ):
         '''     groupby
 
-                USAGE:
-                        >>> journal = os.path.abspath('./journals/journal2')
-                        >>> oSchema = schema('r15.2')
-                        >>> oJnl = P4Jnl(journal, oSchema)
-                        >>> qry = (oJnl.domain.type=='99')
-                        >>> records = oJnl(qry).select("id","type","name","mount","owner","options")
-                        >>> records
-                        <Records (500)>
-                        >>> grecs = records.groupby('name',orderby='idx')
-                        # list of last record of each group name
-                        >>> grecs_list = {grp_name: grecs[grp_name].last() for grp_name in grecs}
-                        <<< grec_list
-                         {'charlotte': {'id': 51,
-                                        'type': '99',
-                                        'name': 'charlotte',
-                                        'mount': '/Users/gc/Downloads/libotr-4.1.0',
-                                        'owner': 'gc',
-                                        'options': '0'},
-                         'charlotte-2': {'id': 148052,
-                                         'type': '99',
-                                         'name': 'charlotte-2',
-                                         'mount': '/Users/gc',
-                                         'owner': 'gc',
-                                         'options': '0'},
-                         ...}
+        USAMGE EXAMPLE:
+
+        groupby with joined (inner) records
+
+        >>> qry = (p4.files.change == p4.changes.change)
+
+        params: flat = True, as_groups = True
+
+        ** An inner_join with a groupby aggregator must have flat=True!
+            - with that, as_groups can be either True or False.
+
+            >>> recs = p4(qry).select(groupby=p4.changes.change, flat=True, as_groups=True)
+            >>> recs
+            {'609': <Records (102)>,
+             '506': <Records (1)>,
+             '492': <Records (3)>,
+             '516': <Records (1)>,
+             ...
+             }
+
+            >>> for change in recs:
+                ... print(f"{change} - {recs[change].count()} records")
+            change 609 - 102 file records
+            change 506 - 1 file records
+            change 492 - 3 file records
+            change 516 - 1 file records
+            ...
+
+            >>> sum([grp.count() for grp in recs.getvalues()])
+            624
+
+        params: flat = True, as_groups = False
+
+            >>> recs = p4(qry).select(groupby=p4.changes.change, flat=True, as_groups=False)
+            >>> recs
+            <Records (624)>
+            >>> recs.count()
+            624
+            >>> recs(0)
+            <Record {'action': 'edit',
+             'change': '609',
+             'changeType': 'public',
+             'client': 'computer_p4dlg',
+             'depotFile': '//dev/p4dlg/__init__.py',
+             'desc': 'Retyping new module to ktext.\n',
+             'idx': 1,
+             'path': '//dev/p4dlg/...',
+             'rev': '2',
+             'time': '2025/02/21 03:36:09',
+             'type': 'ktext',
+             'user': 'zerdlg'}>
+
+            usage example (no join), groupby after records are selected:
+                    >>> qry = (jnl.domain.type=='99')
+                    >>> records = jnl(qry).select(*["idx","type","name","mount","owner","options"])
+                    >>> records
+                    <Records (500)>
+                    >>> grecs = records.groupby('name',orderby='idx')
+                    # list of last record of each group name
+                    >>> grecs_list = {grp_name: grecs[grp_name].last() for grp_name in grecs}
+                    <<< grec_list
+                     {'charlotte': {'id': 51,
+                                    'type': '99',
+                                    'name': 'charlotte',
+                                    'mount': '/Users/gc/Downloads/libotr-4.1.0',
+                                    'owner': 'gc',
+                                    'options': '0'},
+                     'charlotte-2': {'id': 148052,
+                                     'type': '99',
+                                     'name': 'charlotte-2',
+                                     'mount': '/Users/gc',
+                                     'owner': 'gc',
+                                     'options': '0'},
+                     ...}
+
+                     >>> records = oJnl(qry).select(*["id","type","name","mount","owner","options"], as_groups=False)
+
 
         res = filter(lambda rec: min <= rec.idx <= max, changes)
         '''
-        for field in fields:
-            if (not field in self.cols):
-                bail(
-                    f"Invalid column name `{field}`. Try again."
-                )
-
+        self.as_groups = as_groups
         if (records is None):
             records = self
         if (len(records) == 0):
@@ -514,19 +593,41 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             '''
             return records
 
+        if (len(self.cols) == 0):
+            if (as_groups is False):
+                self.cols = records(0).getkeys()
+            elif (as_groups is True):
+                if (is_recordType(self.records(0)) is True):
+                    keys = self.records(0).getkeys()
+                    table1 = self.records(0)[keys(0)]
+                    if (
+                            (is_recordType(table1) is True) |
+                            (is_dictType(table1) is True)
+                    ):
+                        table2 = self.records(0)[keys(1)]
+                        self.cols = table1.getkeys().union(table2.getkeys())
+                    else:
+                        self.cols = records(0).getkeys()
         records_by_group = ZDict()
         recordslen = len(records)
 
         def group(record, num):
-            if (num  <= (len(fields) - 1)):
+            if (num <= (len(fields) - 1)):
                 try:
                     rec = group(record, (num + 1)) or Lst([record])
                     name = str(record[fields[num].fieldname]) \
-                        if (type(fields[num]).__name__ in ('JNLField', 'Py4Field')) \
+                        if (is_fieldType(fields[num]) is True) \
                         else str(record[fields[num]])
-                    if (isinstance(rec, dict) is True):
+                    if (
+                            (isinstance(rec, dict) is True) |
+                            (is_recordType(rec) is True)
+                    ):
                         records_by_group[name].append(rec)
-                    elif (isinstance(rec, (list, Lst)) is True):
+                    elif (
+                            ((isinstance(rec, list) is True) |
+                            (is_recordsType(rec) is True)) &
+                            (name in records_by_group)
+                    ):
                         records_by_group[name] += rec
                     else:
                         records_by_group[name] = rec
@@ -551,8 +652,13 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         groupnames = records_by_group.getkeys()
         for groupname in groupnames:
             records_by_group[groupname] = Records(records_by_group[groupname])
+            self.groupcount.update(**{groupname: len(records_by_group[groupname])})
             if (orderby is not None):
-                recordgroup = self.orderby(orderby, reverse=reverse, records=records_by_group[groupname])
+                recordgroup = self.orderby(
+                    orderby,
+                    reverse=reverse,
+                    records=records_by_group[groupname]
+                )
                 records_by_group.update(
                     **{
                         groupname: Records(
@@ -563,7 +669,12 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                     }
                 )
             if (sortby is not None):
-                recordgroup = self.sortby(sortby, limitby=limitby, reverse=reverse, records=records_by_group[groupname])
+                recordgroup = self.sortby(
+                    sortby,
+                    limitby=limitby,
+                    reverse=reverse,
+                    records=records_by_group[groupname]
+                )
                 records_by_group.update(
                     **{
                         groupname: Records(
@@ -597,12 +708,19 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                         <{Record}>,
                         <{Record}>
                         )>
+                        
         '''
-        if (groupdict is True):
+        if (as_groups is True):
+            ''' Expose instance's `count` & `as_groups` methods so as 
+                to easily access these values when return value is type ZDict.
+            '''
+            [setattr(records_by_group, att, getattr(self, att)) for att in ('count', 'as_groups')]
             return records_by_group
+
         outrecords = Lst()
         for rgroup in records_by_group.getkeys():
             outrecords += records_by_group[rgroup]
+
         return Records(outrecords, self.cols, self.objp4)
 
     ''' extending P4QRecordSets/filters for p4 specific records (actions on files, changes/revs, spec/specs, ...
@@ -747,7 +865,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 if (not record_action in exclude_actions):
                     if (record.code is not None):
                         record.delete('code')
-
                     intersect = self.cols.intersect(
                         [
                             'depotFile',
@@ -773,7 +890,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                                 syncFile = f'{syncFile}{specchar}{record[specitem]}'
                                 break
                         syncfiles.append(syncFile)
-
             options = self.get_tableoptions('sync', **kwargs)
 
             """
@@ -820,7 +936,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 else:
                     options.append(' '.join(syncfiles))
             options.insert(0, 'sync')
-
             cmdargs = self.objp4.p4globals + options
             out = Lst(self.objp4.p4Output('sync', *cmdargs))
             syncrecords.append(out)
@@ -855,7 +970,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             <Record {'action': 'add',
                         'change': '480',
                         'code': 'stat',
-                        'context': '... [$Author: zerdlg $]',
+                        'context': '... [$Author: mart $]',
                         'depotFile': '//dev/p4dlg/libconnect/__init__.py',
                         'fileSize': '311',
                         'linenumber': 8,
@@ -909,7 +1024,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                     [
                         'depotFile',
                         'clientFile',
-                        #'path'
                     ]
                 )
                 p4File = intersect(0)

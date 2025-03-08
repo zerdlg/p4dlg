@@ -16,10 +16,14 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlJoin import Join
 from libsql.sqlQuery import *
+from libsql.sqlExpressionOperators import (
+    Count,
+    Sum,
+)
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 609 $] [$Revision: #25 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 619 $] [$Revision: #27 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Py4Table', 'Py4Field']

@@ -20,9 +20,9 @@ from libdlg.dlgUtilities import (
 
 __all__ = ['JNLTable', 'JNLField']
 
-'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 609 $] [$Revision: #29 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 617 $] [$Revision: #30 $]
+     [$DateTime: 2025/03/03 16:52:46 $]
+     [$Author: mart $]
 '''
 
 class JNLTable(object):
@@ -293,29 +293,44 @@ class JNLField(DLGExpression):
 
     def __init__(
                  self,
-                 field,
+                 fieldname,
                  objp4,
                  oSchema,
-                 oSchemaType,
+                 oSchemaType=None,
+                 default=lambda: None,
+                 type='string',
+                 length=None,
                  required=False,
+                 label=None,
+                 comment=None,
                  writable=True,
                  readable=True,
+                 options=None,
+                 compute=None,
                  filter_in=None,
                  filter_out=None,
                  _rname=None,
                  _table=None,
                  **kwargs
     ):
-        self.fieldname = self._name = fieldname = field.fieldname \
-            if (hasattr(field, 'fieldname')) \
-            else field
-        self.tablename = tablename = field.tablename
-        self._table = _table or objp4[tablename]
+        self.objp4 = objp4
+        self.label = label
+        self.comment = comment
+        self.options = options
+        self.compute = compute
+        self.default = default
+        self.type = type
+        self.length = length
 
+
+        self.fieldname = self._name = fieldname = fieldname.fieldname \
+            if (hasattr(fieldname, 'fieldname')) \
+            else fieldname
+        self.tablename = self._table = _table
+        self._table = _table
         self._rname = _rname
         self.oSchema = oSchema
         self.oSchemaType = oSchemaType
-        self.objp4 = objp4
 
         super(JNLField, self).__init__(
             objp4,

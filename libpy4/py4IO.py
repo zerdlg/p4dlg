@@ -22,8 +22,7 @@ from libsql.sqlInvert import invert
 from libhelp.hlpCmds import DLGHelp
 from libsql.sqlSchemaTypes import SchemaType
 from libsql.sqlSchema import SchemaXML
-from libsql.sqlValidate import query_is_reference, is_query_or_expressionType, is_expressionType, fieldType
-from libsql.sqlValidate import is_queryType, is_fieldType, is_tableType, is_job
+from libsql.sqlValidate import *
 from libdlg.dlgDateTime import DLGDateTime
 import schemaxml
 from os.path import dirname
@@ -42,8 +41,8 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 613 $] [$Revision: #36 $]
-     [$DateTime: 2025/02/23 12:30:36 $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 619 $] [$Revision: #38 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
      [$Author: mart $]
 '''
 
@@ -374,11 +373,12 @@ class Py4(object):
         self.oSchemaType = SchemaType(self)
 
     def __call__(self, query=None, *options, **kwargs):
-        if (
-                (len(options) + len(kwargs) == 0) &
-                (query is None)
-        ):
-            return self
+        #if (
+        #        (len(options) + len(kwargs) == 0) &
+        #        (query is None)
+        #):
+        #    #return self
+        #    return  RecordSet(self, Records())
         kwargs = ZDict(kwargs)
         (
             tablename,
@@ -470,7 +470,7 @@ class Py4(object):
                         = self.breakdown_query(qry, *options, **tabledata)
                 p4Queries.append(qry)
 
-        if (noneempty(tabledata) is True):
+        if ((noneempty(tabledata) is True) & (tablename is not None)):
             tabledata = self.memoizetable(tablename)
         (
             options,
@@ -498,8 +498,6 @@ class Py4(object):
                     if (kwargs[item] is not None):
                         lastarg = kwargs[item]
                         break
-                #if (lastarg is None):
-                #    (lastarg, options, p4Queries) = self.define_lastarg(tablename, *options, query=p4Queries) #1
             if (
                     (isinstance(lastarg, str) is True) &
                     (not lastarg in options)
@@ -635,7 +633,7 @@ class Py4(object):
         ]
         envvariables = ZDict()
         p4UserConfig = Py4Run(self, **cdata)()
-        if (type(p4UserConfig).__name__ == 'Records'):
+        if (is_recordsType(p4UserConfig) is True):
             p4UserConfig = p4UserConfig(0).data
         if (len(p4UserConfig) > 0):
             for line in re.split('\n', p4UserConfig):
@@ -878,7 +876,6 @@ class Py4(object):
                         ):
                             qry.right = lastarg
 
-            #elif ((noneempty(lastarg) is True) & (query is None)):
             if (noneempty(lastarg) is True):
                 ''' If all else fails, just use the clientFile
                 '''
@@ -952,7 +949,7 @@ class Py4(object):
                 if (reg_job.match(cmdargs(-1)) is not None):
                     lastarg = cmdargs.pop(-1)
 
-            elif ((tablename in ('server', 'remote')) is True):
+            elif (tablename in ('server', 'remote')):
                 ''' server | remote
                 '''
                 if reg_server_or_remote.match(str(cmdargs(-1)) is not None):
@@ -1022,7 +1019,10 @@ class Py4(object):
                 cmdoptions = []
                 fieldname = qry.left.fieldname
                 keywords = self[tablename].keywords
-                if ((fieldname.lower() in keywords) & (isinstance(qry.right, str) is True)):
+                if (
+                        (fieldname.lower() in keywords) &
+                        (isinstance(qry.right, str) is True)
+                ):
                     cmdoptions = [f'--{fieldname.lower()}', qry.right]
                 return (cmdoptions, qry)
 
@@ -1437,7 +1437,6 @@ class Py4(object):
         ''' process the thing
         '''
         cdir = os.getcwd()
-        #print(f"{cdir}/%> {' '.join(p4args)}\n")
         self.loginfo(f"{cdir} %> {' '.join(p4args)}")
         oFile = Popen(p4args, stdout=PIPE, stderr=PIPE).stdout
         loader = mload \

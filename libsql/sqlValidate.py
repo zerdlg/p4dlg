@@ -1,15 +1,39 @@
 import re
 
 from libdlg.dlgStore import Lst, ZDict, objectify
-
 __all__ = [
-    'is_expressionType', 'is_strType', 'is_recordType', 'is_dictType',
-    'is_field_tableType', 'is_tableType', 'is_list_of_fields', 'is_fieldType',
-    'is_q_or_dicttype', 'is_queryType', 'is_list_of_queries', 'is_recordsType',
-    'is_Py4', 'is_Py4Exception', 'is_P4JnlException', 'is_P4Jnl', 'is_query_or_expressionType',
-    'is_qType_or_field', 'is_NOSource', 'query_is_reference', 'fieldType', 'qtypes',
-    'objecttypes', 'tabletypes', 'fieldtypes', 'SQLType', 'tableType',
+    'is_expressionType',
+    'is_strType',
+    'is_recordType',
+    'is_dictType',
+    'is_sqlObjectType',
+    'is_fieldType_or_expressionType',
+    'is_field_tableType',
+    'is_tableType',
+    'is_list_of_fields',
+    'is_fieldType',
+    'is_q_or_dicttype',
+    'is_queryType',
+    'is_list_of_queries',
+    'is_recordsType',
+    'is_Py4',
+    'is_Py4Exception',
+    'is_P4JnlException',
+    'is_P4Jnl',
+    'is_query_or_expressionType',
+    'is_qType_or_field',
+    'is_NOSource',
+    'is_job',
+    'query_is_reference',
+    'fieldType',
+    'qtypes',
+    'objecttypes',
+    'tabletypes',
+    'fieldtypes',
+    'SQLType',
+    'tableType',
 ]
+
 
 qtypes = ('DLGQuery', 'DLGExpression')
 
@@ -141,6 +165,41 @@ def is_q_or_dicttype(left, right=None):
     return ret
 
 
+def is_sqlObjectType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (
+                        (is_query_or_expressionType(left) is True) |
+                        (is_fieldType(left) is True) |
+                        (is_recordType(left) is True) |
+                        (is_tableType(left) is True)
+                    ) &
+                    (
+                        (is_query_or_expressionType(right) is True) |
+                        (is_fieldType(right) is True)
+                        (is_recordType(right) is True) |
+                        (is_tableType(right) is True)
+                    )
+                ) \
+            else False
+    else:
+        ret = True \
+            if (
+                    (is_query_or_expressionType(left) is True) |
+                    (is_fieldType(left) is True)
+                    (is_recordType(left) is True) |
+                    (is_tableType(left) is True)
+                ) \
+            else False
+    return ret
+
+
 def query_is_reference(query):
     if (is_query_or_expressionType(query) is True):
         if (is_fieldType(query.left, query.right) is True):
@@ -187,7 +246,6 @@ def is_dictType(left, right=None):
             else False
     return ret
 
-
 def is_query_or_expressionType(left, right=None):
     if (
             (isinstance(left, (int, bool)) is True) |
@@ -207,6 +265,25 @@ def is_query_or_expressionType(left, right=None):
             else False
     return ret
 
+def is_queryType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ == 'DLGQuery') &
+                    (type(right).__name__ == 'DLGQuery')
+                ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ == 'DLGQuery') \
+            else False
+    return ret
 
 def is_expressionType(left, right=None):
     if (
@@ -228,27 +305,6 @@ def is_expressionType(left, right=None):
             else False
     return ret
 
-
-def is_queryType(left, right=None):
-    if (
-            (isinstance(left, (int, bool)) is True) |
-            (isinstance(right, (int, bool)) is True)
-    ):
-        return False
-    if (right is not None):
-        ret = True \
-            if (
-                    (type(left).__name__ == 'DLGQuery') &
-                    (type(right).__name__ == 'DLGQuery')
-            ) \
-            else False
-    else:
-        ret = True \
-            if (type(left).__name__ == 'DLGQuery') \
-            else False
-    return ret
-
-
 def is_fieldType(left, right=None):
     if (
             (isinstance(left, (int, bool)) is True) |
@@ -268,6 +324,24 @@ def is_fieldType(left, right=None):
             else False
     return ret
 
+def is_fieldType_or_expressionType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (type(left).__name__ in ('Py4Field', 'JNLField', 'DLGExpression')) &
+                    (type(right).__name__ in ('Py4Field', 'JNLField', 'DLGExpression'))
+        ) \
+            else False
+    else:
+        ret = True \
+            if (type(left).__name__ in ('Py4Field', 'JNLField', 'DLGExpression')) \
+            else False
+    return ret
 
 def is_tableType(left, right=None):
     if (

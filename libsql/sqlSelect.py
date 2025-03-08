@@ -5,11 +5,14 @@ from libdlg.dlgStore import ZDict, Lst
 from libdlg.dlgUtilities import (
     bail,
     reg_dbtablename,
+    noneempty,
 )
+from libsql.sqlQuery import expression_table
+from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 609 $] [$Revision: #7 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 619 $] [$Revision: #10 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
+     [$Author: mart $]
 '''
 
 __all__ = ('Select',)
@@ -27,8 +30,27 @@ class Select(DLGSql):
             datetype='datetime',
             **kwargs
     ):
-        kwargs = ZDict(kwargs)
-        ''' define & get relevant record components (tablename, fieldnames, query, cols & records))
+        (
+            kwargs,
+            eor,
+            recordcounter,
+            distinctrecords,
+            oJoin,
+            jointype,
+            flat,
+        ) = \
+            (
+                ZDict(kwargs),
+                False,
+                0,
+                ZDict(),
+                None,
+                None,
+                kwargs.flat or False,
+            )
+
+        ''' define, resolve & get relevant record components 
+            (tablename, fieldnames, query, cols & records)
         '''
         (
             tablename,
@@ -46,56 +68,39 @@ class Select(DLGSql):
         )
 
         if (tablename is None):
-            if (len(fieldnames) > 0):
-                try:
-                    fld = fieldnames[0]
-                    tablename = fld.tablename
-                except:
-                    bail(
-                    "tablename may not be None!"
-                    )
+            tablename = self.tabledata.tablename
+
+        if (is_expressionType(fieldnames[0]) is True):
+            expression = fieldnames.pop(0)
+            opname = expression.op.__name__.lower() \
+                if (callable(expression.op) is True) \
+                else expression.op.lower()
+            kwargs.update(**{opname: expression})
+            fieldnames.mergein(expression.left, 0)
 
         kwargs.delete('fieldsmap', 'tablename')
+
         if (records is None):
             return Records(records=[], cols=cols, objp4=self.objp4)
 
-        (
-            eor,
-            recordcounter
-        ) = \
-            (
-                False,
-                0
-            )
-
-        distinctrecords = ZDict()
         aggregators = (
                 'groupby',
                 'having',
                 'sortby',
                 'orderby',
-                'distinct'
+                'count',
+                'sum',
+                'avg',
+                'min',
+                'max',
         )
-        for aggregator in aggregators:
-            if (kwargs[aggregator] is None):
-                kwargs.delete(aggregator)
-
-        ''' set / define joiners & params
-        '''
-        (
-            oJoin,
-            jointype,
-            flat,
-        ) = \
-            (
-                None,
-                None,
-                kwargs.flat or False,
-            )
+        kwargs.delete(*[aggregator for aggregator in aggregators if (kwargs[aggregator] is None)])
 
         ''' Are we joining records ? 
             What kind of join? inner/join - outer/left - merge_records ?
             Should we flatten records ? (default is False)
+            
+            In any case, time to set that up.
         '''
         if (
                 (kwargs.merge_records is not None) |
@@ -118,7 +123,6 @@ class Select(DLGSql):
                 'merge_records'
             ]
         )
-
         if (
                 (oJoin is None) &
                 (self.reference is not None)
@@ -132,14 +136,15 @@ class Select(DLGSql):
             try:
                 if (reg_dbtablename.match(tablename) is not None):
                     tablename = self.oTableFix.normalizeTableName(tablename)
-                ''' next id & record
-                '''
+
                 (
                 idx,
                 record
-                ) = (
-                    next(recordsiter)
-                )
+                ) = \
+                    (
+                        next(recordsiter)
+                    )
+
                 ''' some abstractions may frown on this validation...
                     not everyone comes across as being a list of things!
                 '''
@@ -188,10 +193,9 @@ class Select(DLGSql):
                             '''
                             rec = ZDict()
                             for fn in fieldnames.keys():
-                                field = fieldnames[fn]
-                                fieldtype = type(field).__name__
-                                if (fieldtype in ('JNLField', 'Py4Field')):
-                                    field = field.fieldname
+                                field = fieldnames[fn].fieldname \
+                                    if (is_fieldType(fieldnames[fn]) is True) \
+                                    else fieldnames[fn]
                                 value = record[field]
                                 rec.merge({field: value})
                             record = rec
@@ -225,9 +229,6 @@ class Select(DLGSql):
                                         | time     | '00:00:00'            |
                                         +----------+-----------------------+
                                 '''
-                                fnames = fieldnames.getvalues() \
-                                    if (type(fieldnames).__name__ == 'StorageIndex') \
-                                    else fieldnames
                                 record = (
                                     DLGDateTimeConvert(self.objp4)
                                           (
@@ -236,6 +237,7 @@ class Select(DLGSql):
                                         datetype=datetype
                                     )
                                 )
+                                record = self.fields2ints(record)
                                 ''' check if any other field values need to be converted from 
                                     field flags or masks (as per the p4 schema definition) 
                                     
@@ -243,15 +245,30 @@ class Select(DLGSql):
                                 '''
 
                             ''' should records be distinct?
+                            
+                                * the distinct value can be one of:
+                                    - None (skip these next few code lines) 
+                                    - a bool (default is False) (again, skip)
+                                    - a field object (get its fieldname)
+                                    - a fieldname (which is really the thing we are looking for)
                             '''
-                            if (distinct is not None):
-                                distinct = self.validate_distinct(distinct)
-                                distinctvalue = record(distinct)
-                                ''' what was I thinking??!!!! 
-                                    TODO: rewrite this aggregator!
-                                '''
-                                if (distinctvalue is not None):
-                                    distinctrecords.merge({distinctvalue: record}, overwrite=False)
+                            if (
+                                    (noneempty(distinct) is False) |
+                                    (hasattr(distinct, 'objp4') is True)
+                            ):
+                                fieldname = None
+                                if (isinstance(distinct, bool) is True):
+                                    if ((distinct is True) & (len(query) > 0)):
+                                        left = query[0].left
+                                        fieldname = left.fieldname \
+                                            if (is_fieldType(left) is True) \
+                                            else left
+                                else:
+                                    fieldname = self.validate_distinct(distinct)
+                                if (fieldname is not None):
+                                    distinctvalue = record(fieldname)
+                                    if (distinctvalue is not None):
+                                        distinctrecords.merge({distinctvalue: record}, overwrite=False)
                             else:
                                 ''' how about 'maxrows', have we set a max value?
                                 '''
@@ -262,7 +279,7 @@ class Select(DLGSql):
                                     else:
                                         eor = True
                                 else:
-                                    ''' that's it for this record, for now, insert and move on! 
+                                    ''' that's it for this record, insert and move on! 
                                     '''
                                     outrecords.insert(idx, record)
             except (StopIteration, EOFError):
@@ -272,34 +289,40 @@ class Select(DLGSql):
             except Exception as err:
                 eor = True
                 bail(err)
+
         if (distinct is not None):
             outrecords = Records(distinctrecords.getvalues(), cols, self.objp4)
-        if (len(kwargs) > 0):
-            outrecords = self.aggregate(outrecords, **kwargs)
-            self.loginfo(f'records filtered: {len(outrecords)}')
-        self.loginfo(f'record counter: {recordcounter}')
-        self.loginfo(f'records retrieved {len(outrecords)}')
-
         ''' Time to join/merge records 
         '''
         if (oJoin is not None):
+            if (
+                    (kwargs.groupby is not None) &
+                    (kwargs.as_groups is True)
+            ):
+                ''' If the `as_groups` attribute is set to True, so must the `flat` 
+                    attribute when grouping records by fields.
+                    
+                    Therefore, force `flat` to True.
+                '''
+                flat = True
             (
                 joiner,
                 joinargs
             ) = \
                 (
-                    oJoin(outrecords).join,
+                    oJoin(outrecords, **{'as_groups': kwargs.as_groups or False}).join,
                     {'flat': flat}
                 ) \
                     if (jointype == 'inner') \
                     else \
                     (
-                        oJoin(outrecords).left,
+                        oJoin(outrecords, **{'as_groups': kwargs.as_groups or False}).left,
                         {'flat': flat}
                     )
             outrecords = joiner(**joinargs)
 
+        if (len(kwargs) > 0):
+            outrecords = self.aggregate(outrecords, **kwargs)
         if (close_session is True):
             self.close()
-
         return outrecords

@@ -1,10 +1,11 @@
-from libsql.sqlValidate import is_recordsType
+from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 from libsql.sqlRecord import Record
+from libdlg.dlgUtilities import isnum, bail
 
-'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 609 $] [$Revision: #4 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 619 $] [$Revision: #6 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Join']
@@ -70,39 +71,39 @@ class Join(object):
 
             >>> recs.first()
             <Record {'change': <Record {'access': '',
-                                              'change': '142',
-                                              'client': 'zerdlg.pycharm',
-                                              'date': '2021/11/25',
-                                              'db_action': 'pv',
-                                              'descKey': '142',
-                                              'description': 'renaming for case consistency',
-                                              'identify': '',
-                                              'idx': 1,
-                                              'importer': '',
-                                              'root': '',
-                                              'status': '0',
-                                              'table_name': 'db.change',
-                                              'table_revision': '3',
-                                              'user': 'zerdlg'}>,
-                        'rev': <Record {'action': '8',
-                                           'change': '142',
-                                           'date': '2021/11/25',
-                                           'db_action': 'pv',
-                                           'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
-                                           'depotRev': '1',
-                                           'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
-                                           'idx': 1,
-                                           'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
-                                           'lbrIsLazy': '1',
-                                           'lbrRev': '1.121',
-                                           'lbrType': '0',
-                                           'modTime': '1630482775',
-                                           'size': '18420',
-                                           'table_name': 'db.rev',
-                                           'table_revision': '9',
-                                           'traitLot': '0',
-                                           'type': '0'}>
-                        }>
+                                      'change': '142',
+                                      'client': 'zerdlg.pycharm',
+                                      'date': '2021/11/25',
+                                      'db_action': 'pv',
+                                      'descKey': '142',
+                                      'description': 'renaming for case consistency',
+                                      'identify': '',
+                                      'idx': 1,
+                                      'importer': '',
+                                      'root': '',
+                                      'status': '0',
+                                      'table_name': 'db.change',
+                                      'table_revision': '3',
+                                      'user': 'zerdlg'}>,
+                'rev': <Record {'action': '8',
+                               'change': '142',
+                               'date': '2021/11/25',
+                               'db_action': 'pv',
+                               'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+                               'depotRev': '1',
+                               'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+                               'idx': 1,
+                               'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+                               'lbrIsLazy': '1',
+                               'lbrRev': '1.121',
+                               'lbrType': '0',
+                               'modTime': '1630482775',
+                               'size': '18420',
+                               'table_name': 'db.rev',
+                               'table_revision': '9',
+                               'traitLot': '0',
+                               'type': '0'}>
+                }>
 
             >>> print(f"Change `{rec.rev.change}` on depotFile `{rec.rev.depotFile}` by user `{rec.change.user}`")
             Change `142` on depotFile `//depot/pycharmprojects/sQuery/lib/sqFileIO.py` by user `zerdlg`
@@ -123,6 +124,7 @@ class Join(object):
         self.objp4 = objp4
         self.reference = reference
         self.flat = flat
+        self.as_groups = False
         self.records = None
         self.left_records = None
         self.exclude_fieldnames = [
@@ -141,7 +143,8 @@ class Join(object):
         self.cGroupRecords = None
         self.cMemo = {}
 
-    def __call__(self, records=None):
+    def __call__(self, records=None, as_groups=False):
+        self.as_groups = as_groups
         self.left_records = records
         cRecordset = self.define_recordset()
         self.cGroupRecords = self.select_and_group_records(cRecordset)
@@ -188,13 +191,12 @@ class Join(object):
         cGroupRecords = cRecords.groupby(
             self.cField,
             orderby='idx',
-            groupdict=True
+            as_groups=True
         )
         return cGroupRecords
 
     def is_matching(self, left, right):
-        fsum = sum([(1 | 0) for field in left.getkeys()
-                    if (field in right.getkeys())])
+        fsum = sum([(1 | 0) for field in left.getkeys() if (field in right.getkeys())])
         return True \
             if (fsum > 0) \
             else False
@@ -212,26 +214,29 @@ class Join(object):
                 self.reference.right._table
             )
         for record in records:
-            fieldvalue = record[self.cField.fieldname]
-            crecord_right = self.cGroupRecords[fieldvalue]
-            if (crecord_right is not None):
-                if (is_recordsType(crecord_right) is True):
-                    crecord_right = crecord_right.last()
-                crecord_right.delete(*self.exclude_fieldnames)
-                # crecord_right = self.memoize_records(str(fieldvalue))
-                if (flat is True):
-                    record.merge(crecord_right)
-                else:
-                    record = Record(
-                        {
-                            lefttable.tablename: record,
-                            righttable.tablename: crecord_right
-                        }
-                    )
-                if (jointype == 'inner'):
+            try:
+                fieldvalue = str(record[self.cField.fieldname])
+                crecord_right = self.cGroupRecords[fieldvalue]
+                if (crecord_right is not None):
+                    if (is_recordsType(crecord_right) is True):
+                        crecord_right = crecord_right.last()
+                    crecord_right.delete(*self.exclude_fieldnames)
+                    # crecord_right = self.memoize_records(str(fieldvalue))
+                    if (flat is True):
+                        record.merge(crecord_right)
+                    else:
+                        record = Record(
+                            {
+                                lefttable.tablename: record,
+                                righttable.tablename: crecord_right
+                            }
+                        )
+                    if (jointype == 'inner'):
+                        mRecords.append(record)
+                if (jointype == 'outer'):
                     mRecords.append(record)
-            if (jointype == 'outer'):
-                mRecords.append(record)
+            except Exception as err:
+                bail(err)
         return mRecords
 
     def merge_records(self, flat=True):

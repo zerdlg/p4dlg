@@ -3,24 +3,25 @@ from types import *
 from pprint import pformat
 import timeit
 
-from libsql.sqlOperators import (
+from libsql.sqlExpressionOperators import (
     Count,
     Sum,
 )
+from libsql.sqlQuery import DLGQuery, DLGExpression
 from libsql.sqlSelect import Select
 from libsql.sqlRecords import Records
 from libdlg.dlgStore import ZDict, Lst, objectify
 from libdlg.dlgUtilities import noneempty, bail
 from libfs.fsFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
-from libsql.sqlValidate import is_field_tableType
+from libsql.sqlValidate import *
 from libsql import is_fieldType
 from libjnl.jnlFile import JNLFile
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 611 $] [$Revision: #6 $]
-     [$DateTime: 2025/02/22 19:35:04 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 619 $] [$Revision: #9 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
      [$Author: mart $]
 '''
 
@@ -162,8 +163,8 @@ class RecordSet(object):
             **tabledata
     ):
         (args, tabledata) = (Lst(args), objectify(tabledata))
+        self.tabledata = tabledata
         self.objp4 = objp4
-
         ''' logging
         '''
         [
@@ -213,7 +214,7 @@ class RecordSet(object):
                 in Lst(compute.split(';')).clean()).clean() \
             if (isinstance(compute, str)) \
             else compute
-        self.oSearch = Search()#maxrows=self.maxrows)
+        self.oSearch = Search()
         self.querytables = set()
         self.fieldmemo = {}
         self.oTimer = timeit.timeit
@@ -829,59 +830,43 @@ class RecordSet(object):
                 close_session=True,
                 **kwargs
     ):
-        kwargs = ZDict(kwargs)
+        (tablename, fieldnames, kwargs) = (None, Lst(fieldnames), ZDict(kwargs))
 
-        (
-            tablename,
-            fieldnames,
-            fieldsmap
-        ) = \
-            (
-                kwargs.tablename,
-                Lst(fieldnames),
-                kwargs.fieldsmap or ZDict()
-            )
-
-        if (hasattr(self, 'tablename')):
-            tablename = self.tablename
-        elif (
-                (len(fieldnames) == 1) &
-                (is_field_tableType(fieldnames(0)) is True) &
-                 ~(hasattr(self, 'tablename')
-                 )
-        ):
-            tablename = fieldnames(0).tablename
-            self.tablename = tablename
-
-        if (noneempty(cols) is True):
-            cols = self.cols = self.objp4.tablememo[tablename].fieldnames
-
-        if (tablename is not None):
-            if (len(fieldnames) == 0):
-                fieldnames = self.fieldnames \
-                    if (hasattr(self, 'fieldnames')) \
-                    else self.objp4.tablememo[tablename].fieldnames
-            if (noneempty(fieldsmap) is True):
-                if (len(self.fieldsmap) > 0):
-                    fieldsmap = self.fieldsmap
-                else:
-                    self.fieldsmap = fieldsmap = self.objp4.tablememo[tablename].fieldsmap
-            #if (len(cols) == 0):
-            #    self.cols = cols = self.objp4.tablememo[tablename].fieldnames
-        if (
-                (len(fieldnames) > 0) &
-                (len(self.fieldnames) != len(fieldnames))
-        ):
-            self.fieldnames = fieldnames
-
-        if (query is None):
-            query = self.query
-        if (records is None):
-            records = self.records
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
-        tabledata = self.objp4.memoizetable(tablename)
+
+        if (query is not None):
+            tablename = query.left.tablename
+
+        elif (fieldnames(0) is not None):
+            field0 = fieldnames(0)
+            if (
+                    (is_fieldType(field0) is True) |
+                    (is_expressionType(field0) is True)
+            ):
+                tablename = field0.tablename
+
+        elif (len(kwargs) > 0):
+            tablename = kwargs.tablename
+
+        if (tablename is None):
+            if (hasattr(self, 'tablename')):
+                tablename = self.tablename
+
+        self.tablename = tablename
+        tabledata = self.objp4.memoizetable(tablename) \
+            if (tablename is not None) \
+            else ZDict()
+
+        if (noneempty(tabledata) is False):
+            if (noneempty(cols) is True):
+                cols = self.cols = tabledata.fieldnames  # self.objp4.tablememo[tablename].fieldnames
+
+        if (query is None):
+            query = self.query or []
+        if (records is None):
+            records = self.records
 
         oSelect = Select(
             objp4,
@@ -908,37 +893,52 @@ class RecordSet(object):
 
     def count(
             self,
-            query=None,
-            records=None,
-            cols=None,
-            distinct=None
+            *fieldnames,
+            distinct=False
     ):
-        if (cols is None):
-            cols = self.cols
-        if (records is None):
-            records = self.records
-
-        if (query is None):
-            query = self.query or []
-
+        fieldnames = Lst(fieldnames)
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
+
+        (tabledata, tablename, fieldname) = (None, None, None)
+
+        query = self.query
+
+        ''' this bloc is messy
+            TODO: rethink & rewrite! 
+        '''
+        if (fieldnames(0) is not None):
+            if (is_fieldType_or_expressionType(fieldnames(0)) is True):
+                tablename = fieldnames(0).tablename
+        elif (query is not None):
+            qry = query[0] \
+                if (isinstance(query, list) is True) \
+                else query
+            tablename = qry.left.tablename
+        elif (self.tabledata is not None):
+            tabledata = self.tabledata
+            tablename = tabledata.tablename
+        if (tablename is not None):
+            if (tabledata is None):
+                tabledata = self.objp4.memoizetable(tablename)
+                if (self.tabledata is not None):
+                    tabledata.update(**self.tabledata)
+
         oCount = Count(
             objp4,
-            records,
-            cols,
-            query,
-            tablename=self.tablename
+            cols=self.cols,
+            records=self.records,
+            query=query,
+            **tabledata
         )
-        return oCount.count(distinct=distinct)
+        return oCount.count(*fieldnames, distinct=distinct)
 
     def sum(
             self,
             query = None,
             records = None,
             cols = None,
-            distinct = None
     ):
 
         if (cols is None):
@@ -959,7 +959,7 @@ class RecordSet(object):
             query,
             tablename=self.tablename
         )
-        return oSum.sum(distinct=distinct)
+        return oSum.sum()
 
     def computecolumns(self, record):
         try:

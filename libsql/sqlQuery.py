@@ -19,9 +19,9 @@ from libdlg.dlgUtilities import (
 from libsql.sqlValidate import *
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 611 $] 
-     [$Revision: #4 $]
-     [$DateTime: 2025/02/22 19:35:04 $]
+     [$Change: 619 $] 
+     [$Revision: #8 $]
+     [$DateTime: 2025/03/07 20:16:13 $]
      [$Author: mart $]
 '''
 
@@ -32,9 +32,9 @@ __all__ = [
            'NOT', 'AND', 'OR', 'XOR',
            'EQ', 'NE', 'GE', 'GT', 'LE', 'LT',
            'CONTAINS', 'ENDSWITH', 'STARTSWITH',
-           'ADD', 'SUB', 'MUL', 'MOD',
+           'ADD', 'SUB', 'MUL', 'MOD', 'ALLOW_NONE',
            'CASE', 'CASEELSE', 'DIFF', 'MATCH', 'SEARCH',
-           'LOWER', 'UPPER', 'JOIN', 'LEFT',
+           'LOWER', 'UPPER', 'JOIN', 'JOIN_LEFT',
            'PRIMARYKEY', 'COALESCE', 'COALESCEZERO',
            'EXTRACT', 'SUBSTRING', 'LIKE', 'ILIKE',
            'SUM', 'ABS',
@@ -83,32 +83,11 @@ class DLGQuery(object):
         self.inversion=kwargs.inversion or inversion
         self.oDate = DLGDateTime()
 
-        # WTF? please follow up!
-        if (
-                (is_field_tableType(self) is False) |
-                (is_field_tableType(right) is False)
-        ):
-            self.set_fieldname_tablename()
-
         opname = op.__name__ \
             if (callable(op) is True) \
             else op
         if (opname in notops):
             self.inversion = True
-
-    def set_fieldname_tablename(self):
-        (
-            left,
-            right,
-            fieldname,
-            tablename
-        ) = \
-            (
-                self.left,
-                self.right,
-                None,
-                None
-            )
 
     def __repr__(self):
         qdict = ZDict(
@@ -184,7 +163,6 @@ class DLGQuery(object):
 
 
 class DLGExpression(object):
-
     __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
 
     def __or__(self, value):
@@ -197,11 +175,21 @@ class DLGExpression(object):
             left=None,
             right=None,
             inversion=False,
-            *args,
+            type=None,
+            *options,
             **kwargs
     ):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (options, kwargs) = (Lst(options), ZDict(kwargs))
+        self.options = options
         self.objp4 = objp4
+
+        self.type = left.type \
+            if (
+                (type is None) &
+                (left is not None) &
+                (hasattr(right, 'type'))
+        ) \
+            else type
 
         [
             setattr(
@@ -225,25 +213,19 @@ class DLGExpression(object):
         self.left = left
         self.right = right
         self.oDate = DLGDateTime()
-        if (
-                (not hasattr(self, 'fieldname')) &
-                (hasattr(self.left, 'fieldname'))
-        ):
-            self.fieldname = left.fieldname
-
-        if (
-                (not hasattr(self, 'tablename')) &
-                (hasattr(self.left, 'tablename'))
-        ):
-            self.tablename = left.tablename
 
         opname = op.__name__ \
             if (callable(op) is True) \
             else op
-        self.inversion = inversion
 
-        if (opname in notops):
-            self.inversion = True
+        self.inversion = True \
+            if (opname in notops) \
+            else inversion
+
+        if (hasattr(self.left, 'fieldname')):
+            self.fieldname = left.fieldname
+        if (hasattr(self.left, 'tablename')):
+            self.tablename = left.tablename
 
         if (is_tableType(self) is False):
             if (
@@ -266,6 +248,8 @@ class DLGExpression(object):
                             self.fieldname = left.fieldname
                         if (hasattr(left, 'tablename')):
                             self.tablename = left.tablename
+
+
 
     def __repr__(self):
         qdict = pformat(
@@ -439,10 +423,14 @@ class DLGExpression(object):
 
     def count(self, distinct=None):
         ''' USAGE:
-                >>> qry = (oP4.clients.client.count(dictinct=jnl.domain.type))
+                >>> qry = (oP4.clients.client.count(distinct=jnl.domain.type))
                 >>> records = oP4(qry).select(distinct=distinct)
+
+                or try:
+                >>> count = p4.changes.status.count()
         '''
         return DLGExpression(self.objp4, COUNT, self, distinct=distinct)
+
 
     def sum(self):
         ''' USAGE:
@@ -450,6 +438,7 @@ class DLGExpression(object):
                 >>>
         '''
         return DLGExpression(self.objp4, SUM, self, None)
+        #return DLGQuery(self.objp4, SUM, self, None)
 
     def max(self):
         return DLGExpression(self.objp4, MAX, self, None)
@@ -559,23 +548,23 @@ class DLGExpression(object):
         return DLGExpression(self.objp4, MOD, self, value)
 
 def AND(*args, **kwargs):
-    return clsAND(**kwargs)(*args)
+    return clsAND()(*args, **kwargs)
 
 
 def OR(*args, **kwargs):
-    return clsOR(**kwargs)(*args)
+    return clsOR()(*args, **kwargs)
 
 
 def XOR(*args, **kwargs):
-    return clsXOR(**kwargs)(*args)
+    return clsXOR()(*args, **kwargs)
 
 
 def NOT(*args, **kwargs):
-    return clsNOT(**kwargs)(*args)
+    return clsNOT()(*args, **kwargs)
 
 
 def INVERT(*args, **kwargs):
-    return clsINVERT(**kwargs)(*args)
+    return clsINVERT()(*args, **kwargs)
 
 
 def EQAND(*args, **kwargs):
@@ -591,71 +580,67 @@ def EQXOR(*args, **kwargs):
 
 
 def EQ(*args, **kwargs):
-    return clsEQ(**kwargs)(*args)
+    return clsEQ()(*args, **kwargs)
 
 
 def NE(*args, **kwargs):
-    return clsNE(**kwargs)(*args)
+    return clsNE()(*args, **kwargs)
 
 
 def LT(*args, **kwargs):
-    return clsLT(**kwargs)(*args)
+    return clsLT()(*args, **kwargs)
 
 
 def LE(*args, **kwargs):
-    return clsLE(**kwargs)(*args)
+    return clsLE()(*args, **kwargs)
 
 
 def GT(*args, **kwargs):
-    return clsGT(**kwargs)(*args)
+    return clsGT()(*args, **kwargs)
 
 
 def GE(*args, **kwargs):
-    return clsGE(**kwargs)(*args)
+    return clsGE()(*args, **kwargs)
 
 
 def CONTAINS(*args, **kwargs):
-    return clsCONTAINS(**kwargs)(*args)
+    return clsCONTAINS()(*args, **kwargs)
 
 
-def STARTSWITH(*args, **kwargs): return (
-    clsSTARTSWITH(**kwargs)(*args))
+def STARTSWITH(*args, **kwargs):
+    return clsSTARTSWITH()(*args, **kwargs)
 
 
-def ENDSWITH(*args, **kwargs): return (
-    clsENDSWITH(**kwargs)(*args))
+def ENDSWITH(*args, **kwargs):
+    return clsENDSWITH()(*args, **kwargs)
 
 
 def MATCH(*args, **kwargs):
-    return clsMATCH(**kwargs)(*args)
+    return clsMATCH()(*args, **kwargs)
 
 
 def SEARCH(*args, **kwargs):
-    return clsSEARCH(**kwargs)(*args)
+    return clsSEARCH()(*args, **kwargs)
 
 
 def DIFF(*args, **kwargs):
-    return bool(clsDIFF(**kwargs)(*args))
+    return bool(clsDIFF()(*args, **kwargs))
 
 
 def CASE(*args, **kwargs):
-    return clsCASE(**kwargs)(*args)
+    return clsCASE()(*args, **kwargs)
 
 
 def CASEELSE(*args, **kwargs):
-    return clsCASEELSE(**kwargs)(*args)
-
-
-def SUM(*args, **kwargs):
-    return clsSUM(**kwargs)(*args)
+    return clsCASEELSE()(*args, **kwargs)
 
 
 def MIN(*args, **kwargs):
-    return clsMIN(**kwargs)(*args)
+    return clsMIN()(*args, **kwargs)
 
 
 def MAX(*args, **kwargs):
-    return clsMAX(**kwargs)(*args)
+    return clsMAX()(*args, **kwargs)
 
 
 def ABS(*args, **kwargs):
@@ -663,90 +648,96 @@ def ABS(*args, **kwargs):
 
 
 def AVG(*args, **kwargs):
-    return clsAVG(**kwargs)(*args)
+    return clsAVG()(*args, **kwargs)
 
 
 def LOWER(*args, **kwargs):
-    return clsLOWER(**kwargs)(*args)
+    return clsLOWER()(*args, **kwargs)
 
 
 def UPPER(*args, **kwargs):
-    return clsUPPER(**kwargs)(*args)
+    return clsUPPER()(*args, **kwargs)
 
 
 def LIKE(*args, **kwargs):
-    return clsLIKE(**kwargs)(*args)
+    return clsLIKE()(*args, **kwargs)
 
 
 def ILIKE(*args, **kwargs):
-    return clsILIKE(**kwargs)(*args)
+    return clsILIKE()(*args, **kwargs)
 
 
 def ADD(*args, **kwargs):
-    return clsADD(**kwargs)(*args)
+    return clsADD()(*args, **kwargs)
 
 
 def SUB(*args, **kwargs):
-    return clsSUB(**kwargs)(*args)
+    return clsSUB()(*args, **kwargs)
 
 
 def MUL(*args, **kwargs):
-    return clsMUL(**kwargs)(*args)
+    return clsMUL()(*args, **kwargs)
 
 
 def TRUEDIV(*args, **kwargs):
-    return clsTRUEDIV(**kwargs)(*args)
+    return clsTRUEDIV()(*args, **kwargs)
 
 
 def MOD(*args, **kwargs):
-    return clsMOD(**kwargs)(*args)
+    return clsMOD()(*args, **kwargs)
 
 
 def BELONGS(*args, **kwargs):
-    return clsBELONGS(**kwargs)(*args)
+    return clsBELONGS()(*args, **kwargs)
 
 
 def IN(*args, **kwargs):
-    return clsIN(**kwargs)(*args)
+    return clsIN()(*args, **kwargs)
 
 
 def ON(*args, **kwargs):
-    return clsON(**kwargs)(*args)
+    return clsON()(*args, **kwargs)
 
+
+def SUM(*args, **kwargs):
+    return clsSUM()(*args, **kwargs)
 
 def COUNT(*args, **kwargs):
-    return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsCOUNT(**kwargs)(*args)
+    return clsCOUNT()(*args,**kwargs)
 
 
 def COALESCE(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsCOALESCE(**kwargs)(*args)
+    #return clsCOALESCE()(*args, **kwargs)
 
 
 def COALESCEZERO(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsCOALESCEZERO(**kwargs)(*args)
+    #return clsCOALESCEZERO()(*args, **kwargs)
 
 
 def JOIN(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsJOIN(**kwargs)(*args)
+    #return clsJOIN()(*args, **kwargs)
 
 
-def LEFT(*args, **kwargs):
+def JOIN_LEFT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsLEFT(**kwargs)(*args)
+    #return clsJOIN_LEFT()(*args, **kwargs)
+
+def ALLOW_NONE(*args, **kwargs):
+    return clsNOTIMPLEMENTED(**kwargs)(*args)
+    #return clsALLOW_NONE()(*args, **kwargs)
 
 
 def YEAR(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsYEAR(**kwargs)(*args)
+    #return clsYEAR()(*args, **kwargs)
 
 
 def MONTH(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsMONTH(**kwargs)(*args)
+    #return clsMONTH()(*args, **kwargs)
 
 
 def DAY(*args, **kwargs):
@@ -756,41 +747,41 @@ def DAY(*args, **kwargs):
 
 def HOUR(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsHOUR(**kwargs)(*args)
+    #return clsHOUR()(*args, **kwargs)
 
 
 def MINUTE(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsMINUTE(**kwargs)(*args)
+    #return clsMINUTE()(*args, **kwargs)
 
 
 def SECOND(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsSECOND(**kwargs)(*args)
+    #return clsSECOND()(*args, **kwargs)
 
 
 def EPOCH(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsEPOCH(**kwargs)(*args)
+    #return clsEPOCH()(*args, **kwargs)
 
 
 def PRIMARYKEY(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsPRIMARYKEY(**kwargs)(*args)
+    #return clsPRIMARYKEY()(*args, **kwargs)
 
 
 def EXTRACT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsEXTRACT(**kwargs)(*args)
+    #return clsEXTRACT()(*args, **kwargs)
 
 
 def SUBSTRING(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsSUBSTRING(**kwargs)(*args)
+    #return clsSUBSTRING()(*args, **kwargs)
 
 
 def BETWEEN(*args, **kwargs):
-    #return clsBETWEEN(**kwargs)(*args)
+    #return clsBETWEEN()(*args, **kwargs)
     return clsNOTIMPLEMENTED(**kwargs)(*args)
 
 
@@ -917,11 +908,15 @@ class QClass(object):
                     left = avalue
                 else:
                     right = avalue
+
             opname = op.__name__ \
                 if (callable(op) is True) \
                 else op
+
             if (all_ops_table(opname) is not None):
                 built = {'op': op, 'left': left, 'right': right}
+
+            # expression is a string
             elif not (left or right):
                 built = {'op': op}
             else:
@@ -1088,14 +1083,16 @@ class QClass(object):
     def validate_field_type(self, left, right=None):
         field_type = None
         left_right_are_valid = False
-        if ((type(right).__name__ == "Records") &
-               (type(left).__name__ in ('Py4Field', 'JNLField'))):
-            rec0 = right(0)
-            fieldvalue0 = rec0[left.fieldname]
-            if ((isnum(fieldvalue0)) &
-                  (type(fieldvalue0) in (str, int, float))):
-                field_type = type(fieldvalue0)
-                left_right_are_valid = True
+
+        if (is_recordsType(right) is True):
+            if (is_fieldType_or_expressionType(left) is True):
+                fieldname = left.fieldname
+                rec0 = right(0)
+                fieldvalue0 = rec0[fieldname]
+                if ((isnum(fieldvalue0)) &
+                        (type(fieldvalue0) in (str, int, float))):
+                    field_type = type(fieldvalue0)
+                    left_right_are_valid = True
         return (field_type, left_right_are_valid)
 
     def getSequence(self, *exps, **kwargs):
@@ -2345,29 +2342,22 @@ class clsSUM(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         (current_type, left_right_are_valid) = self.validate_field_type(left, right)
+        qsum = 0
         try:
-            if (
-                    (current_type is None) &
-                    (is_array(left) is True)
-            ):
+            if (isinstance(left, list) is True):
                 qsum = sum([float(item) for item in left])
-            elif (
-                    (current_type is not None) &
-                    (left_right_are_valid is True)
-            ):
+            elif ((is_recordsType(right) is True) | (type(right) is enumerate)):
                 qsum = sum([float(record[left.fieldname]) for record in right])
-            qsum = current_type(
-                round(qsum) \
-                    if ((qsum % 1) == 0) \
-                    else round(qsum, 2)
-            )
-            return current_type(qsum)
+            qsum = round(qsum) \
+                if ((qsum % 1) == 0) \
+                else round(qsum, 2)
+            return qsum
         except Exception as err:
             op_error(lambda left, right, op: (
                 left,
                 right,
-                op or MAX
-            ),name='MAX', err=err)
+                op or SUM
+            ),name='SUM', err=err)
 
 
 class clsAVG(QClass):
@@ -2933,7 +2923,6 @@ class clsEPOCH(QClass):
                 op or EPOCH
             ), name='EPOCH', err=err)
 
-
 class clsDIFF(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
@@ -2981,45 +2970,25 @@ class clsDIFF(QClass):
 
 
 class clsCOUNT(QClass):
-    '''
-    def count(
-            self,
-            query=None,
-            records=None,
-            cols=None,
-            distinct=None
-    ):
-        if (cols is None):
-            cols = self.cols
-        if (records is None):
-            records = self.records
-        if (
-                (query is None) &
-                (self.query is None)
-        ):
-            query = []
-        objp4 = self.objp4 \
-            if (hasattr(self, 'objp4')) \
-            else self
-
-        oCount = Count(
-            objp4,
-            records,
-            cols,
-            query,
-            tablename=self.tablename
-        )
-        return oCount.count(distinct)
-    '''
-    def __call__(self, *exps):
+    def __call__(self, *exps, distinct=None):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
+        fieldname = distinct.fieldname \
+            if (is_fieldType(distinct) is True) \
+            else distinct.left.fieldname \
+            if (is_query_or_expressionType(distinct) is True) \
+            else distinct
+        recordvalues = set()
         try:
-            qcount = len(left) \
-                if (isinstance(left, tuple) is True) \
-                else len(right) \
-                if (type(right).__name__ == 'Records') \
-                else 0
+            if (isinstance(distinct, bool) is True):
+                if (distinct is True):
+                    if (is_array(left) is True):
+                        qcount = len(set(left))
+                    elif (type(left).__name__ == 'Records'):
+                        [recordvalues.add(record(fieldname)) for record in left]
+                        qcount = len(recordvalues)
+            else:
+                qcount = len(left)
             return qcount
         except Exception as err:
             op_error(lambda left, right, op: (
@@ -3103,15 +3072,18 @@ class clsSECOND(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 
-
 class clsJOIN(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 
-
-class clsLEFT(QClass):
+class clsJOIN_LEFT(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
+
+class clsALLOW_NONE(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+
 
 
 containlike_ops = (CONTAINS, STARTSWITH, ENDSWITH, '#', '#^', '#$')
@@ -3285,10 +3257,24 @@ def expression_table(op):
         if op is None:
             returns all
     '''
+
     expression_ops = ZDict(
         {
+            # Expression(self.objp4, op)
+            "JOIN" : JOIN,
+            "LEFT_JOIN": JOIN_LEFT,
+            "ALLOW_NONE": ALLOW_NONE,
+
+            # DLGExpression(self.objp4, op, left)
             "LOWER": LOWER,
             "UPPER": UPPER,
+            "PRIMARYKEY": PRIMARYKEY,
+            "COALESCE": COALESCE,
+            "COALESCEZERO": COALESCEZERO,
+            "INVERT": INVERT,
+            'EPOCH': EPOCH,
+
+            # DLGExpression(self.objp4, op, left, right)
             "ADD": ADD,
             "SUB": SUB,
             "MUL": MUL,
@@ -3297,11 +3283,6 @@ def expression_table(op):
             "CASE": CASE,
             "CASEELSE": CASEELSE,
             "DIFF": DIFF,
-            "JOIN": JOIN,
-            "LEFT": LEFT,
-            "PRIMARYKEY": PRIMARYKEY,
-            "COALESCE": COALESCE,
-            "COALESCEZERO": COALESCEZERO,
             "COUNT": COUNT,
             "EXTRACT": EXTRACT,
             "SUBSTRING": SUBSTRING,
