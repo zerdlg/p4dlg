@@ -21,8 +21,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/__init__.py $] [$Change: 619 $] [$Revision: #13 $]
-     [$DateTime: 2025/03/07 20:16:13 $]
+'''  [$File: //dev/p4dlg/libsql/__init__.py $] [$Change: 621 $] [$Revision: #15 $]
+     [$DateTime: 2025/03/09 08:10:26 $]
      [$Author: mart $]
 '''
 
@@ -705,9 +705,41 @@ class DLGSql(DLGControl):
         except Exception as err:
             bail(err)
 
-    def aggregate(self, records, query=None, **kwargs):
+    def aggregate(self, records, **kwargs):
+        '''
+            "ADD": ADD,
+            "SUB": SUB,
+            "MUL": MUL,
+            "MOD": MOD,
+            "BETWEEN": BETWEEN,
+            "CASE": CASE,
+            "CASEELSE": CASEELSE,
+            "DIFF": DIFF,
+                    "COUNT": COUNT ,
+            "EXTRACT": EXTRACT,
+            "SUBSTRING": SUBSTRING,
+            "LIKE": LIKE,
+            "ILIKE": ILIKE,
+                    "SUM": SUM,
+            "ABS": ABS,
+                    "AVG": AVG,
+            "MIN": MIN,
+            "MAX": MAX,
+            "BELONGS": BELONGS,
+            "TRUEDIV": TRUEDIV,
+            "YEAR": YEAR,
+            "MONTH": MONTH,
+            "DAY": DAY,
+            "HOUR": HOUR,
+            "MINUTE": MINUTE,
+            "SECOND": SECOND,
+            "CONTAINS": CONTAINS,
+            "STARTSWITH": STARTSWITH,
+            "ENDSWITH": ENDSWITH,
+            "SEARCH": SEARCH,
+            "MATCH": MATCH
+        '''
         kwargs = ZDict(kwargs)
-
         (orderby,
          limitby,
          groupby,
@@ -717,13 +749,17 @@ class DLGSql(DLGControl):
          exclude,
          search,
          count,
-         _sum,
-         _avg,
-         _min,
-         _max,
-         _len,
+         dlgsum,
+         dlgavg,
+         dlgmin,
+         dlgmax,
+         dlglen,
          as_groups,
          distinct,
+         add,
+         sub,
+         mul,
+         mod,
          ) = (
             kwargs.orderby,
             kwargs.limitby,
@@ -741,28 +777,37 @@ class DLGSql(DLGControl):
             kwargs.len,
             kwargs.as_groups or False,
             kwargs.distinct,
+            kwargs.add,
+            kwargs.sub,
+            kwargs.mul,
+            kwargs.mod
         )
 
+        if (noneempty(records) is True):
+            return records
         if (orderby is not None):
             '''  orderby         -->     and/or limitby
             '''
+            kwargs.delete('orderby')
             if (isinstance(orderby, str)):
                 orderby = [item for item in orderby.split(',')] \
                     if (',' in orderby) \
                     else [orderby]
-            elif (type(orderby).__name__ in ('JNLField', 'Py4Field')):
+            elif (is_fieldType(orderby) is True):
                 orderby = [orderby]
             records = records.orderby(*orderby) \
                 if (limitby is None) \
                 else records.orderby(*orderby, limitby=limitby)
-        elif (limitby is not None):
+        if (limitby is not None):
             '''  limitby         -->     and nothing else...
             '''
-            records = records.limitby(limitby)
+            kwargs.delete('limitby')
+            records = records.limitby(limitby, **kwargs)
         if (groupby is not None):
             '''  groupby
             '''
-            records = records.groupby(groupby, as_groups=as_groups)
+            kwargs.delete('groupby')
+            records = records.groupby(groupby, **kwargs)#as_groups=as_groups, **kwargs)
         if (exclude is not None):
             '''  exclude
 
@@ -770,15 +815,17 @@ class DLGSql(DLGControl):
                  >>>     print record.client
                  my_client
             '''
-            records = records.exclude(exclude)
+            records = records.exclude(exclude, **kwargs)
         if (filter is not None):
             '''  filter
             '''
-            records = records.filter(filter)
+            kwargs.delete('filter')
+            records = records.filter(filter, **kwargs)
         if (find is not None):
             '''  find
             '''
-            records = records.find(find)
+            kwargs.delete('find')
+            records = records.find(find, **kwargs)
         if (sortby is not None):
             '''  sort
 
@@ -792,26 +839,66 @@ class DLGSql(DLGControl):
 
                         >>> for record in records.sort(lambda rec: rec.mount):
                         >>>     print rec.client
-                        Catmart_client
+                        zerdlg_client
                         Charotte_client
         '''
-            records = records.sort(sortby)
+            kwargs.delete('sortby')
+            #records = records.sort(sortby)
+            records = records.sortby(sortby, **kwargs)
         if (count is not None):
-            return count.op(records, distinct=True)
-        if (_sum is not None):
-            return _sum.op(_sum, records)
-        if (_avg is not None):
-            ''
-        if (_min is not None):
-            ''
-        if (_max is not None):
-            ''
-        if (_len is not None):
-            ''
+            ''' count
+            '''
+            kwargs.delete('count')
+            return count.op(count, records, **kwargs)
+        if (dlgsum is not None):
+            ''' sum
+            '''
+            kwargs.delete('sum')
+            return dlgsum.op(dlgsum, records, **kwargs)
+        if (dlgavg is not None):
+            ''' avg
+            '''
+            kwargs.delete('avg')
+            return dlgavg.op(dlgavg, records, **kwargs)
+        if (dlgmin is not None):
+            return dlgmin.op(dlgmin, records, **kwargs)
+        if (dlgmax is not None):
+            ''' max
+            '''
+            kwargs.delete('max')
+            return dlgmax.op(dlgmax, records, **kwargs)
+        if (dlglen is not None):
+            ''' len
+            '''
+            kwargs.delete('len')
+            return dlglen.op(dlglen, records, **kwargs)
         if (search is not None):
+            ''' search
+            '''
+            kwargs.delete('search')
             for record in records:
                 if (record.depotFile is not None):
                     fcontent = ''
+        if (add is not None):
+            ''' add
+            '''
+            kwargs.delete('add')
+            return add.op(add, records, **kwargs)
+        if (sub is not None):
+            ''' sub
+            '''
+            kwargs.delete('sub')
+            return sub.op(sub, records, **kwargs)
+        if (mul is not None):
+            ''' mul
+            '''
+            kwargs.delete('mul')
+            return mul.op(mul, records, **kwargs)
+        if (mod is not None):
+            ''' mod
+            '''
+            kwargs.delete('mod')
+            return mod.op(mod, records, **kwargs)
         return records
 
     def get_recordsIterator(self, records, tables=[]):

@@ -41,8 +41,8 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 619 $] [$Revision: #38 $]
-     [$DateTime: 2025/03/07 20:16:13 $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 621 $] [$Revision: #39 $]
+     [$DateTime: 2025/03/09 08:10:26 $]
      [$Author: mart $]
 '''
 

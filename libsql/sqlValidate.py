@@ -1,6 +1,8 @@
 import re
 
 from libdlg.dlgStore import Lst, ZDict, objectify
+from libdlg.dlgUtilities import serializable
+
 __all__ = [
     'is_expressionType',
     'is_strType',
@@ -24,6 +26,7 @@ __all__ = [
     'is_qType_or_field',
     'is_NOSource',
     'is_job',
+    'is_serializable',
     'query_is_reference',
     'fieldType',
     'qtypes',
@@ -31,11 +34,13 @@ __all__ = [
     'tabletypes',
     'fieldtypes',
     'SQLType',
-    'tableType',
 ]
 
 
 qtypes = ('DLGQuery', 'DLGExpression')
+
+def is_serializable(stype):
+    return True if (stype in serializable) else False
 
 def is_job(right):
     return True \
@@ -478,15 +483,5 @@ def fieldType(p4obj):
         else 'JNLField' \
         if (is_P4Jnl(p4obj) is True) \
         else 'NOField' \
-        if (is_NOSource(p4obj) is True) \
-        else None
-
-
-def tableType(p4obj):
-    return 'Py4Table' \
-        if (is_Py4(p4obj) is True) \
-        else 'JNLTable' \
-        if (is_P4Jnl(p4obj) is True) \
-        else 'NOTable'  \
         if (is_NOSource(p4obj) is True) \
         else None

@@ -17,11 +17,12 @@ from libdlg.dlgUtilities import (
     isanyfile
 )
 from libsql.sqlValidate import *
+from libsql.sqlRecords import Records
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 619 $] 
-     [$Revision: #8 $]
-     [$DateTime: 2025/03/07 20:16:13 $]
+     [$Change: 621 $] 
+     [$Revision: #9 $]
+     [$DateTime: 2025/03/09 08:10:26 $]
      [$Author: mart $]
 '''
 
@@ -35,10 +36,11 @@ __all__ = [
            'ADD', 'SUB', 'MUL', 'MOD', 'ALLOW_NONE',
            'CASE', 'CASEELSE', 'DIFF', 'MATCH', 'SEARCH',
            'LOWER', 'UPPER', 'JOIN', 'JOIN_LEFT',
-           'PRIMARYKEY', 'COALESCE', 'COALESCEZERO',
+           'PRIMARYKEY', 'COALESCE', 'COALESCE_ZERO',
            'EXTRACT', 'SUBSTRING', 'LIKE', 'ILIKE',
-           'SUM', 'ABS',
-           'AVG', 'MIN', 'MAX', 'BELONGS', 'IN', 'TRUEDIV', 'COUNT',
+           'SUM', 'ABS', 'LEN',
+           'AVG', 'MIN', 'MAX', 'BELONGS', 'IN',
+           'TRUEDIV', 'COUNT',
            'YEAR', 'MONTH', 'DAY',
            'DLGQuery', 'DLGExpression',
 ]
@@ -134,26 +136,33 @@ class DLGQuery(object):
         return DLGExpression(self.objp4, CASE, self, (true, false))
 
     def as_dict(self, flat=False):
-        def loop(q):
-            qdict = dict()
-            for key, value in q.items():
-                if key in ("left", "right"):
-                    qdict[key] = loop(value.__dict__) \
-                        if ((isinstance(value, self.__class__)) or
-                            (type(value).__name__ == fieldType(self.objp4))) \
-                        else {"tablename": value.tablename, "fieldname": value.fieldname} \
-                        if (isinstance(value, DLGExpression)) \
+        def recurse(obji):
+            objii = dict()
+            for (key, value) in obji.items():
+                if (key in ("left", "right")):
+                    objii[key] = recurse(value.__dict__) \
+                        if (
+                            (isinstance(value, self.__class__)) |
+                            (is_fieldType(value) is True)
+                    ) \
+                        else {
+                        "tablename": value.tablename,
+                        "fieldname": value.fieldname
+                    } \
+                        if (is_expressionType(value) is True) \
                         else self.oDate.to_string(value) \
                         if (isinstance(value, (date, time, datetime))) \
                         else value
                 elif (key == 'op'):
-                    qdict[key] = value.__name__ if callable(value) else value
-                elif (isinstance(value, serializable)):
-                    qdict[key] = loop(value) if (isinstance(value, dict)) else value
-            return qdict
+                    objii[key] = value.__name__ if callable(value) else value
+                elif (is_serializable(value) is True):
+                    objii[key] = recurse(value) \
+                        if (isinstance(value, dict)) \
+                        else value
+            return objii
 
         if flat:
-            return ZDict(loop(self.__dict__))
+            return ZDict(recurse(self.__dict__))
         else:
             resd = ZDict()
             for (key, value) in ZDict(self.__dict__).getitems():
@@ -163,7 +172,9 @@ class DLGQuery(object):
 
 
 class DLGExpression(object):
-    __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
+    #__hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
+    __hash__ = object.__hash__
+    __iter__ = lambda self: self.__dict__.__iter__()
 
     def __or__(self, value):
         return Lst(self, value)
@@ -182,12 +193,11 @@ class DLGExpression(object):
         (options, kwargs) = (Lst(options), ZDict(kwargs))
         self.options = options
         self.objp4 = objp4
-
         self.type = left.type \
             if (
                 (type is None) &
                 (left is not None) &
-                (hasattr(right, 'type'))
+                (hasattr(left, 'type'))
         ) \
             else type
 
@@ -222,10 +232,13 @@ class DLGExpression(object):
             if (opname in notops) \
             else inversion
 
-        if (hasattr(self.left, 'fieldname')):
-            self.fieldname = left.fieldname
-        if (hasattr(self.left, 'tablename')):
-            self.tablename = left.tablename
+        [setattr(self, sqlitem, getattr(left, sqlitem)) for sqlitem in
+         ('fieldname', 'tablename') if (hasattr(self.left, sqlitem))]
+
+        #if (hasattr(self.left, 'fieldname')):
+        #    self.fieldname = left.fieldname
+        #if (hasattr(self.left, 'tablename')):
+        #    self.tablename = left.tablename
 
         if (is_tableType(self) is False):
             if (
@@ -244,12 +257,13 @@ class DLGExpression(object):
                             (sumtypes > 1) |
                             is_field_tableType(left)
                     ):
-                        if (hasattr(left, 'fieldname')):
-                            self.fieldname = left.fieldname
-                        if (hasattr(left, 'tablename')):
-                            self.tablename = left.tablename
+                        [setattr(self, sqlitem, getattr(left, sqlitem)) for sqlitem in
+                         ('fieldname', 'tablename') if (hasattr(self.left, sqlitem))]
 
-
+                        #if (hasattr(left, 'fieldname')):
+                        #    self.fieldname = left.fieldname
+                        #if (hasattr(left, 'tablename')):
+                        #    self.tablename = left.tablename
 
     def __repr__(self):
         qdict = pformat(
@@ -263,57 +277,41 @@ class DLGExpression(object):
         )
         return f'<DLGExpression {qdict}>'
 
-    def __repr__new(self):
-        qdict = self.as_dict()
-        diff = qdict.getkeys().diff(['objp4', 'op', 'left', 'right', 'inversion'])
-        qdict.delete(*diff)
-        return f'<DLGExpression {qdict}>'
-
     __str__ = __repr__
 
-    def __str__Old(self):
-        qdict = pformat(
-            {
-                'objp4': self.objp4,
-                'op': self.op,
-                'left': self.left,
-                'right': self.right,
-                'inversion': self.inversion
-            }
-        )
-        return f'<DLGExpression {qdict}>'
-
     def as_dict(self, flat=False):
-        def loop(d):
-            newd = dict()
-            for k, v in d.items():
+        def recurse(obji):
+            objii = dict()
+            for k, v in obji.items():
                 if (k in ("left", "right")):
                     if (isinstance(v, self.__class__)):
-                        newd[k] = loop(v.__dict__)
-                    elif (type(v).__name__ == fieldType(self.objp4)):
-                        newd[k] = {"tablename": v.tablename,
-                                   "fieldname": v.name}
-                    elif (isinstance(v, DLGExpression)):
-                        newd[k] = loop(v.__dict__)
+                        objii[k] = recurse(v.__dict__)
+                    elif (is_fieldType(v) is True):#(type(v).__name__ == fieldType(self.objp4)):
+                        objii[k] = {
+                            "tablename": v.tablename,
+                            "fieldname": v.name
+                        }
+                    elif (is_expressionType(v)):
+                        objii[k] = recurse(v.__dict__)
                     elif (isinstance(v, serializable)):
-                        newd[k] = v
+                        objii[k] = v
                     elif (isinstance(v, (date, time, datetime))):
-                        newd[k] = self.oDate.to_string(v)
+                        objii[k] = self.oDate.to_string(v)
                 elif (k == "op"):
                     if (callable(v)):
-                        newd[k] = v.__name__
+                        objii[k] = v.__name__
                     elif (isinstance(v, basestring)):
-                        newd[k] = v
+                        objii[k] = v
                     else:
                         pass
                 elif (isinstance(v, serializable)):
-                    newd[k] = loop(v) \
+                    objii[k] = recurse(v) \
                         if (isinstance(v, dict)) \
                         else v
-            return newd
+            return objii
 
         if flat:
-            return ZDict(loop(self.__dict__))
+            return ZDict(recurse(self.__dict__))
         else:
             resd = ZDict()
             for (key, value) in ZDict(self.__dict__).getitems():
@@ -321,7 +319,7 @@ class DLGExpression(object):
                     resd.merge({key: value})
             return resd
 
-    def __getitem__(self, i):
+    def __getitem__x(self, i):
         if (isinstance(i, slice) is True):
             (start, stop) = (i.start or 0, i.stop)
             pos0 = '(%s - %d)' % (self.len(), abs(start) - 1) \
@@ -336,6 +334,32 @@ class DLGExpression(object):
             return DLGExpression(self.objp4, SUBSTRING, self, (pos0, length))
         else:
             return self[i:(i + 1)]
+
+    def sum(self):
+        '''
+        objp4,
+        op,
+        left=None,
+        right=None,
+        inversion=False,
+        type=None,
+        '''
+        return DLGExpression(self.objp4, SUM, self, None, type=self.type)
+
+    def max(self):
+        return DLGExpression(self.objp4, MAX, self, type=self.type)
+
+    def min(self):
+        return DLGExpression(self.objp4, MIN, self, type=self.type)
+
+    def len(self):
+        return DLGExpression(self.objp4, LEN, self, type='integer')
+
+    def avg(self):
+        return DLGExpression(self.objp4, AVG, self, type=self.type)
+
+    def abs(self):
+        return DLGExpression(self.objp4, ABS, self, type=self.type)
 
     def __invert__(self):
         ''' Overloading a query's operator causes grief when
@@ -429,40 +453,43 @@ class DLGExpression(object):
                 or try:
                 >>> count = p4.changes.status.count()
         '''
-        return DLGExpression(self.objp4, COUNT, self, distinct=distinct)
-
-
-    def sum(self):
-        ''' USAGE:
-                >>> qry = (self.)
-                >>>
-        '''
-        return DLGExpression(self.objp4, SUM, self, None)
-        #return DLGQuery(self.objp4, SUM, self, None)
-
-    def max(self):
-        return DLGExpression(self.objp4, MAX, self, None)
-
-    def min(self):
-        return DLGExpression(self.objp4, MIN, self, None)
-
-    def len(self):
-        return DLGExpression(self.objp4, len, self, None)
-
-    def avg(self):
-        return DLGExpression(self.objp4, AVG, self, None)
-
-    def abs(self):
-        return DLGExpression(self.objp4, ABS, self, None)
+        return DLGExpression(self.objp4, COUNT, self, distinct=distinct, )
 
     def lower(self):
-        return DLGExpression(self.objp4, LOWER, self, None)
+        return DLGExpression(self.objp4, LOWER, self, None, self.type)
 
     def upper(self):
-        return DLGExpression(self.objp4, UPPER, self, None)
+        return DLGExpression(self.objp4, UPPER, self, self.type)
+
+    def replace(self, left, right):
+        return DLGExpression(self.objp4, REPLACE, self, (left, right), self.type)
+
+    def year(self):
+        return DLGExpression(self.objp4, YEAR, self, 'year', 'integer')
+
+    def month(self):
+        return DLGExpression(self.objp4, MONTH, self, 'month', 'integer')
+
+    def day(self):
+        return DLGExpression(self.objp4, DAY, self, 'day', 'integer')
+
+    def hour(self):
+        return DLGExpression(self.objp4, HOUR, self, 'hour', 'integer')
+
+    def minute(self):
+        return DLGExpression(self.objp4, MINUTE, self, 'minute', 'integer')
+
+    def second(self):
+        return DLGExpression(self.objp4, SECOND, self, 'second', 'integer')
 
     def epoch(self):
-        return DLGExpression(self.objp4, EPOCH, self, None)
+        return DLGExpression(self.objp4, EPOCH, self, None, 'integer')
+
+    def coalesce(self, *args):
+        return DLGExpression(self.objp4, COALESCE, self, args, self.type)
+
+    def coalesce_zero(self):
+        return DLGExpression(self.objp4, COALESCE_ZERO, self, None, self.type)
 
     def like(self, value, case_sensitive=True):
         op = case_sensitive and LIKE or ILIKE
@@ -509,34 +536,26 @@ class DLGExpression(object):
         return DLGExpression(self.objp4, ON, self, reference)
 
     def regexp(self, value):
-        return DLGQuery(self.objp4, REGEX, self, value)
-
-    def year(self, value):
-        return DLGExpression(self.objp4, YEAR, self, value)
-
-    def month(self, value):
-        return DLGExpression(self.objp4, MONTH, self, value)
-
-    def day(self, value):
-        return DLGExpression(self.objp4, DAY, self, value)
-
-    def hour(self, value):
-        return DLGExpression(self.objp4, HOUR, self, value)
-
-    def minute(self, value):
-        return DLGExpression(self.objp4, MINUTE, self, value)
-
-    def second(self, value):
-        return DLGExpression(self.objp4, SECOND, self, value)
+        return DLGExpression(self.objp4, REGEX, self, value)
 
     def __add__(self, value):
-        return DLGExpression(self.objp4, ADD, self, value)
+        return DLGExpression(self.objp4, ADD, self, value, self.type)
 
     def __sub__(self, value):
-        return DLGExpression(self.objp4, SUB, self, value)
+        result_type = 'integer' \
+            if (self.type == 'integer') \
+            else 'float' \
+            if (self.type in ('date', 'time', 'datetime', 'float')) \
+            else  self.type \
+            if (self.type.startswith('decimal(')) \
+            else None
+
+        if (result_type is None):
+            bail("subtraction operation not supported for type")
+        return DLGExpression(self.objp4, SUB, self, value, result_type)
 
     def __mul__(self, value):
-        return DLGExpression(self.objp4, MUL, self, value)
+        return DLGExpression(self.objp4, MUL, self, value, self.type)
 
     def __div__(self, value):
         return self.__truediv__(value)
@@ -634,10 +653,11 @@ def CASE(*args, **kwargs):
 def CASEELSE(*args, **kwargs):
     return clsCASEELSE()(*args, **kwargs)
 
+def LEN(*args, **kwargs):
+    return clsLEN()(*args, **kwargs)
 
 def MIN(*args, **kwargs):
     return clsMIN()(*args, **kwargs)
-
 
 def MAX(*args, **kwargs):
     return clsMAX()(*args, **kwargs)
@@ -711,9 +731,9 @@ def COALESCE(*args, **kwargs):
     #return clsCOALESCE()(*args, **kwargs)
 
 
-def COALESCEZERO(*args, **kwargs):
+def COALESCE_ZERO(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsCOALESCEZERO()(*args, **kwargs)
+    #return clsCOALESCE_ZERO()(*args, **kwargs)
 
 
 def JOIN(*args, **kwargs):
@@ -729,6 +749,9 @@ def ALLOW_NONE(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsALLOW_NONE()(*args, **kwargs)
 
+def REPLACE(*args, **kwargs):
+    return clsNOTIMPLEMENTED(**kwargs)(*args)
+    # return clsREPLACE()(*args, **kwargs)
 
 def YEAR(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
@@ -2116,8 +2139,31 @@ class clsSEARCH(QClass):
                 op or SEARCH
             ), name='SEARCH', err=err)
 
-
 class clsADD(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+        (left, right, value) = (exps(0), exps(1), exps(2))
+        (current_type, left_right_are_valid) = self.validate_field_type(left, right)
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
+        (values, total) = (set(), None)
+        try:
+            if (isnum(right) is True):
+                total = (float(right) + float(value))
+            elif (is_recordType(right) is True):
+                total = (float(right[fieldname]) + float(value))
+            total = round(int(total))
+            return total
+        except Exception as err:
+            op_error(lambda left, right, op: (
+                left,
+                right,
+                op or ADD
+            ), name='ADD', err=err)
+
+class clsADD_(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
@@ -2312,7 +2358,7 @@ class clsMOD(QClass):
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
                 if ((tablename, fieldname) == (None, None)):
-                    qres = reduce(lambda left, right: (left / right), self.getSequence(*exps))
+                    qres = reduce(lambda left, right: (left % right), self.getSequence(*exps))
                 else:
                     qres = ZDict({'op': MOD,
                                     'left': {
@@ -2341,71 +2387,87 @@ class clsSUM(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        (current_type, left_right_are_valid) = self.validate_field_type(left, right)
         qsum = 0
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
         try:
-            if (isinstance(left, list) is True):
-                qsum = sum([float(item) for item in left])
-            elif ((is_recordsType(right) is True) | (type(right) is enumerate)):
-                qsum = sum([float(record[left.fieldname]) for record in right])
+            if ((is_recordsType(right) is True) | (type(right) is enumerate)):
+                qsum = sum([float(record[fieldname]) for record in right])
+            elif (is_array(right) is True):
+                qsum = sum([float(item) for item in right])
             qsum = round(qsum) \
                 if ((qsum % 1) == 0) \
                 else round(qsum, 2)
             return qsum
         except Exception as err:
-            op_error(lambda left, right, op: (
-                left,
-                right,
-                op or SUM
-            ),name='SUM', err=err)
+            op_error(
+                lambda left, right, op: (
+                    left,
+                    right,
+                    op or SUM
+                ),
+                name='SUM',
+                err=err
+            )
 
 
 class clsAVG(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        (current_type, left_right_are_valid) \
-            = self.validate_field_type(left, right)
-        (values, average) = (set(), None)
         length = len(left) \
             if (isinstance(left, tuple) is True) \
             else len(right) \
             if (type(right).__name__ == 'Records') \
             else 0
-        try:
+        fieldname = left.fieldname \
             if (
-                    (current_type is None) &
-                    (is_array(left) is True)
-            ):
-                current_type = type(left[0])
-                for value in left:
-                    values.add(float(value))
-                fsum = sum([float(value) for value in left])
-                average = (fsum / length)
-            elif (
-                    (current_type is not None) &
-                    (left_right_are_valid is True)
-            ):
-                for record in right:
-                    value = record[left.fieldname]
-                    values.add(float(value))
-                fsum = sum(
-                            [float(record[left.fieldname]) for record in right]
-                )
-                average = (fsum / length)
-            average = current_type(
-                round(average) \
-                if ((average % 1) == 0) \
-                else round(average, 2)
-            )
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) \
+            else left
+        try:
+            if ((is_recordsType(right) is True) | (type(right) is enumerate)):
+                asum = sum([float(record[fieldname]) for record in right])
+            elif (is_array(right) is True):
+                asum = sum([float(item) for item in right])
+            average = (asum / length)
+            average = round(average) \
+                    if ((average % 1) == 0) \
+                    else round(average, 2)
             return average
+        except Exception as err:
+            op_error(
+                lambda left, right, op: (
+                    left,
+                    right,
+                    op or AVG
+                ),
+                     name='AVG',
+                     err=err
+            )
+
+class clsLEN(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+        (left, right) = (exps(0), exps(1))
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
+        try:
+            if ((is_expressionType(left) is True) &(is_recordsType(right) is True)):
+                for record in right:
+                    record.merge({'len': len(record[fieldname])})
+            return right
         except Exception as err:
             op_error(lambda left, right, op: (
                 left,
                 right,
-                op or MAX
-            ),name='MAX', err=err)
-
+                op or LEN
+            ),name='LEN', err=err)
 
 class clsABS(QClass):
     def __call__(self, *exps):
@@ -2413,6 +2475,10 @@ class clsABS(QClass):
         (left, right) = (exps(0), exps(1))
         (current_type, left_right_are_valid) \
             = self.validate_field_type(left, right)
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
         try:
             if (
                     (current_type is None) &
@@ -2431,14 +2497,14 @@ class clsABS(QClass):
                     (left_right_are_valid is True)):
                 updated_records = Lst()
                 for record in right:
-                    current_value = record[left.fieldname]
+                    current_value = record[fieldname]
                     updvalue = abs(float(current_value))
                     updvalue = current_type(
                         round(updvalue) \
                             if ((updvalue % 1) == 0) \
                             else round(updvalue, 2)
                     )
-                    record.merge({left.fieldname: updvalue})
+                    record.merge({fieldname: updvalue})
                     if (record.code is not None):
                         record.delete('code')
                     updated_records.append(record)
@@ -2458,6 +2524,10 @@ class clsMIN(QClass):
         (current_type, left_right_are_valid) \
             = self.validate_field_type(left, right)
         (values, minvalue) = (set(), None)
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
         try:
             if (
                     (current_type is None) &
@@ -2472,7 +2542,7 @@ class clsMIN(QClass):
                     (left_right_are_valid is True)
             ):
                 for record in right:
-                    value = record[left.fieldname]
+                    value = record[fieldname]
                     values.add(float(value))
                 minvalue = min(values)
             minvalue = current_type(
@@ -2485,8 +2555,8 @@ class clsMIN(QClass):
             op_error(lambda left, right, op: (
                 left,
                 right,
-                op or MAX
-            ), name='MAX', err=err)
+                op or MIN
+            ), name='MIN', err=err)
 
 
 class clsMAX(QClass):
@@ -2496,6 +2566,10 @@ class clsMAX(QClass):
         (current_type, left_right_are_valid) \
             = self.validate_field_type(left, right)
         (values, maxvalue) = (set(), None)
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
         try:
             if (
                     (current_type is None) &
@@ -2510,7 +2584,7 @@ class clsMAX(QClass):
                     (left_right_are_valid is True)
             ):
                 for record in right:
-                    value = record[left.fieldname]
+                    value = record[fieldname]
                     values.add(float(value))
                 maxvalue = max(values)
 
@@ -2848,7 +2922,7 @@ class clsUPPER(QClass):
         >>> name = f'{name[0:3]}%'
         >>> for rec in oP4(oP4.user.user.upper().like(name)).select():
         >>>     print(rec.user)
-        MART
+        zerdlg
         '''
     def __call__(self, *exps):
         exps = Lst(exps)
@@ -2973,22 +3047,30 @@ class clsCOUNT(QClass):
     def __call__(self, *exps, distinct=None):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        fieldname = distinct.fieldname \
-            if (is_fieldType(distinct) is True) \
-            else distinct.left.fieldname \
-            if (is_query_or_expressionType(distinct) is True) \
-            else distinct
+        fieldname = None
+        if (distinct is not None):
+            fieldname = distinct.fieldname \
+                if (is_fieldType(distinct) is True) \
+                else distinct.left.fieldname \
+                if (is_query_or_expressionType(distinct) is True) \
+                else distinct
+        elif ((is_fieldType_or_expressionType(left) is True) |
+                    (is_tableType(left) is True)):
+            fieldname = left.fieldname
+        else:
+            left
         recordvalues = set()
         try:
+            qcount = 0
             if (isinstance(distinct, bool) is True):
                 if (distinct is True):
-                    if (is_array(left) is True):
-                        qcount = len(set(left))
-                    elif (type(left).__name__ == 'Records'):
-                        [recordvalues.add(record(fieldname)) for record in left]
+                    if (is_array(right) is True):
+                        qcount = len(set(right))
+                    elif (is_recordsType(right) is True):
+                        [recordvalues.add(record(fieldname)) for record in right]
                         qcount = len(recordvalues)
             else:
-                qcount = len(left)
+                qcount = len(right)
             return qcount
         except Exception as err:
             op_error(lambda left, right, op: (
@@ -2996,7 +3078,6 @@ class clsCOUNT(QClass):
                 right,
                 op or MAX
             ), name='COUNT', err=err)
-
 
 class clsBETWEEN(QClass):
     def __call__(self, *exps):
@@ -3039,6 +3120,11 @@ class clsDATETIME(QClass):
 
 
 class clsTIME(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+
+
+class clsREPLACE(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 
@@ -3270,7 +3356,7 @@ def expression_table(op):
             "UPPER": UPPER,
             "PRIMARYKEY": PRIMARYKEY,
             "COALESCE": COALESCE,
-            "COALESCEZERO": COALESCEZERO,
+            "COALESCEZERO": COALESCE_ZERO,
             "INVERT": INVERT,
             'EPOCH': EPOCH,
 

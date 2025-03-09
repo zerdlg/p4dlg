@@ -20,8 +20,8 @@ from libjnl.jnlFile import JNLFile
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 619 $] [$Revision: #9 $]
-     [$DateTime: 2025/03/07 20:16:13 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 621 $] [$Revision: #10 $]
+     [$DateTime: 2025/03/09 08:10:26 $]
      [$Author: mart $]
 '''
 
@@ -894,7 +894,7 @@ class RecordSet(object):
     def count(
             self,
             *fieldnames,
-            distinct=False
+            distinct=None
     ):
         fieldnames = Lst(fieldnames)
         objp4 = self.objp4 \
@@ -932,6 +932,8 @@ class RecordSet(object):
             query=query,
             **tabledata
         )
+        if (distinct is False):
+            distinct = None
         return oCount.count(*fieldnames, distinct=distinct)
 
     def sum(

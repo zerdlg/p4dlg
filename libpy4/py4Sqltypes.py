@@ -21,8 +21,8 @@ from libsql.sqlExpressionOperators import (
     Sum,
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 619 $] [$Revision: #27 $]
-     [$DateTime: 2025/03/07 20:16:13 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 621 $] [$Revision: #28 $]
+     [$DateTime: 2025/03/09 08:10:26 $]
      [$Author: mart $]
 '''
 
@@ -382,8 +382,8 @@ class Py4Table(object):
                      'Owner': 'gc',
                      'Root': '/Users/gc/pycharmprojects/sQuery',
                      'SubmitOptions': 'submitunchanged',
-                     'View': ['//depotmart2/... //pc.pycharm/depotmart2/...',
-                              '//depotmart/... //pc.pycharm/depotmart/...',
+                     'View': ['//depotzerdlg2/... //pc.pycharm/depotzerdlg2/...',
+                              '//depotzerdlg/... //pc.pycharm/depotzerdlg/...',
                               '//depot/... //pc.pycharm/depot/...'],
                      'code': 'stat'}
     '''

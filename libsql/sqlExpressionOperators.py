@@ -72,22 +72,29 @@ class Count(DLGSql):
                 if (sum(QResults) == len(query)):
                     #skip_record = self.skiprecord(record, self.tablename)
                     #if (skip_record is False):
+                    if (distinct is False):
+                        distinct = None
                     if (
                             (noneempty(distinct) is False) |
                             (hasattr(distinct, 'objp4') is True)
                     ):
                         fieldname = None
                         if (isinstance(distinct, bool) is True):
-                            if ((distinct is True) & (len(query) > 0)):
-                                left = query[0].left
-                                fieldname = left.fieldname \
-                                    if (is_fieldType(left) is True) \
-                                    else left
+                            if (distinct is True):
+                                if (isinstance(query, list) is True):
+                                    qry = query[0] if (len(query) > 0) else query
+                                if (noneempty(qry) is False):
+                                    fieldname = qry.fieldname
+                                elif (fieldnames(0) is not None):
+                                    fieldname = fieldnames(0).fieldname \
+                                        if (is_fieldType(fieldnames(0)) is True) \
+                                        else fieldnames(0).left
                         else:
                             fieldname = self.validate_distinct(distinct)
-                        distinctvalue = record(fieldname)
-                        if (distinctvalue is not None):
-                            distinctvalues.add(distinctvalue)
+                        if (fieldname is not None):
+                            distinctvalue = record(fieldname)
+                            if (distinctvalue is not None):
+                                distinctvalues.add(distinctvalue)
                     recordcounter += 1
             except (StopIteration, EOFError):
                 eor = True

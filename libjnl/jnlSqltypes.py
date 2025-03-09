@@ -20,8 +20,8 @@ from libdlg.dlgUtilities import (
 
 __all__ = ['JNLTable', 'JNLField']
 
-'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 617 $] [$Revision: #30 $]
-     [$DateTime: 2025/03/03 16:52:46 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 621 $] [$Revision: #31 $]
+     [$DateTime: 2025/03/09 08:10:26 $]
      [$Author: mart $]
 '''
 

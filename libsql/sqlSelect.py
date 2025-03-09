@@ -10,8 +10,8 @@ from libdlg.dlgUtilities import (
 from libsql.sqlQuery import expression_table
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 619 $] [$Revision: #10 $]
-     [$DateTime: 2025/03/07 20:16:13 $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 621 $] [$Revision: #12 $]
+     [$DateTime: 2025/03/09 08:10:26 $]
      [$Author: mart $]
 '''
 
@@ -37,7 +37,7 @@ class Select(DLGSql):
             distinctrecords,
             oJoin,
             jointype,
-            flat,
+            expression,
         ) = \
             (
                 ZDict(kwargs),
@@ -46,8 +46,9 @@ class Select(DLGSql):
                 ZDict(),
                 None,
                 None,
-                kwargs.flat or False,
+                None,
             )
+        flat = kwargs.flat or False
 
         ''' define, resolve & get relevant record components 
             (tablename, fieldnames, query, cols & records)
@@ -70,13 +71,19 @@ class Select(DLGSql):
         if (tablename is None):
             tablename = self.tabledata.tablename
 
-        if (is_expressionType(fieldnames[0]) is True):
-            expression = fieldnames.pop(0)
-            opname = expression.op.__name__.lower() \
-                if (callable(expression.op) is True) \
-                else expression.op.lower()
-            kwargs.update(**{opname: expression})
-            fieldnames.mergein(expression.left, 0)
+        for fidx in fieldnames.getkeys():
+            if (is_expressionType(fieldnames[fidx]) is True):
+                expression = fieldnames.pop(fidx)
+                opname = expression.op.__name__.lower() \
+                    if (callable(expression.op) is True) \
+                    else expression.op.lower()
+                kwargs.update(**{opname: expression})
+                if (len(fieldnames) == 0):
+                    ''' guessing that expression.left (the field object) should 
+                        replace the expression we just popped out.
+                    '''
+                    fieldnames[fidx] = expression.left
+                break
 
         kwargs.delete('fieldsmap', 'tablename')
 
@@ -93,6 +100,11 @@ class Select(DLGSql):
                 'avg',
                 'min',
                 'max',
+                'len',
+                'add',
+                'sub',
+                'mul',
+                'mod',
         )
         kwargs.delete(*[aggregator for aggregator in aggregators if (kwargs[aggregator] is None)])
 
@@ -252,17 +264,26 @@ class Select(DLGSql):
                                     - a field object (get its fieldname)
                                     - a fieldname (which is really the thing we are looking for)
                             '''
+                            if (distinct is False):
+                                distinct = None
                             if (
                                     (noneempty(distinct) is False) |
                                     (hasattr(distinct, 'objp4') is True)
                             ):
                                 fieldname = None
                                 if (isinstance(distinct, bool) is True):
-                                    if ((distinct is True) & (len(query) > 0)):
-                                        left = query[0].left
-                                        fieldname = left.fieldname \
-                                            if (is_fieldType(left) is True) \
-                                            else left
+                                    if (distinct is True):
+                                        qry = query[0] if (len(query) > 0) else expression
+                                        if (noneempty(qry) is False):
+                                            fieldname = qry.fieldname
+                                        elif (fieldnames[0] is not None):
+                                            if (is_fieldType(fieldnames[0]) is True):
+                                                fieldname = fieldnames[0].fieldname
+                                            else:
+                                                fieldname = fieldnames[0].left
+                                            #fieldname = fieldnames[0].fieldname \
+                                            #if (is_fieldType(fieldnames[0]) is True) \
+                                            #else fieldnames[0].left
                                 else:
                                     fieldname = self.validate_distinct(distinct)
                                 if (fieldname is not None):
