@@ -12,19 +12,19 @@
 
 ### Intsallation:
 + drop p4dlg on your system somewhere.
-+ requires IPython / qtconsole
++ requires IPython / qtconsole (planning on detaching and making these optional)
 + I generally install Anaconda as my defualt distribution - if you don't and p4dlg complains about missing dependencies, please do let me know.
 
 ### Where do we use *p4dlg*?
 ``Import P4dlg and use it in script or broader programs or, use it interactively in an IPython QT shell (included in this package). It's OK, P4dlg is fully baked into it. More on this below``
 
-### Create a connection to a Perforce Journal (or checkpoint).
+### Create a connection (link) to a Perforce Journal (or checkpoint).
 ```Python
 >>> from libjnl.jnlIO import jnlconnector
 
 >>> jnlfile = 'Users/gc/anastasia/dev/p4dlg/resc/journals/checkpoint.14'
 >>> version = 'r15.2' 
->>> jnl = jnlconnector(jnlfile, version=version)
+>>> jnl = jnlconnector(jnlfile, version=version)    # version_guesser in test, staty tuned)
 ```
 
 ### Create a connection to a Perforce Server instance.
@@ -136,7 +136,7 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 + groupby
 + orderby
 + sortby
-+ distint
++ distinct
 + having
 + limitby
 + exclude
@@ -145,11 +145,11 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 + etc.
 
 
-### Example using a list of simple & imaginary requirements:
+### Example using a list of simple & made up requirements:
 + Retrieve all clientspec records. 
-+ Fields should be restricted to 'name', 'extra' (aka. 'Host:'), 'owner' & 'accessDate'. 
-+ Group client records by 'Host" (aka. "extra") & order them by "accessDate".
-+ Let's limit the number of records to 25.
++ Fields output should be restricted to 'name', 'extra' (aka. 'Host:'), 'owner' & 'accessDate'. 
++ Group selected client records by 'Host" (aka. "extra") & order them by "accessDate".
++ Let's limit the number of records to 25 (say the 100th record to the 125th record).
 
 ```Python
 >>> clients = jnl(jnl.domain.type == 'client').select('name', 'extra', 'owner', 'accessDate')
@@ -187,7 +187,7 @@ Both P4Jnl and Py4 share the same SQL features, functionality, and syntax. Howev
 +--------------------+----------------+----------+---------------------+
 ```
 
-Aggregators can be set as keyword arguments to select(). Note they can just as well be accessed after the records have been selected & retrieved as attributes to the DLGRecords objects.
+Aggregators can be passed in as keyword arguments to select(). Note they can just as well be accessed after the records have been selected & retrieved using the same aggregatyorsas attributes to the DLGRecords objects.
 I.e.:
 ```Python
 >>> changes = jnl(jnl.change).select(find=lambda rec: ('test' not in rec.description))
