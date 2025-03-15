@@ -4,7 +4,7 @@
 
 #### P4dlg is a set of *abstractions* written in Python that lets you take full advantage of SQL features and functionality to access - & interact with - your Perforce server instances and their resources. 
 
-``Note: Though I don't know how/if this runs on Windows, it does however work as expected on both MacOS and Linux. ``
+``Note: Though I don't know how/if this runs on Windows, it does however work as expected on both MacOS and Linux. There are plans, when time permits, to test and enable compatibility on Windows.``
 
 ### Abstractions:
 + P4Jnl - Interact with all of your metadata, without having to rely on a perforce client or admin program.
