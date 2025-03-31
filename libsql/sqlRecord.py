@@ -12,8 +12,8 @@ from libdlg.dlgUtilities import (
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgTables import DataTable
 
-'''  [$File: //dev/p4dlg/libdlg/sqlRecord.py $] [$Change: 474 $] [$Revision: #11 $]
-     [$DateTime: 2024/09/09 06:39:06 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecord.py $] [$Change: 652 $] [$Revision: #3 $]
+     [$DateTime: 2025/03/23 04:15:28 $]
      [$Author: zerdlg $]
 '''
 
@@ -76,7 +76,6 @@ class Record(ZDict):
                 ):
                     raise KeyError
     __getattr__ = __getitem__
-
     has_key = has_field = lambda self, key: key in self.__dict__
     __nonzero__ = lambda self: len(self.__dict__) > 0
     __copy__ = lambda self: Record(self)

@@ -41,9 +41,9 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 621 $] [$Revision: #39 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 676 $] [$Revision: #44 $]
+     [$DateTime: 2025/03/27 14:56:58 $]
+     [$Author: zerdlg $]
 '''
 
 '''     a perforce client program.
@@ -114,7 +114,7 @@ class Py4(object):
 
     __rand__ = __and__
     __ror__ = __or__
-    __str__ = __repr__ = lambda self: f"<Py4 {self._port} >"
+    __str__ = __repr__ = lambda self: f"<Py4 {self._port} {self.p4obj_configs}>"
 
     def __iter__(self):
         iter(self)
@@ -371,15 +371,10 @@ class Py4(object):
                                     }
         )
         self.oSchemaType = SchemaType(self)
+        self.p4obj_configs = kwargs.exclude('oSchema')
 
     def __call__(self, query=None, *options, **kwargs):
-        #if (
-        #        (len(options) + len(kwargs) == 0) &
-        #        (query is None)
-        #):
-        #    #return self
-        #    return  RecordSet(self, Records())
-        kwargs = ZDict(kwargs)
+        (options, kwargs) = (Lst(options), ZDict(kwargs))
         (
             tablename,
             lastarg,
@@ -400,17 +395,19 @@ class Py4(object):
 
         (
             p4Queries,
-            options,
             qries
         ) = \
             (
                 Lst(),
-                Lst(options),
                 Lst()
             )
 
+        ''' If query is a Py4Table, DLGQuery or DLGExpression, 
+            define tablename and tabledata. Otherwise, make
+            sure it is typed correctly (it should be list)
+        '''
         if (query is not None):
-            if (isinstance(query, (list, Lst, tuple)) is False):
+            if (is_array(query) is False):
                 if (query_is_reference(query) is True):
                     reference = query
                     reference.flat = kwargs.flat or False
@@ -420,7 +417,7 @@ class Py4(object):
                     query = reference.left._table
                     tablename = query.tablename
                     tabledata = self.memoizetable(tablename)
-                elif (isinstance(query, Py4Table)):
+                elif (is_tableType(query) is True):
                     tablename = query.tablename
                     tabledata = tabledata.merge(query.__dict__).delete('objp4')
                 else:
@@ -438,7 +435,7 @@ class Py4(object):
 
             for qry in qries:
                 if (qry.inversion is None):
-                    qry.inversdion = False
+                    qry.inversion = False
                 if (isinstance(qry, dict) is True):
                     if (not 'inversion' in qry):
                         qry.inversion = inversion
@@ -449,11 +446,12 @@ class Py4(object):
                         qry.right,
                         qry.inversion
                     )
+                ''' try to invert, otherwise leave a is.
+                '''
                 qry = invert(qry)
                 if (tablename is None):
-                    ''' grab the tablename and go!
+                    ''' grab the tablename and move on!
                     '''
-
                     (
                         q,                  # the query, though it might have been altered
                         left,               # the left side of the query (or of the left side of 2 queries)
@@ -470,7 +468,10 @@ class Py4(object):
                         = self.breakdown_query(qry, *options, **tabledata)
                 p4Queries.append(qry)
 
-        if ((noneempty(tabledata) is True) & (tablename is not None)):
+        if (
+                (noneempty(tabledata) is True) &
+                (tablename is not None)
+        ):
             tabledata = self.memoizetable(tablename)
         (
             options,
@@ -572,7 +573,7 @@ class Py4(object):
             'maxrows'
         )
         kwargs.delete(*delkwargs)
-        ''' Py4IO's callable returns a set of records (Recordset). 
+        ''' Py4IO's callable returns a set of records (Recordset).
         '''
         [
             setattr(self, item, kwargs[item]) for item in
@@ -883,7 +884,7 @@ class Py4(object):
 
             ''' whatever the case, is the query's fieldname a revision 
                 or changelist specifier, or time specifier (relative or 
-                not), or revision action specifier? If yes, then paas that 
+                not), or revision action specifier? If yes, then pass that 
                 on to the filename argument in proper p4 syntax so as to 
                 let p4d deal with the narrowing of the fileset *before* 
                 executing the p4 action (nothing will do this faster than p4d).
@@ -891,7 +892,10 @@ class Py4(object):
                 TODO: add support for in_range operators eg '@>n1,<n2'
                 
             '''
-            if ((requires_filearg is True) & (query is not None)):
+            if (
+                    (requires_filearg is True) &
+                    (query is not None)
+            ):
                 fieldname = query.left.fieldname
                 if (fieldname in (
                         'rev',
@@ -923,8 +927,13 @@ class Py4(object):
                             else:
                                 specifier = f"@{p4dt}"
                         elif (fieldname == 'action'):
-                            specifier = revision_actions[qry.right]
-                        lastarg = f"{lastarg}{specifier}"
+                            if (isinstance(qry.right, str) is True):
+                                specifier = revision_actions[qry.right]
+                        if (
+                                (noneempty(specifier) is False) &
+                                (isinstance(specifier, str) is True)
+                        ):
+                            lastarg = f"{lastarg}{specifier}"
             return (lastarg, cmdargs, query)
 
         elif (tabledata.is_spec is True):
@@ -1175,7 +1184,8 @@ class Py4(object):
             else op
         if (opname in (andops + orops + xorops + notops)):
             for qlr in (qry.left, qry.right):
-                if (type(qlr).__name__ in ('DLGQuery', 'DLGExpression')):
+                if (is_query_or_expressionType(qry) is True):
+                #if (type(qlr).__name__ in ('DLGQuery', 'DLGExpression')):
                     (
                         q,
                         left,
@@ -1636,7 +1646,7 @@ class Py4(object):
                         (noneempty(tabledata[okey]) is True)
                 ):
                     tabledata.merge({okey: ovalue})
-            self.loginfo(f'p4table memoized: {tablename}')
+            #self.loginfo(f'p4table memoized: {tablename}')
         return tabledata
 
     def get_validglobals(self):

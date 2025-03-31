@@ -20,9 +20,9 @@ from libdlg.dlgUtilities import (
     spec_lastarg_pairs
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 621 $] [$Revision: #17 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 671 $] [$Revision: #18 $]
+     [$DateTime: 2025/03/23 05:12:32 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Options']
@@ -199,7 +199,8 @@ class Py4Options(object):
                             usage = re.sub(r'^Usage: ', '', line)
                         elif (reg_p4help_for_usage.match(line) is not None):
                             usage = str(line).lstrip().rstrip()
-
+            options = options.clean()
+            optionsmap.delete(None)
             if (usage is not None):
                 ''' This is where we try build the table's cmdargs we need to run a p4 cmd. Its 
                     output will help define the required cmd options (if any).                     
@@ -231,45 +232,46 @@ class Py4Options(object):
                             cmdargs.append(cl)
                     else:
                         cmdargs += self.get_more_table_options(keywords)
-                records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)
-                if (
-                        (
-                                (is_recordsType(records) is True) |
-                                (isinstance(records, list))
-                        ) &
-                        (
-                                (is_recordType(records(0)) is True) |
-                                (isinstance(records(0), ZDict))
-                        ) &
-                        (len(records) > 0)
-                ):
-                    rec0 = records(0)
-                    fieldnames = rec0.getkeys()
+                if (self.tablename not in ('submit',)):
+                    records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)
                     if (
-                            (len(fieldnames) == 1) &
-                            (fieldnames(0) == 'code')
+                            (
+                                    (is_recordsType(records) is True) |
+                                    (isinstance(records, list))
+                            ) &
+                            (
+                                    (is_recordType(records(0)) is True) |
+                                    (isinstance(records(0), ZDict))
+                            ) &
+                            (len(records) > 0)
                     ):
-                        rec0.delete('code')
-                        fieldnames.pop(0)
-                    else:
-                        rec_results = Lst(
-                            'code',
-                            'generic',
-                            'severity',
-                            'data'
-                        ).intersect(fieldnames)
+                        rec0 = records(0)
+                        fieldnames = rec0.getkeys()
                         if (
-                                (len(rec_results) == 4) &
-                                (rec0.code == 'error')
-                                #& (rec0.severity >= 3)
+                                (len(fieldnames) == 1) &
+                                (fieldnames(0) == 'code')
                         ):
-                            error = rec0.data
-                            fieldnames = Lst()
+                            rec0.delete('code')
+                            fieldnames.pop(0)
                         else:
-                            rec0 = Flatten(**ZDict(rec0)).reduce()
-                            ''' once flattened, retake the inventory of this record's fields
-                            '''
-                            fieldnames = rec0.getkeys()
+                            rec_results = Lst(
+                                'code',
+                                'generic',
+                                'severity',
+                                'data'
+                            ).intersect(fieldnames)
+                            if (
+                                    (len(rec_results) == 4) &
+                                    (rec0.code == 'error')
+                                    #& (rec0.severity >= 3)
+                            ):
+                                error = rec0.data
+                                fieldnames = Lst()
+                            else:
+                                rec0 = Flatten(**ZDict(rec0)).reduce()
+                                ''' once flattened, retake the inventory of this record's fields
+                                '''
+                                fieldnames = rec0.getkeys()
             else:
                 usage = f'usage string for cmd `{self.tablename}` could not be set.'
         if (

@@ -39,8 +39,13 @@ __all__ = [
 
 qtypes = ('DLGQuery', 'DLGExpression')
 
+def is_fieldNumerical(field):
+    '''TO DO'''
+
 def is_serializable(stype):
-    return True if (stype in serializable) else False
+    return True \
+        if (stype in serializable) \
+        else False
 
 def is_job(right):
     return True \
@@ -206,8 +211,11 @@ def is_sqlObjectType(left, right=None):
 
 
 def query_is_reference(query):
-    if (is_query_or_expressionType(query) is True):
-        if (is_fieldType(query.left, query.right) is True):
+    if (is_queryType(query) is True):
+        if (
+                (is_fieldType(query.left) is True) &
+                (is_fieldType(query.right) is True)
+        ):
             return True
     return False
 

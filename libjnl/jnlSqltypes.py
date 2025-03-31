@@ -17,17 +17,20 @@ from libdlg.dlgUtilities import (
     bail,
     noneempty
 )
+from libsql.sqlValidate import *
 
 __all__ = ['JNLTable', 'JNLField']
 
-'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 621 $] [$Revision: #31 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 677 $] [$Revision: #34 $]
+     [$DateTime: 2025/03/31 05:16:48 $]
+     [$Author: zerdlg $]
 '''
 
 class JNLTable(object):
     def __or__(self, othertable):
         return Lst(self, othertable)
+
+    __str__ = __repr__ = lambda self: f"<JNLTable {self.tablename}  {tuple(self.fieldnames)}>"
 
     def __init__(
                     self,
@@ -118,6 +121,7 @@ class JNLTable(object):
                                 oSchema=self.oSchema,
                                 oSchemaType=self.oSchemaType,
                                 _table=self,
+                                tablename = self.tablename,
                                 datatype=datatype,
                                 is_flag=is_flag,
                                 is_bitmask=is_bitmask,
@@ -235,6 +239,8 @@ class JNLTable(object):
             renamed to 'P4user'. Anyways, its what I have
         '''
         rkey = re.sub(r"^[pP]4", '', key).lower()
+        if (rkey.lower() in ('fieldname', 'fieldsmap', 'type')):
+            return
         if (self.fieldsmap[rkey] is not None):
             key = rkey
         if (self.fieldsmap[key.lower()] is None):
@@ -283,6 +289,9 @@ class JNLTable(object):
     def on(self, reference, flat=False):
         return Join(self.objp4, reference, flat=flat)
 
+    def count(self, distinct=None):
+        return DLGExpression(self.objp4, COUNT, self, distinct=None, type='integer')
+
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"
     __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
@@ -293,11 +302,12 @@ class JNLField(DLGExpression):
 
     def __init__(
                  self,
-                 fieldname,
+                 field,
                  objp4,
                  oSchema,
                  oSchemaType=None,
                  default=lambda: None,
+                 tablename=None,
                  type='string',
                  length=None,
                  required=False,
@@ -311,8 +321,10 @@ class JNLField(DLGExpression):
                  filter_out=None,
                  _rname=None,
                  _table=None,
+                 table=None,
                  **kwargs
     ):
+        self.field = field
         self.objp4 = objp4
         self.label = label
         self.comment = comment
@@ -322,15 +334,19 @@ class JNLField(DLGExpression):
         self.type = type
         self.length = length
 
+        self.fieldname = self._name = fieldname = field.fieldname \
+            if (hasattr(field, 'fieldname')) \
+            else field
+        self.tablename = tablename or self.field.tablename
+        self._table = _table or objp4[tablename]
+        self.table = table or _table
 
-        self.fieldname = self._name = fieldname = fieldname.fieldname \
-            if (hasattr(fieldname, 'fieldname')) \
-            else fieldname
-        self.tablename = self._table = _table
-        self._table = _table
         self._rname = _rname
+
         self.oSchema = oSchema
         self.oSchemaType = oSchemaType
+
+
 
         super(JNLField, self).__init__(
             objp4,

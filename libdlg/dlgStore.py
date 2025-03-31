@@ -1,8 +1,8 @@
 from types import *
 from pprint import pformat
 
-'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 609 $] [$Revision: #12 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 676 $] [$Revision: #14 $]
+     [$DateTime: 2025/03/27 14:56:58 $]
      [$Author: zerdlg $]
 '''
 
@@ -177,6 +177,8 @@ class Lst(list):
         self = Lst(first | second)
 
     def clean(self, *args, **kwargs):
+        ''' remove items from a copy without affecting the original
+        '''
         (args, kwargs) = (Lst(args), ZDict(kwargs))
         if (len(args) == 0):
             args = Lst(
@@ -577,6 +579,18 @@ class ZDict(dict):
             anydict.rename(str(key), str(key).upper()) for key in anydict.getkeys()
         ]
         return anydict
+
+    def exclude(self, *args):
+        ''' exclude keys but don't modify original
+        '''
+        d = objectify(self.copy())
+        for key in args:
+            if (key in self.getkeys()):
+                try:
+                    d.__delitem__(key)
+                except KeyError as err:
+                    print('no such key... {}'.format(key))
+        return d
 
 (
     objectify,

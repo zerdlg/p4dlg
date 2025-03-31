@@ -89,9 +89,9 @@ __all__ = [
 ]
 mdata = """
         --[$File: //dev/p4dlg/libsh/shell.py $]
-        --[$Change: 609 $] 
-        --[$Revision: #17 $]
-        --[$DateTime: 2025/02/21 03:36:09 $]
+        --[$Change: 674 $] 
+        --[$Revision: #19 $]
+        --[$DateTime: 2025/03/25 07:47:41 $]
         --[$Author: zerdlg $]
         """
 
@@ -126,7 +126,6 @@ def createdir(directory):
 
 class DLGShell(object):
     cmd_schema = lambda self, version: self.memoize_schema(version)
-    #cmd_initializeenv = lambda self: self.cmd_initialize_jnlENV()
     cmd_updatelocals = lambda self: self.instlocals()
 
     def __new__(cls, *args, **kwargs):
@@ -134,11 +133,6 @@ class DLGShell(object):
 
     def __call__(self, *args, **kwargs):
         return self
-
-    #def cmd_initialize_jnlENV(self):
-        #oInit = JnlInitialize(schemadir, default_xmlschema_version)
-        #print("JNL INITIALIZE - Done.")
-        #return oInit
 
     def __init__(self, *args, **kwargs):
         self.clsVars = clsVars
@@ -333,6 +327,7 @@ class DLGShell(object):
             except Exception as err:
                 print(f"{configname} name conflict: {err}")
 
+
     def cmd_configvars(self, *args, **kwargs):
         return self.funcVars(
             'configvars',
@@ -444,21 +439,20 @@ class DLGShell(object):
                     'sql',
                 ]
                 searchdirs = os.listdir(qdir)
-                for _file in searchdirs:
-                    if (_file not in ['__PYCACHE__']):
-                        filename = os.path.join(qdir, _file)
+                for sname in searchdirs:
+                    if (sname not in ['__PYCACHE__']):
+                        filename = os.path.join(qdir, sname)
                         if (os.path.isfile(filename)):
-                            if (_file == '.DS_Store'):
+                            if (sname == '.DS_Store'):
                                 try:
-                                    os.remove(os.path.join(qdir, _file))
-                                except:
-                                    pass
+                                    os.remove(os.path.join(qdir, sname))
+                                except:pass
                             else:
                                 sPfx = '|'.join(searchPrefixes)
                                 sPrefix = f"^({sPfx}).*\.py$"
-                                if (re.match(sPrefix, _file) is not None):
+                                if ((re.match(sPrefix, sname) is not None) | (sname == '__init__.py')):
                                     try:
-                                        mod = __import__(os.path.splitext(_file)[0])
+                                        mod = __import__(os.path.splitext(sname)[0])
                                         if (hasattr(mod, '__all__')):
                                             for item in mod.__all__:
                                                 value = getattr(mod, item)
@@ -468,7 +462,8 @@ class DLGShell(object):
                                         print(err)
                         else:
                             dirImport(filename)
-        [dirImport(moddir) for moddir in self.var_libsearchdirs]
+        for moddir in self.var_libsearchdirs:
+            dirImport(moddir)
 
         otherthings = {
                         'term': self.cmdcls_shterm(self),
@@ -561,8 +556,7 @@ class DLGShell(object):
                         )
         }
         [
-            localattributes.update(**{connectors[key][idx]: key})
-            for key in connectors.keys() for idx in (0, 1)
+            localattributes.update(**{connectors[key][idx]: key}) for key in connectors.keys() for idx in (0, 1)
          ]
         locals().update(**localattributes)
         return locals()
@@ -635,7 +629,9 @@ class DLGShell(object):
         def restart(self):
             self.obj.qtWidget.request_restart_kernel()
 
-        # def stacktracer(self): return Pdb
+        @staticmethod
+        def stacktracer():
+            return Pdb
 
         def close(self):
             self.obj.qtWidget.kernel_client.stop_channels()
@@ -760,6 +756,7 @@ def initprog(**opts):
 if (__name__ == '__main__'):
     if (len(sys.argv) > 1):
         '''  arg options from cmd line
+             ** ignore arg where values are set to `None, False or unset`
         '''
         opts = ZDict(
             {

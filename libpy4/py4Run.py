@@ -4,9 +4,9 @@ from libdlg.dlgStore import Lst, ZDict, objectify
 from libdlg.dlgUtilities import decode_bytes, ALLLOWER
 from libpy4.py4SpecIO import SpecIO
 
-'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 621 $] [$Revision: #23 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 671 $] [$Revision: #24 $]
+     [$DateTime: 2025/03/23 05:12:32 $]
+     [$Author: zerdlg $]
 '''
 
 ''' Usage example:
@@ -75,7 +75,7 @@ class Py4Run(object):
             set(
                 self.objp4.nocommands +
                 self.objp4.fetchfirst +
-                self.objp4.spec_takes_no_lastarg
+                self.objp4.spec_takes_no_lastarg + ['submit']
             )
         )
         lastarg = None

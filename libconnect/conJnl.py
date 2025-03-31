@@ -4,8 +4,8 @@ from libdlg.dlgStore import ZDict, Lst
 from libfs.fsFileIO import is_writable, make_writable
 from libsql.sqlSchema import getObjSchema
 
-'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 609 $] [$Revision: #15 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
+'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 674 $] [$Revision: #16 $]
+     [$DateTime: 2025/03/25 07:47:41 $]
      [$Author: zerdlg $]
 '''
 
@@ -104,7 +104,7 @@ Manage connections to journals and checkpoints.
             [oJnl, other_jnlobject, freds_jnlobject,]
             """
 
-    def __init__(self, shellObj, loglevel='INFO'):
+    def __init__(self, shellObj, loglevel='DEBUG'):
         self.shellObj = shellObj
         self.loglevel = loglevel.upper()
         self.stored = None

@@ -1,5 +1,5 @@
-from libsql import DLGSql
-from libdlg.dlgStore import Lst
+from libsql.sqlControl import DLGSql
+from libdlg.dlgStore import Lst, ZDict, StorageIndex
 from libdlg.dlgUtilities import (
     bail,
     noneempty,
@@ -16,12 +16,14 @@ class Count(DLGSql):
             *fieldnames,
             distinct=False,
             close_session=True,
+            **kwargs
     ):
-        fieldnames = Lst(fieldnames)
+        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
         cols = self.cols or Lst()
         records = self.records
         query = self.query
         field = None
+
         try:
             if (fieldnames(0) is not None):
                 field = fieldnames(0)
@@ -29,12 +31,15 @@ class Count(DLGSql):
                 qry = query[0] \
                     if (isinstance(query, list) is True) \
                     else query
-                field = qry.left
+                field = qry.fieldname \
+                    if (is_fieldType(qry) is True) \
+                    else qry.left.fieldname
+
         except Exception as err:
             bail('Can not define fieldname for record counting')
 
         if (isinstance(query, list) is False):
-            query = Lst([query])
+            query = Lst([query]).clean()
         if (type(records) != enumerate):
             if (len(query) > 0):
                 records = self.objp4(query).select(distinct=distinct)
@@ -82,7 +87,9 @@ class Count(DLGSql):
                         if (isinstance(distinct, bool) is True):
                             if (distinct is True):
                                 if (isinstance(query, list) is True):
-                                    qry = query[0] if (len(query) > 0) else query
+                                    qry = query(0) \
+                                        if (len(query) > 0) \
+                                        else query
                                 if (noneempty(qry) is False):
                                     fieldname = qry.fieldname
                                 elif (fieldnames(0) is not None):
@@ -127,8 +134,12 @@ class Sum(DLGSql):
                 if (is_fieldType(fieldname) is True):
                     fieldname = fieldname.fieldname
             elif (query is not None):
-                qry = query[0] if (isinstance(query, list) is True) else query
-                fieldname = qry.left.fieldname
+                qry = query[0] \
+                    if (isinstance(query, list) is True) \
+                    else query
+                fieldname = qry.fieldname \
+                    if (is_fieldType(qry) is True) \
+                    else qry.left.fieldname
         except Exception as err:
             bail('Can not define fieldname for record counting')
 
@@ -205,8 +216,12 @@ class Avg(DLGSql):
                 if (is_fieldType(fieldname) is True):
                     fieldname = fieldname.fieldname
             elif (query is not None):
-                qry = query[0] if (isinstance(query, list) is True) else query
-                fieldname = qry.left.fieldname
+                qry = query[0] \
+                    if (isinstance(query, list) is True) \
+                    else query
+                fieldname = qry.fieldname \
+                    if (is_fieldType(qry) is True) \
+                    else qry.left.fieldname
         except Exception as err:
             bail('Can not define fieldname for record counting')
 
@@ -285,8 +300,12 @@ class Min(DLGSql):
                 if (is_fieldType(fieldname) is True):
                     fieldname = fieldname.fieldname
             elif (query is not None):
-                qry = query[0] if (isinstance(query, list) is True) else query
-                fieldname = qry.left.fieldname
+                qry = query[0] \
+                    if (isinstance(query, list) is True) \
+                    else query
+                fieldname = qry.fieldname \
+                    if (is_fieldType(qry) is True) \
+                    else qry.left.fieldname
         except Exception as err:
             bail('Can not define fieldname for record counting')
 
@@ -364,7 +383,9 @@ class Max(DLGSql):
                     fieldname = fieldname.fieldname
             elif (query is not None):
                 qry = query[0] if (isinstance(query, list) is True) else query
-                fieldname = qry.left.fieldname
+                fieldname = qry.fieldname \
+                    if (is_fieldType(qry) is True) \
+                    else qry.left.fieldname
         except Exception as err:
             bail('Can not define fieldname for record counting')
 

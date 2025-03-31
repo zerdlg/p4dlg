@@ -1,10 +1,8 @@
 from libdlg.dlgError import *
 from libsql.sqlQuery import andops, orops, xorops, notops
-from libsql import is_fieldType, is_tableType
+from libsql.sqlValidate import *
 
 __all__ = ['invert']
-
-from libsql.sqlValidate import is_qType_or_field
 
 
 def invert(qry, inversion=False):

@@ -91,9 +91,9 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 621 $] [$Revision: #34 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 671 $] [$Revision: #35 $]
+     [$DateTime: 2025/03/23 05:12:32 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [
@@ -602,7 +602,13 @@ def is_array(obj):
         return False
     except:
         try:
-            if (type(obj).__name__ in ('Py4Field', 'JNLField')):
+            if (type(obj).__name__ in (
+                    'Py4Field',
+                    'JNLField',
+                    'DLGQuery',
+                    'DLGExpression'
+            )
+            ):
                 return False
             if (isinstance(obj, str) is False):
                 (i for i in obj)

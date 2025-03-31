@@ -14,8 +14,8 @@ from libdlg import bail
 
 __all__ = ['ObjP4']
 
-'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 609 $] [$Revision: #14 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
+'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 674 $] [$Revision: #15 $]
+     [$DateTime: 2025/03/25 07:47:41 $]
      [$Author: zerdlg $]
 '''
 
@@ -111,7 +111,7 @@ class ObjP4(object):
     def help(self):
         return self.helpstr
 
-    def __init__(self, shellObj, loglevel='INFO'):
+    def __init__(self, shellObj, loglevel='DEBUG'):
         self.shellObj = shellObj
         self.loglevel = loglevel.upper()
         self.stored = None

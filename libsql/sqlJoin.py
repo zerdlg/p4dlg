@@ -5,7 +5,7 @@ from libdlg.dlgUtilities import isnum, bail
 
 '''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 621 $] [$Revision: #7 $]
      [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Join']

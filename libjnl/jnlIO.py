@@ -15,6 +15,7 @@ from libdlg.dlgUtilities import (
     getTableOpKeyValue
 )
 from libsql.sqlRecordset import *
+from libsql.sqlRecords import Records
 from libsql.sqlSchemaTypes import *
 from libfs.fsFileIO import loadpickle
 from libsql.sqlSchema import getObjSchema
@@ -27,8 +28,8 @@ import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
 
-'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 609 $] [$Revision: #34 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 674 $] [$Revision: #36 $]
+     [$DateTime: 2025/03/25 07:47:41 $]
      [$Author: zerdlg $]
 '''
 
@@ -244,6 +245,7 @@ class P4Jnl(object):
         self.reader = kwargs.reader or 'csv'
         self.recordchunks = kwargs.recordchunks or 15000
         self.maxrows = kwargs.maxrows or 0
+        self.compute = Lst()
         self.recCounter = ZDict(
             {
                 'threshhold': self.recordchunks,
@@ -335,15 +337,6 @@ class P4Jnl(object):
                     ) |
                     (opname in (andops + orops + xorops))
             ):
-            #if OR(
-            #      OR(
-            #          AND(
-            #            (hasattr(left, 'left')),
-            #            (is_query_or_expressionType(left.left) is True)),
-            #          (is_query_or_expressionType(left) is True))
-            #      ,
-            #        (opname in (andops + orops + xorops))
-            #):
                 left = getleft(left)
             return left
         left = getleft(qry)
@@ -427,30 +420,22 @@ class P4Jnl(object):
                     if (hasattr(avalue, 'op') is True):
                         if (avalue.op is not None):
                             avalue = self.build(avalue, inversion)
+                    tablename = avalue.tablename \
+                        if (is_expressionType(avalue) is True) \
+                        else avalue.left.tablename
+                    fieldname = avalue.fieldname \
+                        if (is_expressionType(avalue) is True) \
+                        else avalue.left.fieldname
                     if (
-                            (
-                                (hasattr(avalue, 'tablename')) &
-                                (hasattr(avalue, 'fieldname'))
-                            ) &
-                            (
-                                    (avalue.tablename is not None) &
-                                    (avalue.fieldname is not None)
-                            )
+                            (tablename is not None) &
+                            (fieldname is not None)
                     ):
-                            (
-                                fieldname,
-                                tablename
-                            ) = \
-                                (
-                                    avalue.fieldname,
-                                    avalue.tablename
-                                )
-                            if (hasattr(avalue.objp4, tablename) is True):
-                                oTable = getattr(avalue.objp4, tablename)
-                                if (hasattr(oTable, fieldname)):
-                                    avalue = getattr(oTable, fieldname)
-                                else:
-                                    bail(f"field `{fieldname}` does not beliong to table `{tablename}`.")
+                        if (hasattr(avalue.objp4, tablename) is True):
+                            oTable = getattr(avalue.objp4, tablename)
+                            if (hasattr(oTable, fieldname)):
+                                avalue = getattr(oTable, fieldname)
+                            else:
+                                bail(f"field `{fieldname}` does not beliong to table `{tablename}`.")
                 if (akey == "left"):
                     left = avalue
                 else:
@@ -526,7 +511,6 @@ class P4Jnl(object):
         except:
             (tablename, fieldname) = (None, None)
 
-
         if (
                 (tablename, fieldname) == (None, None)
         ):
@@ -595,6 +579,8 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
              'serverid': '',
              'partition': '0'}
         '''
+        if (is_queryType(qry) is False):
+            return qry
         (
             left,
             right,
@@ -671,23 +657,38 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
     def __call__(
             self,
             query=None,
+            *options,
             **kwargs
     ):
-        jnlQueries = Lst()
-        kwargs = ZDict(kwargs)
-        (tablename, tabledata) = (kwargs.tablename, ZDict())
-        (queries, qries) = (Lst(), Lst())
-        self.maxrows = kwargs.maxrows or 0
-        self.compute = kwargs.compute or Lst()
-        reference = None
+        (options, kwargs) = (Lst(options), ZDict(kwargs))
+        (
+            tablename,
+            tabledata,
+            reference,
+        ) = \
+            (
+                kwargs.tablename,
+                ZDict(),
+                None,
+            )
+        (
+            jnlQueries,
+            qries
+        ) = \
+            (
+                Lst(),
+                Lst()
+            )
+
         ''' If query is a JNLTable, DLGQuery or DLGExpression, 
-            define both tablename and tabledata. Otherwise,
-            make sure it is typed correctly (it should be list)
+            define tablename and tabledata. Otherwise, make
+            sure it is typed correctly (it should be list)
         '''
         if (query is not None):
             if (isinstance(query, (list, Lst, tuple)) is False):
                 if (query_is_reference(query) is True):
                     reference = query
+                    reference.flat = kwargs.flat or False
                     ''' re-define query as the query's left 
                         side's Table object (_table)
                     '''
@@ -711,29 +712,14 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 qries = objectify(Lst(query))
 
             for qry in qries:
-                if (isinstance(qry, str)):
-                    qry = queryStringToStorage(qry)
-                ''' grab the tablename and move on!
-                '''
-                (
-                    q,
-                    left,
-                    right,
-                    op,
-                    tablename,
-                    inversion,
-                    tabledata
-                ) = (
-                    self.breakdown_query(qry, tabledata=tabledata, inversion=qry.inversion)
-                )
-
-                if (q != qry):
-                    qry = q
-
+                #if (isinstance(qry, str)):
+                #    qry = queryStringToStorage(qry)
+                if (qry.inversion is None):
+                    qry.inversion = False
                 ''' we can't all remember obscure datatype values
-                    jnl.domain.type == 'client' --> will replace 
-                    'client' with its expected value of '99' for us.
-                '''
+                                    jnl.domain.type == 'client' --> will replace 
+                                    'client' with its expected value of '99' for us.
+                                '''
                 qry = self.resolve_datatype_value(qry)
 
                 if (isinstance(qry, dict) is True):
@@ -749,11 +735,25 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 ''' try to invert, otherwise leave a is.
                 '''
                 qry = invert(qry)
-                ''' as of this point, all queries (except for Table 
-                    or contraint) should be membe rof jnlQueries.
-                '''
+                if (tablename  is None):
+                    ''' grab the tablename and move on!
+                    '''
+                    (
+                        q,
+                        left,
+                        right,
+                        op,
+                        tablename,
+                        inversion,
+                        tabledata
+                    ) = (
+                        self.breakdown_query(qry, tabledata=tabledata, inversion=qry.inversion)
+                    )
                 jnlQueries.append(qry)
-
+        [
+            setattr(self, item, kwargs[item]) for item in
+            ('maxrows', 'compute') if (kwargs[item] is not None)
+        ]
         if (tablename is not None):
             tabledata.merge(kwargs)
             for item in \
@@ -774,20 +774,24 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             )
 
         oJNLFile = JNLFile(self.journal, reader=self.reader)
-        oRecordSet = RecordSet(
+        oRecordSet = RecordSet(self, Records(), **tabledata) \
+            if (tablename is None) \
+            else RecordSet(
             self,
             oJNLFile,
             **tabledata
         )
 
-        if (len(jnlQueries) == 0):
-            if (is_tableType(query) is True):        # A single query is defined, its just a _table.
-                if (reference is None):              # No references in this run
-                    return oRecordSet                # Bypass RecordSet.__call__ altogether!
-                return oRecordSet(                   # A single query is defined, its really a reference
-                    reference=reference
-                )
-        return oRecordSet(*jnlQueries)               # jnlQueries > 0, pass them onto RecordSet.__call__
+        if (
+                (len(jnlQueries) == 0) &
+                (is_tableType(query) is True)
+        ):                                       # A single query is defined, its just a _table.
+            if (reference is None):              # No references in this run
+                return oRecordSet                # Bypass RecordSet.__call__ altogether!
+            return oRecordSet(                   # A single query is defined, its really a reference
+                reference=reference
+            )
+        return oRecordSet(*jnlQueries)           # jnlQueries > 0, pass them onto RecordSet.__call__
 
     def getfieldmaps(self, tablename):
         ''' mapping of all table names  -> {lower_case_fieldname: actual_fieldname}

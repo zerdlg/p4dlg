@@ -12,15 +12,14 @@ from libdlg.dlgUtilities import (
     xrange,
     noneempty
 )
-from libsql import is_P4Jnl
 from libsql.sqlValidate import *
 from libdlg.dlgTables import *
 # from libdlg.p4qLogger import LogHandler
 from libdlg.dlgError import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 621 $] [$Revision: #11 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 677 $] [$Revision: #14 $]
+     [$DateTime: 2025/03/31 05:16:48 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Records']
@@ -32,7 +31,14 @@ class Records(object):
     __bool__ = lambda self: True \
         if (self.first() is not None) \
         else False
-    __hash__ = lambda self: hash(frozenset(self))
+    __hash__ = lambda self: hash(frozenset(self.records))
+
+    def __getitem__(self, key):
+        return self.records[key]
+
+    def __iter__(self):
+        for i in xrange(len(self.records)):
+            yield self[i]
 
     def __len__(self):
         return len(self.records)
@@ -66,29 +72,30 @@ class Records(object):
     def empty_records(self):
         return Records(Lst(), Lst(), self.objp4)
 
-    def count(self, distinct=False, groupname=None):
+    def count_(self, distinct=False, groupname=None):
         if (groupname is None):
             if (distinct is True):
                 distinctvalues = set()
-                fieldname = self.tabledata.tablename
+                #fieldname = self.tabledata.tablename
+                fieldname = self.tabledata.fieldname
                 for rec in self.records:
                     distinctvalue = rec(fieldname)
                     if (distinctvalue is not None):
                         distinctvalues.add(distinctvalue)
                 return len(distinctvalues)
             return len(self)
-        return self.groupcount(groupname)
+        return self.counts(groupname)
 
-    def avg(self, exp):
+    def avg_(self, exp):
         ''
 
-    def min(self, exp):
+    def min_(self, exp):
         ''
 
-    def max(self, exp):
+    def max_(self, exp):
         ''
 
-    def sum(self, exp):
+    def sum_(self, exp):
         ''
 
     def __init__(
@@ -102,7 +109,7 @@ class Records(object):
         (
             self.cols,
             self.grid,
-            self.groupcount
+            self.counts
         ) = \
             (
                 cols,
@@ -131,7 +138,7 @@ class Records(object):
                 try:
                     delattr(self, item)
                 except: pass
-        self.as_groups = False
+        #self.as_groups = False
 
     def __call__(
             self,
@@ -244,13 +251,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         return (self.records == altrecords.records) \
             if (type(altrecords).__name__ == 'Records') \
             else False
-
-    def __getitem__(self, key):
-        return self.records[key]
-
-    def __iter__(self):
-        for i in xrange(len(self.records)):
-            yield self[i]
 
     def append(self, record):
         self.records.append(Record(record))
@@ -582,10 +582,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
                      >>> records = oJnl(qry).select(*["id","type","name","mount","owner","options"], as_groups=False)
 
-
         res = filter(lambda rec: min <= rec.idx <= max, changes)
         '''
-        self.as_groups = as_groups
+        #self.as_groups = as_groups
         if (records is None):
             records = self
         if (len(records) == 0):
@@ -652,7 +651,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         groupnames = records_by_group.getkeys()
         for groupname in groupnames:
             records_by_group[groupname] = Records(records_by_group[groupname])
-            self.groupcount.update(**{groupname: len(records_by_group[groupname])})
+            self.counts.update(**{groupname: len(records_by_group[groupname])})
             if (orderby is not None):
                 recordgroup = self.orderby(
                     orderby,
@@ -714,7 +713,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             ''' Expose instance's `count` & `as_groups` methods so as 
                 to easily access these values when return value is type ZDict.
             '''
-            [setattr(records_by_group, att, getattr(self, att)) for att in ('count', 'as_groups')]
+            #[setattr(records_by_group, att, getattr(self, att)) for att in ('count', 'as_groups')]
             return records_by_group
 
         outrecords = Lst()
@@ -970,7 +969,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             <Record {'action': 'add',
                         'change': '480',
                         'code': 'stat',
-                        'context': '... [$Author: mart $]',
+                        'context': '... [$Author: zerdlg $]',
                         'depotFile': '//dev/p4dlg/libconnect/__init__.py',
                         'fileSize': '311',
                         'linenumber': 8,

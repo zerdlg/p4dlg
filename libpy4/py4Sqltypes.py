@@ -21,9 +21,9 @@ from libsql.sqlExpressionOperators import (
     Sum,
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 621 $] [$Revision: #28 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 677 $] [$Revision: #31 $]
+     [$DateTime: 2025/03/31 05:16:48 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Table', 'Py4Field']
@@ -47,6 +47,8 @@ class Py4Table(object):
     '''
     def __or__(self, othertable):
         return Lst(self, othertable)
+
+    __str__ = __repr__ = lambda self: f"<Py4Table {self.tablename}  {tuple(self.fieldnames)}>"
 
     def __init__(self, objp4, *args, **tabledata):
         self.objp4 = objp4
@@ -289,6 +291,9 @@ class Py4Table(object):
     def on(self, reference, flat=False):
         return Join(self.objp4, reference, flat=flat)
 
+    def count(self, distinct=None):
+        return DLGExpression(self.objp4, COUNT, self, distinct=None, type='integer')
+
     def get(self, name):
         return self.getfield(name=name)
 
@@ -313,6 +318,9 @@ class Py4Table(object):
                 (key in ('objp4', '__members__', 'getdoc'))
         ):
             pass
+
+        if (key.lower() in ('fieldname', 'fieldsmap', 'type')):
+            return
 
         if (self.tablename is not None):
             if (self.fieldsmap[key.lower()] is None):
@@ -425,9 +433,9 @@ class Py4Field(DLGExpression):
                  self,
                  fieldname,
                  tablename=None,
-                 table=None,
                  objp4=ZDict(),
                  oSchema=ZDict(),
+                 table=None,
                  default=lambda: None,
                  type='string',
                  length=None,
@@ -449,6 +457,7 @@ class Py4Field(DLGExpression):
         self.fieldname = fieldname
         self.name = fieldname
         self._table = _table or objp4[tablename]
+        self.table = table
 
         self.__dict__ = objectify(self.__dict__)
 

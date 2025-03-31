@@ -15,27 +15,29 @@ from libdlg.dlgUtilities import noneempty, bail
 from libfs.fsFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
 from libsql.sqlValidate import *
-from libsql import is_fieldType
 from libjnl.jnlFile import JNLFile
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 621 $] [$Revision: #10 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 677 $] [$Revision: #17 $]
+     [$DateTime: 2025/03/31 05:16:48 $]
+     [$Author: zerdlg $]
 '''
 
 class RecordSet(object):
-    __hash__ = lambda self: hash(
-        (frozenset(self),
-         frozenset(self.recordset))
-         #frozenset(ZDict(self.__dict__).getvalues()))
-    )
+    #__hash__ = lambda self: hash(
+    #    (frozenset(self),
+    #     frozenset(self.recordset))
+    #     #frozenset(ZDict(self.__dict__).getvalues()))
+    #)
+
+    __iter__ = lambda self: self.__dict__.__iter__()
+
+    __hash__ = object.__hash__
     __bool__ = lambda self: True
     __copy__ = lambda self: self
     __repr__ = lambda self: f'<RecordSet ({type(self.recordset)}) >'
     __str__ = __repr__
-
 
     def error(self, left, right, op, err):
         ''' badly formatted queries & other errors, return False
@@ -830,41 +832,39 @@ class RecordSet(object):
                 close_session=True,
                 **kwargs
     ):
-        (tablename, fieldnames, kwargs) = (None, Lst(fieldnames), ZDict(kwargs))
+        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
+
+        tablename = self.tablename \
+            if (hasattr(self, 'tablename')) \
+            else self.tabledata.tablename \
+            if (self.tabledata.tablename is not None) \
+            else query.left.tablename \
+            if (query is not None) \
+            else kwargs.tablename \
+            if (kwargs.tablename is not None) \
+            else fieldnames(0).tablename \
+            if (is_fieldType_or_expressionType(fieldnames(0)) is True) \
+            else None
 
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
 
-        if (query is not None):
-            tablename = query.left.tablename
+        tabledata = self.objp4.memoizetable(tablename)
 
-        elif (fieldnames(0) is not None):
-            field0 = fieldnames(0)
-            if (
-                    (is_fieldType(field0) is True) |
-                    (is_expressionType(field0) is True)
-            ):
-                tablename = field0.tablename
-
-        elif (len(kwargs) > 0):
-            tablename = kwargs.tablename
-
-        if (tablename is None):
-            if (hasattr(self, 'tablename')):
-                tablename = self.tablename
-
-        self.tablename = tablename
-        tabledata = self.objp4.memoizetable(tablename) \
-            if (tablename is not None) \
-            else ZDict()
-
-        if (noneempty(tabledata) is False):
-            if (noneempty(cols) is True):
-                cols = self.cols = tabledata.fieldnames  # self.objp4.tablememo[tablename].fieldnames
+        if (
+                (noneempty(tabledata) is False) &
+                (noneempty(cols) is True)
+        ):
+            cols = self.cols = tabledata.fieldnames
 
         if (query is None):
-            query = self.query or []
+            query = self.query \
+                if (noneempty(self.query) is False) \
+                else fieldnames.pop(0) \
+                if (is_queryType(fieldnames(0)) is True) \
+                else None
+
         if (records is None):
             records = self.records
 
@@ -889,54 +889,154 @@ class RecordSet(object):
         return outrecords
 
     def isempty(self):
-        return not self.select(limiy=(0, 1))
+        return (not self.select(limiy=(0, 1)))
 
     def count(
             self,
             *fieldnames,
-            distinct=None
+            query=None,
+            records=None,
+            cols=None,
+            close_session=True,
+            **kwargs
     ):
-        fieldnames = Lst(fieldnames)
-        objp4 = self.objp4 \
-            if (hasattr(self, 'objp4')) \
-            else self
+        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
 
-        (tabledata, tablename, fieldname) = (None, None, None)
+        (
+            tabledata,
+            tablename,
+            fieldname
+        ) = (
+            None,
+            None,
+            None
+        )
 
-        query = self.query
-
-        ''' this bloc is messy
-            TODO: rethink & rewrite! 
-        '''
-        if (fieldnames(0) is not None):
-            if (is_fieldType_or_expressionType(fieldnames(0)) is True):
-                tablename = fieldnames(0).tablename
-        elif (query is not None):
-            qry = query[0] \
-                if (isinstance(query, list) is True) \
-                else query
-            tablename = qry.left.tablename
-        elif (self.tabledata is not None):
-            tabledata = self.tabledata
-            tablename = tabledata.tablename
-        if (tablename is not None):
-            if (tabledata is None):
+        if (len(fieldnames) > 0):
+            for fld in fieldnames:
+                if (is_fieldType_or_expressionType(fld) is True):
+                    kwargs.count = fld
+                    if (kwargs.distinct is None):
+                        kwargs.distinct = False
+                    break
+        else:
+            query = self.query
+            ''' this bloc is messy
+                TODO: rethink & rewrite! 
+            '''
+            if (fieldnames(0) is not None):
+                if (is_fieldType_or_expressionType(fieldnames(0)) is True):
+                    tablename = fieldnames(0).tablename
+                    fieldname = fieldnames(0).fieldname
+            elif (query is not None):
+                qry = query(0) \
+                    if (isinstance(query, list) is True) \
+                    else query
+                tablename = qry.left.tablename
+                fieldname = qry.left.fieldname
+            elif (self.tabledata is not None):
+                tabledata = self.tabledata
+                tablename = tabledata.tablename
+            if (
+                    (tablename is not None) &
+                    (self.tabledata is None)
+            ):
                 tabledata = self.objp4.memoizetable(tablename)
                 if (self.tabledata is not None):
-                    tabledata.update(**self.tabledata)
+                    self.tabledata = tabledata.update(**self.tabledata)
 
-        oCount = Count(
-            objp4,
-            cols=self.cols,
-            records=self.records,
+        if (kwargs.count is None):
+            count = self.objp4[tablename][fieldname].count() \
+                if (fieldname is not None) \
+                else self.objp4[tablename].count()
+            if (kwargs.distinct is None):
+                kwargs.distinct = False
+            kwargs.count = count
+        #tabledata.merge(kwargs)
+        outrecords = self.select(
+            *fieldnames,
             query=query,
-            **tabledata
+            records=records,
+            cols=cols,
+            close_session=close_session,
+            #**tabledata
+            **kwargs
         )
-        if (distinct is False):
-            distinct = None
-        return oCount.count(*fieldnames, distinct=distinct)
+        return outrecords
 
     def sum(
+            self,
+            *fieldnames,
+            query=None,
+            records=None,
+            cols=None,
+            close_session=True,
+            **kwargs
+    ):
+
+        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
+
+        (
+            tabledata,
+            tablename,
+            fieldname
+        ) = (
+            None,
+            None,
+            None
+        )
+
+        if (len(fieldnames) > 0):
+            for fld in fieldnames:
+                if (is_fieldType_or_expressionType(fld) is True):
+                    kwargs.count = fld
+                    if (kwargs.distinct is None):
+                        kwargs.distinct = False
+                    break
+        else:
+            query = self.query
+            ''' this bloc is messy
+                TODO: rethink & rewrite! 
+            '''
+            if (fieldnames(0) is not None):
+                if (is_fieldType_or_expressionType(fieldnames(0)) is True):
+                    tablename = fieldnames(0).tablename
+                    fieldname = fieldnames(0).fieldname
+            elif (query is not None):
+                qry = query(0) \
+                    if (isinstance(query, list) is True) \
+                    else query
+                tablename = qry.left.tablename
+                fieldname = qry.left.fieldname
+            elif (self.tabledata is not None):
+                tabledata = self.tabledata
+                tablename = tabledata.tablename
+            if (
+                    (tablename is not None) &
+                    (self.tabledata is None)
+            ):
+                tabledata = self.objp4.memoizetable(tablename)
+                if (self.tabledata is not None):
+                    self.tabledata = tabledata.update(**self.tabledata)
+        if (kwargs.sum is None):
+            sum = self.objp4[tablename][fieldname].sum() \
+                if (fieldname is not None) \
+                else self.objp4[tablename].count()
+            if (kwargs.distinct is None):
+                kwargs.distinct = False
+            kwargs.sum = sum
+        outrecords = self.select(
+            *fieldnames,
+            query=query,
+            records=records,
+            cols=cols,
+            close_session=close_session,
+            # **tabledata
+            **kwargs
+        )
+        return outrecords
+
+    def sum_(
             self,
             query = None,
             records = None,
@@ -954,6 +1054,7 @@ class RecordSet(object):
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
             else self
+
         oSum = Sum(
             objp4,
             records,

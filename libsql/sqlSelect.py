@@ -1,18 +1,17 @@
-from libsql import DLGSql
 from libdlg.dlgDateTime import DLGDateTimeConvert
 from libsql.sqlRecords import Records
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import ZDict, Lst, StorageIndex
 from libdlg.dlgUtilities import (
     bail,
     reg_dbtablename,
     noneempty,
 )
-from libsql.sqlQuery import expression_table
+from libsql.sqlControl import *
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 621 $] [$Revision: #12 $]
-     [$DateTime: 2025/03/09 08:10:26 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 677 $] [$Revision: #18 $]
+     [$DateTime: 2025/03/31 05:16:48 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ('Select',)
@@ -35,6 +34,7 @@ class Select(DLGSql):
             eor,
             recordcounter,
             distinctrecords,
+            distinctvalues,
             oJoin,
             jointype,
             expression,
@@ -44,6 +44,7 @@ class Select(DLGSql):
                 False,
                 0,
                 ZDict(),
+                set(),
                 None,
                 None,
                 None,
@@ -51,7 +52,7 @@ class Select(DLGSql):
         flat = kwargs.flat or False
 
         ''' define, resolve & get relevant record components 
-            (tablename, fieldnames, query, cols & records)
+            (tablename, fieldnames, fieldsmap, query, cols & records)
         '''
         (
             tablename,
@@ -67,34 +68,39 @@ class Select(DLGSql):
             records=records,
             **kwargs
         )
+        #for fidx in fieldnames.getkeys():
+        #    if (is_expressionType(fieldnames[fidx]) is True):
+        #        expression = fieldnames.pop(fidx)
+        #        fieldnames.mergein(expression.left, fidx)
+        #        opname = expression.op.__name__.lower() \
+        #            if (callable(expression.op) is True) \
+        #            else expression.op.lower()
+        #        kwargs.update(**{opname: expression})
+        #        break
 
-        if (tablename is None):
-            tablename = self.tabledata.tablename
-
-        for fidx in fieldnames.getkeys():
-            if (is_expressionType(fieldnames[fidx]) is True):
+        cfieldnames = StorageIndex(fieldnames.copy())#.storageindex(reversed=True)
+        for fidx in cfieldnames.getkeys():  # fieldnames.getkeys():
+            if (is_expressionType(cfieldnames[fidx]) is True):
                 expression = fieldnames.pop(fidx)
+                #fieldnameidx = fieldnames.index(expression)
+                #fieldnames.pop(fieldnameidx)
+                # fieldnames.mergein(expression.left, fidx)
+                # expressions.append(expression)
                 opname = expression.op.__name__.lower() \
                     if (callable(expression.op) is True) \
                     else expression.op.lower()
                 kwargs.update(**{opname: expression})
-                if (len(fieldnames) == 0):
-                    ''' guessing that expression.left (the field object) should 
-                        replace the expression we just popped out.
-                    '''
-                    fieldnames[fidx] = expression.left
-                break
+                # break
 
         kwargs.delete('fieldsmap', 'tablename')
-
         if (records is None):
             return Records(records=[], cols=cols, objp4=self.objp4)
-
         aggregators = (
                 'groupby',
                 'having',
                 'sortby',
                 'orderby',
+                'distinct',
                 'count',
                 'sum',
                 'avg',
@@ -107,7 +113,6 @@ class Select(DLGSql):
                 'mod',
         )
         kwargs.delete(*[aggregator for aggregator in aggregators if (kwargs[aggregator] is None)])
-
         ''' Are we joining records ? 
             What kind of join? inner/join - outer/left - merge_records ?
             Should we flatten records ? (default is False)
@@ -181,8 +186,24 @@ class Select(DLGSql):
                         the result of each query statement                         
                     '''
                     QResults = Lst()
-                    if (len(query) == 0):
-                        QResults.append(0)
+                    #if (len(query) == 0):
+                    '''
+                    if (expression is not None):
+                        op = expression.op \
+                            if (expression.left.op is None) \
+                            else expression.left.op
+                        opname = op.__name__.lower() \
+                            if (callable(op) is True) \
+                            else op.lower()
+                        #if (opname in ('len', ))
+                        rec = op(expression.left, record)
+                        recresult = self.build_results(expression, record)
+                        #if (exp_opname is not None):
+                        #    opname = exp_opname
+                        record.update(**{opname: recresult})
+                    '''
+                    #else:
+                    #    QResults.append(0)
                     for qry in query:
                         recresult = self.build_results(qry, record)
                         QResults.append(recresult)
@@ -210,6 +231,7 @@ class Select(DLGSql):
                                     else fieldnames[fn]
                                 value = record[field]
                                 rec.merge({field: value})
+                                #record.update(**{field: value})
                             record = rec
                         ''' should this record should be skipped? check again.
                         '''
@@ -249,7 +271,7 @@ class Select(DLGSql):
                                         datetype=datetype
                                     )
                                 )
-                                record = self.fields2ints(record)
+                                record = fields2ints(record)
                                 ''' check if any other field values need to be converted from 
                                     field flags or masks (as per the p4 schema definition) 
                                     
@@ -273,14 +295,24 @@ class Select(DLGSql):
                                 fieldname = None
                                 if (isinstance(distinct, bool) is True):
                                     if (distinct is True):
-                                        qry = query[0] if (len(query) > 0) else expression
-                                        if (noneempty(qry) is False):
-                                            fieldname = qry.fieldname
-                                        elif (fieldnames[0] is not None):
-                                            if (is_fieldType(fieldnames[0]) is True):
-                                                fieldname = fieldnames[0].fieldname
+                                        qry = query(0) \
+                                            if (len(query) > 0) \
+                                            else expression
+                                        if (qry is not None):
+                                            if (is_queryType(qry) is True):
+                                            #if (noneempty(qry) is False):
+                                                fieldname = qry.left.fieldname
+                                            elif (is_fieldType_or_expressionType(qry) is True):
+                                                fieldname = qry.fieldname
+                                        elif (fieldnames(0) is not None):
+                                            if (is_fieldType_or_expressionType(fieldnames(0)) is True):
+                                                fieldname = fieldnames(0).fieldname
                                             else:
-                                                fieldname = fieldnames[0].left
+                                                fieldname = fieldnames(0).left.fieldname
+                                        else:
+                                            for kkey in kwargs.getkeys():
+                                                if (is_expressionType(kwargs[kkey]) is True):
+                                                    fieldname = kwargs[kkey].fieldname
                                             #fieldname = fieldnames[0].fieldname \
                                             #if (is_fieldType(fieldnames[0]) is True) \
                                             #else fieldnames[0].left
@@ -289,7 +321,8 @@ class Select(DLGSql):
                                 if (fieldname is not None):
                                     distinctvalue = record(fieldname)
                                     if (distinctvalue is not None):
-                                        distinctrecords.merge({distinctvalue: record}, overwrite=False)
+                                        if (distinctvalue not in distinctrecords):
+                                            distinctrecords.merge({distinctvalue: record}, overwrite=False)
                             else:
                                 ''' how about 'maxrows', have we set a max value?
                                 '''
