@@ -1,7 +1,7 @@
 from libdlg.dlgUtilities import noneempty
 
-'''  [$File: //dev/p4dlg/sample/smpServerLogSetup.py $] [$Change: 461 $] [$Revision: #4 $]
-     [$DateTime: 2024/08/09 18:15:55 $]
+'''  [$File: //dev/p4dlg/samples/smpServerLogSetup.py $] [$Change: 609 $] [$Revision: #3 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
      [$Author: zerdlg $]
 '''
 

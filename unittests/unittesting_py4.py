@@ -6,16 +6,16 @@ from os.path import dirname
 import schemaxml
 
 from libpy4.py4IO import Py4
-from libdlg.dlgSchema import SchemaXML, to_releasename
+from libsql.sqlSchema import SchemaXML, to_releasename
 
 
 class TestPy4(unittest.TestCase):
     schemadir = dirname(schemaxml.__file__)  # where the schemaxml files live
-    default_schema_version = 'r16.2'  # if none is provided, use this default p4 release
+    default_schema_version = 'r15.2'  # if none is provided, use this default p4 release
     schemaversion = to_releasename(default_schema_version)  # format the given p4 release version
-    oSchema = SchemaXML(schemadir, schemaversion)  # a reference to class SchemaXML
+    oSchema = SchemaXML(schemaversion, schemadir)  # a reference to class SchemaXML
     p4args = {  # the p4 user
-        'user': 'mart',
+        'user': 'zerdlg',
         'port': 'anastasia.local:1777',
         'client': 'computer_p4dlg',
         'oSchema': oSchema
@@ -30,11 +30,11 @@ class TestPy4(unittest.TestCase):
 
     def testSimpleQuery(self):
         oP4 = self.oP4
-        ''' simple queries - returns DLGRecordSets
+        ''' simple queries - returns RecordSets
         '''
         p4qry = (oP4.clients.client.contains('fred'))  # query p4
         p4_recordset = oP4(p4qry)  # pass it to the connector, retrieve a valid recordset
-        p4_assertion = (type(p4_recordset).__name__ == 'DLGRecordSet')
+        p4_assertion = (type(p4_recordset).__name__ == 'RecordSet')
         self.assertTrue(p4_assertion)
 
     def testSelect(self):
@@ -50,7 +50,7 @@ class TestPy4(unittest.TestCase):
         assertion = (len(p4_records) > 0)
         self.assertTrue(assertion)
 
-    def testBelongsNoneNested(self):
+    def testBelongsNonNested(self):
         oP4 = self.oP4
         ''' test non-nested belongs function (SQL IN)
         '''
@@ -58,7 +58,7 @@ class TestPy4(unittest.TestCase):
         p4_clientrecords = oP4(self.oP4.clients.client.belongs(p4_clientnames)).select()
         print('BELONGS - p4')
         pprint(p4_clientrecords(0))
-        p4_assertion = (type(p4_clientrecords).__name__ == 'DLGRecords')
+        p4_assertion = (type(p4_clientrecords).__name__ == 'Records')
         self.assertTrue(p4_assertion)
 
     def testBelongsNested(self):
@@ -71,7 +71,7 @@ class TestPy4(unittest.TestCase):
         p4_filerecords = oP4(p4_qry2).select()
         print('BELONGSNESTED - P4')
         pprint(p4_filerecords(0))
-        p4_assertion = (type(p4_filerecords).__name__ == 'DLGRecords')
+        p4_assertion = (type(p4_filerecords).__name__ == 'Records')
         self.assertTrue(p4_assertion)
 
     def testInnerJoin(self):
@@ -113,6 +113,23 @@ class TestPy4(unittest.TestCase):
         py4_assertion = (len(py4_tabledata.tableoptions.optionsmap) > 0)
         self.assertTrue(py4_assertion)                                              # once accessed, tabledata should
                                                                                     # contain a valid optionsmap
+
+    def testCount(self):
+        oP4 = self.oP4
+        ''' test inner joins 
+        '''
+        qry = (oP4.changes)
+        ''' count all results, return int
+        '''
+        count1 = oP4(qry).count()
+        ''' same results but distinct on field `owner'
+        '''
+        count2 = oP4(qry).count(distinct='user')
+        print('COUNT - P4')
+        pprint(f"count1: {count1}")
+        pprint(f"count2: {count2}")
+        self.assertIsInstance(count1, int)
+        self.assertIsInstance(count2, int)
 
     # def testRecordsSearch(self):
     #    pass

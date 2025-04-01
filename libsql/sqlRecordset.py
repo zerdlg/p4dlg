@@ -19,8 +19,8 @@ from libjnl.jnlFile import JNLFile
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 677 $] [$Revision: #17 $]
-     [$DateTime: 2025/03/31 05:16:48 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 678 $] [$Revision: #18 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
@@ -891,17 +891,10 @@ class RecordSet(object):
     def isempty(self):
         return (not self.select(limiy=(0, 1)))
 
-    def count(
-            self,
-            *fieldnames,
-            query=None,
-            records=None,
-            cols=None,
-            close_session=True,
-            **kwargs
-    ):
+    def defineAggregateKWargs(self, *fieldnames, name=None, query=None, **kwargs):
+        if (name is None):
+            bail('sqlRecordset.defineAggregateKWargs() requires a valid name (`count`, `sum` or `avg`)')
         (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
-
         (
             tabledata,
             tablename,
@@ -914,53 +907,67 @@ class RecordSet(object):
 
         if (len(fieldnames) > 0):
             for fld in fieldnames:
-                if (is_fieldType_or_expressionType(fld) is True):
-                    kwargs.count = fld
+                if (is_fieldType(fld) is True):
+                    ''' TODO: should we pop the fieldname so as to only construct the expression, 
+                        or should it stay so as to also define the output fieldlist.
+                        
+                        * think about it!
+                    
+                    fidx = fieldnames.index(fld)
+                    fld = getattr(fieldnames.pop(fidx), name)()
+                    '''
+                    fld = getattr(fld, name)()
+                if (is_expressionType(fld) is True):
+                    kwargs[name] = fld
                     if (kwargs.distinct is None):
                         kwargs.distinct = False
                     break
-        else:
-            query = self.query
-            ''' this bloc is messy
-                TODO: rethink & rewrite! 
-            '''
-            if (fieldnames(0) is not None):
-                if (is_fieldType_or_expressionType(fieldnames(0)) is True):
-                    tablename = fieldnames(0).tablename
-                    fieldname = fieldnames(0).fieldname
-            elif (query is not None):
-                qry = query(0) \
-                    if (isinstance(query, list) is True) \
-                    else query
-                tablename = qry.left.tablename
-                fieldname = qry.left.fieldname
-            elif (self.tabledata is not None):
-                tabledata = self.tabledata
-                tablename = tabledata.tablename
-            if (
-                    (tablename is not None) &
-                    (self.tabledata is None)
-            ):
-                tabledata = self.objp4.memoizetable(tablename)
-                if (self.tabledata is not None):
-                    self.tabledata = tabledata.update(**self.tabledata)
 
-        if (kwargs.count is None):
-            count = self.objp4[tablename][fieldname].count() \
+        else:
+            if (
+                (query is None) &
+                (self.query is not None)
+            ):
+                query = self.query
+
+            qry = query(0) \
+                if (isinstance(query, list) is True) \
+                else query
+            tablename = qry.left.tablename
+            fieldname = qry.left.fieldname
+            if (self.tabledata is None):
+                self.tabledata = self.objp4.memoizetable(tablename)
+        if (kwargs[name] is None):
+            expname = self.objp4[tablename][fieldname].count() \
                 if (fieldname is not None) \
                 else self.objp4[tablename].count()
             if (kwargs.distinct is None):
                 kwargs.distinct = False
-            kwargs.count = count
-        #tabledata.merge(kwargs)
+            kwargs[name] = expname
+        return (fieldnames, kwargs)
+
+    def count(
+            self,
+            *fieldnames,
+            query=None,
+            records=None,
+            cols=None,
+            close_session=True,
+            **kwargs
+    ):
+        (fieldnames, kwexp) = self.defineAggregateKWargs(
+            *fieldnames,
+            name='count',
+            query=query,
+            **kwargs
+        )
         outrecords = self.select(
             *fieldnames,
             query=query,
             records=records,
             cols=cols,
             close_session=close_session,
-            #**tabledata
-            **kwargs
+            **kwexp
         )
         return outrecords
 
@@ -973,113 +980,43 @@ class RecordSet(object):
             close_session=True,
             **kwargs
     ):
-
-        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
-
-        (
-            tabledata,
-            tablename,
-            fieldname
-        ) = (
-            None,
-            None,
-            None
+        (fieldnames, kwexp) = self.defineAggregateKWargs(
+            *fieldnames,
+            name='sum',
+            query=query,
+            **kwargs
         )
-
-        if (len(fieldnames) > 0):
-            for fld in fieldnames:
-                if (is_fieldType_or_expressionType(fld) is True):
-                    kwargs.count = fld
-                    if (kwargs.distinct is None):
-                        kwargs.distinct = False
-                    break
-        else:
-            query = self.query
-            ''' this bloc is messy
-                TODO: rethink & rewrite! 
-            '''
-            if (fieldnames(0) is not None):
-                if (is_fieldType_or_expressionType(fieldnames(0)) is True):
-                    tablename = fieldnames(0).tablename
-                    fieldname = fieldnames(0).fieldname
-            elif (query is not None):
-                qry = query(0) \
-                    if (isinstance(query, list) is True) \
-                    else query
-                tablename = qry.left.tablename
-                fieldname = qry.left.fieldname
-            elif (self.tabledata is not None):
-                tabledata = self.tabledata
-                tablename = tabledata.tablename
-            if (
-                    (tablename is not None) &
-                    (self.tabledata is None)
-            ):
-                tabledata = self.objp4.memoizetable(tablename)
-                if (self.tabledata is not None):
-                    self.tabledata = tabledata.update(**self.tabledata)
-        if (kwargs.sum is None):
-            sum = self.objp4[tablename][fieldname].sum() \
-                if (fieldname is not None) \
-                else self.objp4[tablename].count()
-            if (kwargs.distinct is None):
-                kwargs.distinct = False
-            kwargs.sum = sum
         outrecords = self.select(
             *fieldnames,
             query=query,
             records=records,
             cols=cols,
             close_session=close_session,
-            # **tabledata
-            **kwargs
+            **kwexp
         )
         return outrecords
 
-    def sum_(
+    def avg(
             self,
-            query = None,
-            records = None,
-            cols = None,
+            *fieldnames,
+            query=None,
+            records=None,
+            cols=None,
+            close_session=True,
+            **kwargs
     ):
-
-        if (cols is None):
-            cols = self.cols
-        if (records is None):
-            records = self.records
-
-        if (query is None):
-            query = self.query or []
-
-        objp4 = self.objp4 \
-            if (hasattr(self, 'objp4')) \
-            else self
-
-        oSum = Sum(
-            objp4,
-            records,
-            cols,
-            query,
-            tablename=self.tablename
+        (fieldnames, kwexp) = self.defineAggregateKWargs(
+            *fieldnames,
+            name='avg',
+            query=query,
+            **kwargs
         )
-        return oSum.sum()
-
-    def computecolumns(self, record):
-        try:
-            for (key, value) in self.compute:
-                self.cols.merge(key)
-                self.updateenv(**record)
-                record.update(**{key: eval(value, ZDict(), self.env)})
-                self.loginfo(f'computed new column ({key})')
-            return record
-        except Exception as err:
-            bail(err)
-
-    def autocaster(self, data):
-        data = data.strip()
-        try:
-            return int(data) \
-                if (str(int(data)) == str(data)) \
-                else float(data)
-        except ValueError:
-            return data
+        outrecords = self.select(
+            *fieldnames,
+            query=query,
+            records=records,
+            cols=cols,
+            close_session=close_session,
+            **kwexp
+        )
+        return outrecords

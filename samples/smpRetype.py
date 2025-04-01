@@ -1,105 +1,75 @@
+import re
+from pprint import pprint
 from libsql.sqlQuery import AND
 from libpy4.py4IO import Py4
-from libdlg.dlgStore import ZDict
+from libdlg.dlgStore import ZDict, Lst
 
-'''  [$File: //dev/p4dlg/sample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
-     [$DateTime: 2024/08/23 04:23:28 $]
+'''  [$File: //dev/p4dlg/samples/smpRetype.py $] [$Change: 678 $] [$Revision: #11 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
-__all__ = ['Retype']
+__all__ = ['retype']
 
-class Retype(object):
-    ''' USAGE:
-
-        >>> qry1 = AND(
-                        (oP4.files.action.belongs(('add', 'edit'))),
-                        (oP4.files.type != 'ktext')
-                        )
-        >>> targetfiles = oP4(qry1)._select(oP4.files.depotFile)
-        >>> filelist = oP4(oP4.files.depotFile.belongs(targetfiles)).select('depotFile')
-        >>> result = oP4().edit(('--type', 'ktext', *filelist))
-
-    '''
-
-    def __init__(self, **kwargs):
-        ''' Create a reference to class Py4
-        '''
-        self.oP4 = Py4(**kwargs)
-
-    def __call__(self, preview=False):
-        ''' Retype all added | edited python files that have not been previously typed as ktext.
-        '''
-        oP4 = self.oP4
-        ''' 1. A query to find all python files where the filetype is not 'ktext` 
-               and where field `action` has a value of either an `add` or an `edit`. 
-        '''
-        qry1 = (
-                (oP4.files.action.belongs(('add', 'edit'))) &
-                (oP4.files.type != 'ktext') &
-                (oP4.files.depotFile.endswith('.py'))
-        )
-        targetfiles = oP4(qry1)._select(oP4.files.depotFile)
-        cmdargs = [
-                    '-t',
-                    'ktext',
-                    *targetfiles
-                ]
-        if (preview is True):
-            cmdargs.insert(0, '--preview', )
-        try:
-
-            oP4.change(**{'description':'just a test changelist!'})
-            oP4.change()
-            oP4.edit(*cmdargs)
-
-        except Exception as err:
-            print(err)
-
-def _retype(**kwargs):
+def retype(**kwargs):
     kwargs = ZDict(kwargs)
-    preview = False
-    if (kwargs.preview is not None):
-        preview = kwargs.pop('preview')
+    preview = kwargs.pop('preview')
     oP4 = Py4(**kwargs)
+
     ''' 1. A query to find all python files where the filetype is not 'ktext` 
-                   and where field `action` has a value of either an `add` or an `edit`. 
-            '''
+           and where field `action` is either `add` or `edit`. 
+    '''
     qry = (
             (oP4.files.action.belongs(('add', 'edit'))) &
             (oP4.files.type != 'ktext') &
             (oP4.files.depotFile.endswith('.py'))
     )
+
+    ''' The files that meet the above criteria 
+    '''
     targetfiles = oP4(qry)._select(oP4.files.depotFile)
 
-    cmdargs = [
+    cmdargs_retype = [
         '-t',
         'ktext',
         *targetfiles
     ]
-
     try:
-        change = oP4.change(**{'description': 'just a test changelist!'})
-        cmdargs.extend(['--change', change])
+        change_record = oP4.change(**{'description': 'Retyping modules to ktext.'})
+        change = Lst(re.split('\s',change_record.data))(1)
+        [cmdargs_retype.insert(0, option) for option in [change, '--change']]
         if (preview is True):
-            cmdargs.insert(0, '--preview')
-        else:
-            oP4.edit(*cmdargs)
-            submit = oP4.submit(change)
-
+            cmdargs_retype.insert(0, '--preview')
+        edit = oP4.edit(*cmdargs_retype)
+        submit_args = ['--change', change]
+        submit = f"\nwould have submited {len(targetfiles)} files." \
+            if (preview is True) \
+            else oP4.submit(*submit_args)
+        return (change_record, edit, submit, targetfiles)
     except Exception as err:
         print(err)
 
-
-
 if (__name__ == '__main__'):
-    p4args = {
+    p4args = ZDict(
+        {
         'user': 'zerdlg',
         'port': 'anastasia.local:1777',
         'client': 'computer_p4dlg',
         'preview': True
-    }
-    #results = Retype(**p4args)(preview=True)
-    results = _retype(**p4args)
-    for res in results:
-        print(res)
+        }
+    )
+    (
+        change_record,
+        edit_records,
+        submit_record,
+        targetfiles
+    ) = (
+        retype(**p4args)
+    )
+    if (p4args.preview is False):
+        pprint(change_record.as_dict())
+        pprint(edit_records.as_dict())
+        pprint(submit_record.as_dict())
+    else:
+        print(change_record, '\n', edit_records, submit_record)
+    pprint(targetfiles)

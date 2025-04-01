@@ -7,8 +7,8 @@ from libsql.sqlSchema import SchemaXML, to_releasename
 from libdlg.dlgStore import ZDict, Lst
 import resc.journals as journals
 
-'''  [$File: //dev/p4dlg/sample/smpRetype.py $] [$Change: 466 $] [$Revision: #11 $]
-     [$DateTime: 2024/08/23 04:23:28 $]
+'''  [$File: //dev/p4dlg/samples/smpMergeRecords.py $] [$Change: 678 $] [$Revision: #6 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
@@ -39,7 +39,7 @@ class  Merge(object):
     def __call__(self, *args, **kwargs):
         oJnl = self.oJnl
         files = oJnl(oJnl.revdx.idx > 0).select()
-        gfiles = files.groupby('change', orderby='depotRev', groupdict=True)
+        gfiles = files.groupby('change', orderby='depotRev', flat=True)
         for cl in gfiles:
             if (len(gfiles[cl]) <= 30):
                 change = oJnl(oJnl.change.change == cl).fetch()

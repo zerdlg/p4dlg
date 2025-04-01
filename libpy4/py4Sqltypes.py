@@ -21,8 +21,8 @@ from libsql.sqlExpressionOperators import (
     Sum,
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 677 $] [$Revision: #31 $]
-     [$DateTime: 2025/03/31 05:16:48 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 678 $] [$Revision: #32 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
@@ -326,7 +326,7 @@ class Py4Table(object):
             if (self.fieldsmap[key.lower()] is None):
                 raise FieldNotBelongToTableError(self.tablename, key)
             if (key.lower() in self.fieldsmap):
-                key = self.fieldsmap[key]
+                key = self.fieldsmap[key.lower()]
             if (key in self.fieldnames):
                 ''' is it a table attribute, or a field attribute, something else?
                     and, more importantly, can we get the actual field value
@@ -360,7 +360,7 @@ class Py4Table(object):
                         return self.__dict__[key]
                 except KeyError:
                     raise AttributeError
-            else:
+            elif (key is not None):
                 keyname = self.fieldsmap[key.lower()]
                 if (keyname is not None):
                     return getattr(self, keyname)

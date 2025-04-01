@@ -21,8 +21,8 @@ from libsql.sqlValidate import *
 
 __all__ = ['JNLTable', 'JNLField']
 
-'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 677 $] [$Revision: #34 $]
-     [$DateTime: 2025/03/31 05:16:48 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 678 $] [$Revision: #35 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
@@ -291,6 +291,12 @@ class JNLTable(object):
 
     def count(self, distinct=None):
         return DLGExpression(self.objp4, COUNT, self, distinct=None, type='integer')
+
+    def sum(self, distinct=None):
+        return DLGExpression(self.objp4, SUM, self, distinct=None, type='integer')
+
+    def avg(self, distinct=None):
+        return DLGExpression(self.objp4, AVG, self, distinct=None, type='integer')
 
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"

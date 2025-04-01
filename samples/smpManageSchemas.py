@@ -97,7 +97,7 @@ def update_xmlschema_files(schemaObj):
         where:
         xmlfiles are stored in /p4dlg/xmlschemas/
 
-        *args = release version(s) or None  1=`
+        *args = release version(s) or None
         overwrite=False,
         preview=False,
         newonly=True
@@ -116,7 +116,7 @@ def update_xmlschema_files(schemaObj):
             newonly = [True]/False      --> if True, it will skip any release that is lesser or equal
                                             to the latest locally stored release.
 
-        Caveat, `overwrite` & `newonly` are mutually exclusive. They cannot both be True or both be False.
+        Caveat, `overwrite` & `newonly` are mutually exclusive. They cannot both be True.
     '''
     xmlschema_results = schemaObj.update_xmlschemas(
         'r20.1',
@@ -129,8 +129,6 @@ def update_xmlschema_files(schemaObj):
 def test():
     version = 'r20.1'
     oSchema = SchemaXML(version)
-    p4schema = oSchema.p4schema
-    p4model = oSchema.p4model
 
     results = oSchema.update_xmlschemas(
         version,

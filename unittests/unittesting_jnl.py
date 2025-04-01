@@ -6,11 +6,9 @@ from os.path import dirname
 import schemaxml
 from resc import journals
 
-from libdlg import (
-    AND,
-)
+from libsql.sqlQuery import AND
 from libjnl.jnlIO import P4Jnl
-from libdlg.dlgSchema import SchemaXML, to_releasename
+from libsql.sqlSchema import SchemaXML, to_releasename
 
 
 class TestJNL(unittest.TestCase):
@@ -20,7 +18,7 @@ class TestJNL(unittest.TestCase):
     default_schema_version = 'r16.2'                            # if none is provided, use this default p4 release
     journal = f'{journaldir}/{journalfile}'                     # load this journal
     schemaversion = to_releasename(default_schema_version)      # format the given p4 release version
-    oSchema = SchemaXML(schemadir, schemaversion)               # a reference to class SchemaXML
+    oSchema = SchemaXML(schemaversion, schemadir)               # a reference to class SchemaXML
     oJnl = P4Jnl(journal, oSchema)                              # the jnl connector
 
     '''--------------------------------------------------------------------------------------------------------------'''
@@ -45,11 +43,11 @@ class TestJNL(unittest.TestCase):
 
     def testSimpleQuery(self):
         oJnl = self.oJnl
-        ''' simple queries - returns DLGRecordSets
+        ''' simple queries - returns RecordSets
         '''
         jnlqry = (oJnl.domain.type == 99)                       # query jnl
         jnl_recordset = oJnl(jnlqry)                            # pass it to the connector, retrieve a valid recordset
-        jnl_assertion = (type(jnl_recordset).__name__ == 'DLGRecordSet')
+        jnl_assertion = (type(jnl_recordset).__name__ == 'RecordSet')
         self.assertTrue(jnl_assertion)
 
     def testSelect(self):
@@ -63,7 +61,7 @@ class TestJNL(unittest.TestCase):
         assertion = (len(jnl_records) > 0)
         self.assertTrue(assertion)
 
-    def testBelongsNoneNested(self):
+    def testBelongsNonNested(self):
         oJnl = self.oJnl
         ''' test non-nested belongs function (SQL IN)
         '''
@@ -71,7 +69,7 @@ class TestJNL(unittest.TestCase):
         jnl_clientrecords = oJnl(self.oJnl.domain.name.belongs(jnl_clientnames)).select()
         print('BELONGS - JNL')
         pprint(jnl_clientrecords(0))
-        jnl_assertion = (type(jnl_clientrecords).__name__ == 'DLGRecords')
+        jnl_assertion = (type(jnl_clientrecords).__name__ == 'Records')
         self.assertTrue(jnl_assertion)
 
     def testBelongsNested(self):
@@ -80,14 +78,14 @@ class TestJNL(unittest.TestCase):
         '''
         jnl_qry1 = AND(
             (oJnl.domain.type == '99'),
-            (oJnl.domain.owner == 'mart')
+            (oJnl.domain.owner == 'zerdlg')
         )
         jnl_myclients = oJnl(jnl_qry1)._select(oJnl.domain.name)
         jnl_qry2 = (oJnl.domain.name.belongs(jnl_myclients))
         jnl_clientrecords = oJnl(jnl_qry2).select()
         print('BELONGSNESTED - JNL')
         pprint(jnl_clientrecords(0))
-        jnl_assertion = (type(jnl_clientrecords).__name__ == 'DLGRecords')
+        jnl_assertion = (type(jnl_clientrecords).__name__ == 'Records')
         self.assertTrue(jnl_assertion)
 
     def testInnerJoin(self):
@@ -115,6 +113,21 @@ class TestJNL(unittest.TestCase):
         jnl_assertion = (len(jnl_recs(0).getkeys()) == 2)
         self.assertTrue(jnl_assertion)
         self.assertDictEqual(jnl_recs(0), jnl_recs_alt(0))
+
+    def testCount(self):
+        oJnl = self.oJnl
+        qry = (oJnl.domain.type == 99)
+        ''' count all results, return int
+        '''
+        count1 = oJnl(qry).count()
+        ''' same results but distinct on field `owner'
+        '''
+        count2 = oJnl(qry).count(distinct='owner')
+        print('COUNT - JNL')
+        pprint(f"count1: {count1}")
+        pprint(f"count2: {count2}")
+        self.assertIsInstance(count1, int)
+        self.assertIsInstance(count2, int)
 
     def testTableRefs(self):
         oJnl = self.oJnl

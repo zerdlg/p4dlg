@@ -20,9 +20,9 @@ from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 677 $] 
-     [$Revision: #16 $]
-     [$DateTime: 2025/03/31 05:16:48 $]
+     [$Change: 678 $] 
+     [$Revision: #17 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
@@ -2314,18 +2314,19 @@ class clsSUM(QClass):
             ):
                 for record in right:
                     qsum += int(record[fieldname])
-
             elif (is_array(right) is True):
                 for item in right:
                     qsum += int(item)
             elif (is_array(left) is True):
                 for item in left:
                     qsum += int(item)
-            setattr(right, 'sum', qsum)
-            #qsum = round(qsum) \
-            #    if ((qsum % 1) == 0) \
-            #    else round(qsum, 2)
-            return right
+            if (right is not None):
+                qsum = round(qsum) \
+                    if ((qsum % 1) == 0) \
+                    else round(qsum, 2)
+                setattr(right, 'sum', qsum)
+                return right
+            return qsum
         except ValueError as err:
             op_error(
                 lambda left, right, op: (
@@ -2341,30 +2342,36 @@ class clsAVG(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
+
         length = len(left) \
             if (isinstance(left, tuple) is True) \
             else len(right) \
             if (type(right).__name__ == 'Records') \
             else 0
+        asum = 0
         fieldname = left.fieldname \
             if (
                 (is_fieldType_or_expressionType(left) is True) |
                 (is_tableType(left) is True)
         ) \
             else left
+
         try:
             if (
                     (is_recordsType(right) is True) |
                     (type(right) is enumerate)
             ):
+                length = len(right)
                 asum = sum([float(record[fieldname]) for record in right])
             elif (is_array(right) is True):
+                length = len(right)
                 asum = sum([float(item) for item in right])
             average = (asum / length)
             average = round(average) \
                     if ((average % 1) == 0) \
                     else round(average, 2)
-            return average
+            setattr(right, 'avg', average)
+            return right
         except Exception as err:
             op_error(
                 lambda left, right, op: (

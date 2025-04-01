@@ -19,8 +19,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 677 $] [$Revision: #4 $]
-     [$DateTime: 2025/03/31 05:16:48 $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 678 $] [$Revision: #5 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
@@ -977,16 +977,22 @@ class DLGSql(DLGControl):
         if (count is not None):
             ''' count
             '''
+            if (is_fieldType(count) is True):
+                count = getattr(count, 'count')()
             kwargs.delete('count')
             return count.op(count, records, **kwargs)
         if (dlgsum is not None):
             ''' sum
             '''
+            if (is_fieldType(dlgsum) is True):
+                dlgsum = getattr(dlgavg, 'sum')()
             kwargs.delete('sum')
             return dlgsum.op(dlgsum, records, **kwargs)
         if (dlgavg is not None):
             ''' avg
             '''
+            if (is_fieldType(dlgavg) is True):
+                dlgavg = getattr(dlgavg, 'avg')()
             kwargs.delete('avg')
             return dlgavg.op(dlgavg, records, **kwargs)
         if (dlgmin is not None):

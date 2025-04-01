@@ -1,12 +1,13 @@
 import re
 from io import StringIO
 
-from libdlg import Lst, bail
-from libdlg.dlgError import CreateRevisionError, MissingRevision, InternalRCSError
+from libdlg.dlgStore import Lst
+from libdlg.dlgUtilities import bail
+from libdlg.dlgError import DLGError
 
-'''  [$File: //dev/p4dlg/librcs/__init__.py $] [$Change: 472 $] [$Revision: #6 $]
-     [$DateTime: 2024/09/03 03:46:02 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/librcs/__init__.py $] [$Change: 609 $] [$Revision: #6 $]
+     [$DateTime: 2025/02/21 03:36:09 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [
@@ -83,14 +84,14 @@ def readlines(s):
     except Exception as err:
         bail(err)
 
-class ParseRCSError(RCSbError):
+class ParseRCSError(DLGError):
     def __init__(
             self,
             RCSobject,
             expecting,
             found
     ):
-        RCSError.__init__(self)
+        DLGError.__init__(self)
         (
             self.RCSobject,
             self.expecting,

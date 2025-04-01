@@ -9,8 +9,8 @@ from libdlg.dlgUtilities import (
 from libsql.sqlControl import *
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 677 $] [$Revision: #18 $]
-     [$DateTime: 2025/03/31 05:16:48 $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 678 $] [$Revision: #19 $]
+     [$DateTime: 2025/04/01 04:47:46 $]
      [$Author: zerdlg $]
 '''
 
