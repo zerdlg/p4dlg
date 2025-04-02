@@ -91,8 +91,8 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 678 $] [$Revision: #36 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 679 $] [$Revision: #37 $]
+     [$DateTime: 2025/04/02 05:10:28 $]
      [$Author: zerdlg $]
 '''
 

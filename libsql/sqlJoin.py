@@ -3,8 +3,8 @@ from libsql.sqlRecords import Records
 from libsql.sqlRecord import Record
 from libdlg.dlgUtilities import isnum, bail
 
-'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 678 $] [$Revision: #8 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 679 $] [$Revision: #9 $]
+     [$DateTime: 2025/04/02 05:10:28 $]
      [$Author: zerdlg $]
 '''
 

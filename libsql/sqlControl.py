@@ -19,8 +19,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 678 $] [$Revision: #5 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 679 $] [$Revision: #6 $]
+     [$DateTime: 2025/04/02 05:10:28 $]
      [$Author: zerdlg $]
 '''
 
@@ -875,7 +875,7 @@ class DLGSql(DLGControl):
          sortby,
          find,
          filter,
-         #exclude,
+         exclude,
          search,
          count,
          dlgsum,
@@ -896,7 +896,7 @@ class DLGSql(DLGControl):
             kwargs.sortby,
             kwargs.find,
             kwargs.filter,
-            #kwargs.exclude,
+            kwargs('exclude'),
             kwargs.search,
             kwargs.count,
             kwargs.sum,
@@ -937,14 +937,14 @@ class DLGSql(DLGControl):
             '''
             kwargs.delete('groupby')
             records = records.groupby(groupby, **kwargs)  # as_groups=as_groups, **kwargs)
-        #if (exclude is not None):
-        #    '''  exclude
+        if (exclude is not None):
+            '''  exclude
 
-        #         >>> for record in records.exclude(lambda rec: rec.type=='99'):
-        #         >>>     print record.client
-        #         my_client
-        #    '''
-        #    records = records.exclude(exclude, **kwargs)
+                 >>> for record in records.exclude(lambda rec: rec.type=='99'):
+                 >>>     print record.client
+                 my_client
+            '''
+            records = records.exclude(exclude, **kwargs)
         if (filter is not None):
             '''  filter
             '''
@@ -996,10 +996,17 @@ class DLGSql(DLGControl):
             kwargs.delete('avg')
             return dlgavg.op(dlgavg, records, **kwargs)
         if (dlgmin is not None):
+            ''' max
+            '''
+            if (is_fieldType(dlgmin) is True):
+                dlgmin = getattr(dlgmin, 'min')()
+            kwargs.delete('min')
             return dlgmin.op(dlgmin, records, **kwargs)
         if (dlgmax is not None):
             ''' max
             '''
+            if (is_fieldType(max) is True):
+                dlgmax = getattr(dlgmax, 'max')()
             kwargs.delete('max')
             return dlgmax.op(dlgmax, records, **kwargs)
         if (dlglen is not None):

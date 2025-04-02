@@ -3,11 +3,11 @@ from types import *
 from pprint import pformat
 import timeit
 
-from libsql.sqlExpressionOperators import (
-    Count,
-    Sum,
-)
-from libsql.sqlQuery import DLGQuery, DLGExpression
+#from libsql.sqlExpressionOperators import (
+#    Count,
+#    Sum,
+#)
+#from libsql.sqlQuery import DLGQuery, DLGExpression
 from libsql.sqlSelect import Select
 from libsql.sqlRecords import Records
 from libdlg.dlgStore import ZDict, Lst, objectify
@@ -19,8 +19,8 @@ from libjnl.jnlFile import JNLFile
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 678 $] [$Revision: #18 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 679 $] [$Revision: #19 $]
+     [$DateTime: 2025/04/02 05:10:28 $]
      [$Author: zerdlg $]
 '''
 

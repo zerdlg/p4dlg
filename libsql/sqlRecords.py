@@ -17,8 +17,8 @@ from libdlg.dlgTables import *
 # from libdlg.p4qLogger import LogHandler
 from libdlg.dlgError import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 678 $] [$Revision: #15 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 679 $] [$Revision: #16 $]
+     [$DateTime: 2025/04/02 05:10:28 $]
      [$Author: zerdlg $]
 '''
 
@@ -72,6 +72,7 @@ class Records(object):
     def empty_records(self):
         return Records(Lst(), Lst(), self.objp4)
 
+    """
     def count_(self, distinct=False, groupname=None):
         if (groupname is None):
             if (distinct is True):
@@ -97,6 +98,7 @@ class Records(object):
 
     def sum_(self, exp):
         ''
+    """
 
     def __init__(
             self,
@@ -109,11 +111,35 @@ class Records(object):
         (
             self.cols,
             self.grid,
-            self.counts
+            #####################################################################################
+            # expression value placeholders (defaults to None)                                  #
+            #####################################################################################
+            self.count,         # total count of records
+            self.avg,           # average of a given field in all records
+            self.sum,           # sum of a given field in all records
+            self.min,           # average of a given field in all records
+            self.max,           # average of a given field in all records
+            ####################################################################################
+            # expose expression values of each group when called on (otherwise defaults to {}) #
+            ####################################################################################
+            self.counts,        # group count of records
+            self.avgs,          # group average of a given field from each record in group
+            self.sums,          # group sum of a given field in each record of the group
+            self.mins,          # group min of a given field in each record of the group
+            self.maxs,          # group max of a given field in each record of the group
         ) = \
             (
                 cols,
                 None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                ZDict(),
+                ZDict(),
+                ZDict(),
+                ZDict(),
                 ZDict()
             )
 
@@ -651,7 +677,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         groupnames = records_by_group.getkeys()
         for groupname in groupnames:
             records_by_group[groupname] = Records(records_by_group[groupname])
-            self.counts.update(**{groupname: len(records_by_group[groupname])})
+            #self.counts.update(**{groupname: len(records_by_group[groupname])})
             if (orderby is not None):
                 recordgroup = self.orderby(
                     orderby,

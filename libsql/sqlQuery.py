@@ -20,9 +20,9 @@ from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 678 $] 
-     [$Revision: #17 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+     [$Change: 679 $] 
+     [$Revision: #18 $]
+     [$DateTime: 2025/04/02 05:10:28 $]
      [$Author: zerdlg $]
 '''
 
@@ -876,6 +876,14 @@ class QClass(object):
         except KeyError:
             valcache = self.expcache[value] = re.compile(value)
         return valcache
+
+    def rounder(self, n):
+        try:
+            return round(n) \
+                if ((n % 1) == 0) \
+                else round(n, 2)
+        except Exception as err:
+            bail(err)
 
     def is_all_bools(self, *exps):
         return all(
@@ -2214,40 +2222,48 @@ class clsCOUNT(QClass):
         elif ((is_fieldType_or_expressionType(left) is True) |
                     (is_tableType(left) is True)):
             fieldname = left.fieldname
-        if (is_recordsType(right) is True):
-            grprecs = right.groupby(fieldname, as_groups=True)
-            groups = grprecs.getkeys()
         try:
-            #qcount = 0
-            if (isinstance(distinct, bool) is True):
-                if (distinct is True):
-                    if (is_array(right) is True):
-                        right = len(set(right))
-                    elif (is_recordsType(right) is True):
-                        distinctrecords = ZDict()
-                        #grprecs  = right.groupby(fieldname, as_groups=True)
-                        #groups = grprecs.getkeys()
-                        for grp in groups:
-                            for record in grprecs[grp]:
-                            #for record in right:
-                                #qcount += 1
+            if (
+                    (is_recordsType(right) is True) |
+                    (type(right) is enumerate)
+            ):
+                right.counts = ZDict()
+                grprecords = right.groupby(fieldname, as_groups=True)
+                if (isinstance(distinct, bool) is True):
+                    distinctrecords = ZDict()
+                    if (distinct is True):
+                        for (grpname, grprecs) in grprecords.items():
+                            for record in grprecs:
                                 if (not record[fieldname] in distinctrecords):
-                                    #record.count = qcount
                                     distinctrecords.record[fieldname] = record
+                            right.counts.merge({grpname: len(grprecs)})
+                            #grprecord = objectify({
+                            #    grpname: {
+                            #        'length': len(grprecs),
+                            #        'records': grprecs
+                            #    }
+                            #})
+                            #right.counts.merge(grprecord)
                         right = distinctrecords.getvalues()
-                        setattr(right, 'count', len(right))
-            elif (distinct is None):
-                for grp in groups:
-                    group = grprecs[grp]
-                    grplen = len(group)#grprecs[grp].count()
-                    for record in group:
-                        record.count = grplen
-                #for record in right:
-                #    qcount += 1
-                #    record.count = qcount
-                #setattr(right, 'count', len(right))
+                elif (
+                        (distinct is None) |
+                        (distinct is False)
+                ):
+                    for (grpname, grprecs) in grprecords.items():
+                        right.counts.merge({grpname: len(grprecs)})
+                        #grprecord = objectify({
+                        #    grpname: {
+                        #        'length': len(grprecs),
+                        #        'records': grprecs
+                        #    }
+                        #})
+                        #right.counts.merge(grprecord)
                 right.count = len(right)
-            return right
+                return right
+            elif (is_array(right) is True):
+                return len(right)
+            elif (is_array(left) is True):
+                return len(left)
         except Exception as err:
             op_error(lambda left, right, op: (
                 left,
@@ -2314,19 +2330,31 @@ class clsSUM(QClass):
             ):
                 for record in right:
                     qsum += int(record[fieldname])
+
+                right.sums = ZDict()
+                grprecords = right.groupby(fieldname, as_groups=True)
+                for (grpname, grprecs) in grprecords.items():
+                    grpsum = 0
+                    for grprec in grprecs:
+                        grpsum += int(grprec[fieldname])
+                    grpsum = self.rounder(grpsum)
+                    right.sums.merge({grpname: grpsum})
+
             elif (is_array(right) is True):
                 for item in right:
                     qsum += int(item)
+                qsum = self.rounder(qsum)
+                return qsum
             elif (is_array(left) is True):
                 for item in left:
                     qsum += int(item)
+                qsum = self.rounder(qsum)
+                return qsum
             if (right is not None):
-                qsum = round(qsum) \
-                    if ((qsum % 1) == 0) \
-                    else round(qsum, 2)
-                setattr(right, 'sum', qsum)
+                qsum = self.rounder(qsum)
+                right.sum = qsum
                 return right
-            return qsum
+
         except ValueError as err:
             op_error(
                 lambda left, right, op: (
@@ -2363,9 +2391,20 @@ class clsAVG(QClass):
             ):
                 length = len(right)
                 asum = sum([float(record[fieldname]) for record in right])
+
+                right.avgs = ZDict()
+                grprecords = right.groupby(fieldname, as_groups=True)
+                for (grpname, grprecs) in grprecords.items():
+                    grpaverage = [int(grprec[fieldname]) for grprec in grprecs]
+                    grpavg = self.rounder(grpaverage)
+                    right.avgs.merge({grpname: grpavg})
+
             elif (is_array(right) is True):
                 length = len(right)
                 asum = sum([float(item) for item in right])
+            elif (is_array(left) is True):
+                length = len(left)
+                asum = sum([float(item) for item in left])
             average = (asum / length)
             average = round(average) \
                     if ((average % 1) == 0) \
@@ -2439,10 +2478,7 @@ class clsABS(QClass):
                     left_type = type(left)
                     if (left_type is str):
                         left = float(left)
-                    left = abs(left)
-                    left = round(left) \
-                        if ((left % 1) == 0) \
-                        else round(left, 2)
+                    left = self.rounder(abs(left))
                     return left_type(left)
             elif (
                     (current_type is not None) &
@@ -2451,11 +2487,7 @@ class clsABS(QClass):
                 for record in right:
                     current_value = record[fieldname]
                     updvalue = abs(float(current_value))
-                    updvalue = current_type(
-                        round(updvalue) \
-                            if ((updvalue % 1) == 0) \
-                            else round(updvalue, 2)
-                    )
+                    updvalue = current_type(self.rounder(updvalue))
                     record.merge({fieldname: updvalue})
                     if (record.code is not None):
                         record.delete('code')
@@ -2496,13 +2528,17 @@ class clsMIN(QClass):
                 for record in right:
                     value = record[fieldname]
                     values.add(float(value))
+
+                right.mins = ZDict()
+                grprecords = right.groupby(fieldname, as_groups=True)
+                for (grpname, grprecs) in grprecords.items():
+                    grpmin = min([int(grprec[fieldname]) for grprec in grprecs])
+                    right.mins.merge({grpname: grpmin})
+
                 minvalue = min(values)
-            minvalue = current_type(
-                                round(minvalue) \
-                                    if ((minvalue % 1) == 0) \
-                                    else round(minvalue, 2)
-            )
-            return minvalue
+            minvalue = current_type(minvalue)
+            right.min = minvalue
+            return right
         except Exception as err:
             op_error(lambda left, right, op: (
                 left,
@@ -2515,31 +2551,40 @@ class clsMAX(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        #(current_type, left_right_are_valid) \
-        #    = self.validate_field_type(left, right)
+        (current_type, left_right_are_valid) \
+            = self.validate_field_type(left, right)
         (values, maxvalue) = (set(), None)
         fieldname = left.fieldname if (
                 (is_fieldType_or_expressionType(left) is True) |
                 (is_tableType(left) is True)
         ) else left
         try:
-            if (left is not None):
-                if (is_array(right) is True):
-                    for value in right:
-                        values.add(float(value))
-                    maxvalue = max(values)
-                elif (is_recordsType(right) is True):
-                    for record in right:
-                        value = record[fieldname]
-                        values.add(float(value))
-                    maxvalue = max(values)
-            else:
-                if (is_array(left) is True):
-                    maxvalue = max(left)
-            maxvalue = (round(maxvalue) \
-                if ((maxvalue % 1) == 0) \
-                else round(maxvalue, 2))
-            return maxvalue
+            if (
+                    (current_type is None) &
+                    (is_array(left) is True)
+            ):
+                current_type = type(left[0])
+                for value in left:
+                    values.add(float(value))
+                maxvalue = max(values)
+            elif (
+                    (current_type is not None) &
+                    (left_right_are_valid is True)
+            ):
+                for record in right:
+                    value = record[fieldname]
+                    values.add(float(value))
+
+                right.maxx = ZDict()
+                grprecords = right.groupby(fieldname, as_groups=True)
+                for (grpname, grprecs) in grprecords.items():
+                    grpmax = max([int(grprec[fieldname]) for grprec in grprecs])
+                    right.maxx.merge({grpname: grpmax})
+
+                maxvalue = max(values)
+            maxvalue = current_type(maxvalue)
+            right.max = maxvalue
+            return right
         except Exception as err:
             op_error(lambda left, right, op: (
                 left,
@@ -2616,7 +2661,7 @@ class clsADD(QClass):
                             (isinstance(right, bool) is True)
                     )
             ):
-                return reduce(lambda left, right: (left + right), self.getSequence(*exps))
+                return reduce(lambda left, right: (int(left) + int(right)), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
                 if (

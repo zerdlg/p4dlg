@@ -16,13 +16,13 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlJoin import Join
 from libsql.sqlQuery import *
-from libsql.sqlExpressionOperators import (
-    Count,
-    Sum,
-)
+#from libsql.sqlExpressionOperators import (
+#    Count,
+#    Sum,
+#)
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 678 $] [$Revision: #32 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 679 $] [$Revision: #33 $]
+     [$DateTime: 2025/04/02 05:10:28 $]
      [$Author: zerdlg $]
 '''
 
