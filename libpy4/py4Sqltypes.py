@@ -21,8 +21,8 @@ from libsql.sqlQuery import *
 #    Sum,
 #)
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 679 $] [$Revision: #33 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 680 $] [$Revision: #34 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -427,7 +427,8 @@ class Py4Field(DLGExpression):
     __str__ = __repr__ = lambda self: f"<Py4Field {self.fieldname}>"
 
     def __len__(self):
-        return lambda i: len(self.__dict__[i])
+        res = lambda i: len(self.__dict__[i])
+        return res
 
     def __init__(
                  self,
@@ -537,6 +538,9 @@ class Py4Field(DLGExpression):
             self.logwarning(err)
 
     keys = lambda self: ZDict(self.__dict__).getkeys()
+
+    #def __getitem__(self, key):
+    #    return str(key)
 
     __get__ = lambda self: self.__getitem__
 

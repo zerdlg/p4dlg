@@ -19,8 +19,8 @@ from libjnl.jnlFile import JNLFile
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 679 $] [$Revision: #19 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 680 $] [$Revision: #20 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 

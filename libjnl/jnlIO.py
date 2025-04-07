@@ -28,8 +28,8 @@ import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
 
-'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 679 $] [$Revision: #38 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 680 $] [$Revision: #39 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -686,7 +686,9 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         '''
         if (query is not None):
             if (isinstance(query, (list, Lst, tuple)) is False):
-                if (query_is_reference(query) is True):
+                if (is_fieldType(query) is True):
+                    bail('Cannot create a recordset from a field object (hint: you from a table object).')
+                elif (query_is_reference(query) is True):
                     reference = query
                     reference.flat = kwargs.flat or False
                     ''' re-define query as the query's left 
@@ -782,15 +784,13 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             **tabledata
         )
 
-        if (
-                (len(jnlQueries) == 0) &
-                (is_tableType(query) is True)
-        ):                                       # A single query is defined, its just a _table.
-            if (reference is None):              # No references in this run
-                return oRecordSet                # Bypass RecordSet.__call__ altogether!
-            return oRecordSet(                   # A single query is defined, its really a reference
-                reference=reference
-            )
+        if (len(jnlQueries) == 0):
+            if (is_tableType(query) is True):                                  # A single query is defined, its just a _table.
+                if (reference is None):              # No references in this run
+                    return oRecordSet                # Bypass RecordSet.__call__ altogether!
+                return oRecordSet(                   # A single query is defined, its really a reference
+                    reference=reference
+                )
         return oRecordSet(*jnlQueries)           # jnlQueries > 0, pass them onto RecordSet.__call__
 
     def getfieldmaps(self, tablename):

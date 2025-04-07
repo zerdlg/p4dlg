@@ -19,8 +19,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 679 $] [$Revision: #6 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 680 $] [$Revision: #7 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -45,8 +45,10 @@ class DLGSql(DLGControl):
     def __getitem__(self, item):
         try:
             return self.__dict__.get(item)
-        except:
-            pass
+        except: pass
+
+    def __setitem__(self, key, value):
+        self.__dict__[str(key)] = value
 
     def __init__(
             self,
@@ -174,14 +176,18 @@ class DLGSql(DLGControl):
         except Exception as err:
             bail(err)
 
+    #def __iter__(self):
+        #for col in self.cols:
+        #    yield self[col]
+
     def __iter__(self):
-        for col in self.cols:
-            yield self[col]
+        for fieldname in self.objp4[self.tablename].fieldnames:
+            yield self[fieldname]
 
     def validate_distinct(self, field):
         if (field is None):
             return
-        if (is_fieldType(field) is True):
+        if (is_fieldType_or_expressionType(field) is True):
             field = field.fieldname
         field = self.fieldsmap[field.lower()]
         if (field is None):
@@ -835,39 +841,6 @@ class DLGSql(DLGControl):
         return built
 
     def aggregate(self, records, **kwargs):
-        '''
-            "ADD": ADD,
-            "SUB": SUB,
-            "MUL": MUL,
-            "MOD": MOD,
-            "BETWEEN": BETWEEN,
-            "CASE": CASE,
-            "CASEELSE": CASEELSE,
-            "DIFF": DIFF,
-                    "COUNT": COUNT ,
-            "EXTRACT": EXTRACT,
-            "SUBSTRING": SUBSTRING,
-            "LIKE": LIKE,
-            "ILIKE": ILIKE,
-                    "SUM": SUM,
-            "ABS": ABS,
-                    "AVG": AVG,
-            "MIN": MIN,
-            "MAX": MAX,
-            "BELONGS": BELONGS,
-            "TRUEDIV": TRUEDIV,
-            "YEAR": YEAR,
-            "MONTH": MONTH,
-            "DAY": DAY,
-            "HOUR": HOUR,
-            "MINUTE": MINUTE,
-            "SECOND": SECOND,
-            "CONTAINS": CONTAINS,
-            "STARTSWITH": STARTSWITH,
-            "ENDSWITH": ENDSWITH,
-            "SEARCH": SEARCH,
-            "MATCH": MATCH
-        '''
         kwargs = ZDict(kwargs)
         (orderby,
          limitby,
@@ -889,6 +862,7 @@ class DLGSql(DLGControl):
          sub,
          mul,
          mod,
+         substr,
          ) = (
             kwargs.orderby,
             kwargs.limitby,
@@ -909,7 +883,8 @@ class DLGSql(DLGControl):
             kwargs.add,
             kwargs.sub,
             kwargs.mul,
-            kwargs.mod
+            kwargs.mod,
+            kwargs.substr
         )
 
         if (noneempty(records) is True):
@@ -1012,11 +987,15 @@ class DLGSql(DLGControl):
         if (dlglen is not None):
             ''' len
             '''
+            if (is_fieldType(dlglen) is True):
+                dlglen = getattr(dlglen, 'len')()
             kwargs.delete('len')
             return dlglen.op(dlglen, records, **kwargs)
         if (search is not None):
             ''' search
             '''
+            if (is_fieldType(search) is True):
+                search = getattr(search, 'search')()
             kwargs.delete('search')
             for record in records:
                 if (record.depotFile is not None):
@@ -1024,24 +1003,49 @@ class DLGSql(DLGControl):
         if (add is not None):
             ''' add
             '''
+            if (is_fieldType(add) is True):
+                add = getattr(add, 'add')()
             kwargs.delete('add')
             return add.op(add, records, **kwargs)
         if (sub is not None):
             ''' sub
             '''
+            if (is_fieldType(sub) is True):
+                sub = getattr(sub, 'sub')()
             kwargs.delete('sub')
             return sub.op(sub, records, **kwargs)
         if (mul is not None):
             ''' mul
             '''
+            if (is_fieldType(mul) is True):
+                mul = getattr(mul, 'mul')()
             kwargs.delete('mul')
             return mul.op(mul, records, **kwargs)
         if (mod is not None):
             ''' mod
             '''
+            if (is_fieldType(mod) is True):
+                mod = getattr(mod, 'mod')()
             kwargs.delete('mod')
             return mod.op(mod, records, **kwargs)
+        if (distinct is not None):
+            ''' distinct
+            '''
+            if (is_fieldType(distinct) is True):
+                distinct = getattr(distinct, 'distinct')()
+            #elif (type(distinct) is slice):
+            #    distinct = distinct.op(distinct)
+            kwargs.delete('distinct')
+            return distinct.op(distinct, records, **kwargs)
+        if (substr is not None):
+            ''' substring
+            '''
+            kwargs.delete('substr')
+            return substr.op(substr, records, **kwargs)
+        ''' That's it - return all records.
+        '''
         return records
+
 
     def get_recordsIterator(self, records, tables=[]):
         if (self.is_jnlobject is True):

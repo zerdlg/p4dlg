@@ -21,8 +21,8 @@ from libsql.sqlValidate import *
 
 __all__ = ['JNLTable', 'JNLField']
 
-'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 679 $] [$Revision: #36 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 680 $] [$Revision: #37 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 

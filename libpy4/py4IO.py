@@ -41,8 +41,8 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 679 $] [$Revision: #46 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 680 $] [$Revision: #47 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -408,6 +408,8 @@ class Py4(object):
         '''
         if (query is not None):
             if (is_array(query) is False):
+                if (is_fieldType(query) is True):
+                    bail('Cannot create a recordset from a field object (hint: you from a table object).')
                 if (query_is_reference(query) is True):
                     reference = query
                     reference.flat = kwargs.flat or False

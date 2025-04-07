@@ -91,8 +91,8 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 679 $] [$Revision: #37 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 680 $] [$Revision: #38 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -1275,7 +1275,8 @@ def ALLLOWER(litems, includekeys=False):
                 else:
                     litems.merge({key: value.lower()})
         return litems
-    elif (isinstance(litems, (list, tuple, set)) is True):
+    #elif (isinstance(litems, (list, tuple, set)) is True):
+    elif (is_array(litems) is True):
         origintype = type(litems)
         litems = Lst(litems)
         for item in litems:
@@ -1299,9 +1300,10 @@ def ALLUPPER(litems, includekeys=False):
                 else:
                     litems.merge({key: value.upper()})
         return litems
-    elif (isinstance(litems, (list, tuple)) is True):
+    #elif (isinstance(litems, (list, tuple)) is True):
+    elif (is_array(litems) is True):
         return Lst(item.upper() for item \
-                   in litems if (isinstance(litems, str)))
+                   in litems if (isinstance(item, str)))
     else:
         return litems
 

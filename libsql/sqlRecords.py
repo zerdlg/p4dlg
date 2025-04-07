@@ -17,8 +17,8 @@ from libdlg.dlgTables import *
 # from libdlg.p4qLogger import LogHandler
 from libdlg.dlgError import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 679 $] [$Revision: #16 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 680 $] [$Revision: #17 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -72,12 +72,11 @@ class Records(object):
     def empty_records(self):
         return Records(Lst(), Lst(), self.objp4)
 
-    """
-    def count_(self, distinct=False, groupname=None):
+    def __count(self, distinct=False, groupname=None):
+
         if (groupname is None):
             if (distinct is True):
                 distinctvalues = set()
-                #fieldname = self.tabledata.tablename
                 fieldname = self.tabledata.fieldname
                 for rec in self.records:
                     distinctvalue = rec(fieldname)
@@ -87,6 +86,7 @@ class Records(object):
             return len(self)
         return self.counts(groupname)
 
+    """
     def avg_(self, exp):
         ''
 
@@ -114,33 +114,33 @@ class Records(object):
             #####################################################################################
             # expression value placeholders (defaults to None)                                  #
             #####################################################################################
-            self.count,         # total count of records
-            self.avg,           # average of a given field in all records
-            self.sum,           # sum of a given field in all records
-            self.min,           # average of a given field in all records
-            self.max,           # average of a given field in all records
+#            self.count,         # total count of records
+#            self.avg,           # average of a given field in all records
+#            self.sum,           # sum of a given field in all records
+#            self.min,           # average of a given field in all records
+#            self.max,           # average of a given field in all records
             ####################################################################################
             # expose expression values of each group when called on (otherwise defaults to {}) #
             ####################################################################################
-            self.counts,        # group count of records
-            self.avgs,          # group average of a given field from each record in group
-            self.sums,          # group sum of a given field in each record of the group
-            self.mins,          # group min of a given field in each record of the group
-            self.maxs,          # group max of a given field in each record of the group
+#            self.counts,        # group count of records
+#            self.avgs,          # group average of a given field from each record in group
+#            self.sums,          # group sum of a given field in each record of the group
+#            self.mins,          # group min of a given field in each record of the group
+#            self.maxs,          # group max of a given field in each record of the group
         ) = \
             (
                 cols,
                 None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                ZDict(),
-                ZDict(),
-                ZDict(),
-                ZDict(),
-                ZDict()
+#                None,
+#                None,
+#                None,
+#                None,
+#                None,
+#                ZDict(),
+#                ZDict(),
+#                ZDict(),
+#                ZDict(),
+#                ZDict()
             )
 
         self.objp4 = objp4 or ZDict()
@@ -273,9 +273,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         ] + self.records)
         return self.__class__(records, self.cols, self.objp4)
 
-    def __eq__(self, altrecords):
-        return (self.records == altrecords.records) \
-            if (type(altrecords).__name__ == 'Records') \
+    def __eq__(self, rightrecs):
+        return (self.records == rightrecs.records) \
+            if (is_recordsType(rightrecs) is True) \
             else False
 
     def append(self, record):

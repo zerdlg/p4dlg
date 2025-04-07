@@ -14,8 +14,8 @@ from libdlg import bail
 
 __all__ = ['ObjP4']
 
-'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 679 $] [$Revision: #17 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 680 $] [$Revision: #18 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 

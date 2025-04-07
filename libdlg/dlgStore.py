@@ -1,8 +1,8 @@
 from types import *
 from pprint import pformat
 
-'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 679 $] [$Revision: #16 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 680 $] [$Revision: #17 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -695,6 +695,8 @@ class StorageIndex(ZDict):
                     objLst, key=lambda k: k[order_by]
                 )
             )
+        if (isinstance(objLst, int) is True):
+            return storelist
         if (len(objLst) > 0):
             if (type(objLst) is not StorageIndex):
                 if (isinstance(objLst(0), tuple) is False):

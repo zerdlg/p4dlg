@@ -34,6 +34,8 @@ __all__ = [
     'tabletypes',
     'fieldtypes',
     'SQLType',
+    'is_sliceType',
+    'is_substrType',
 ]
 
 
@@ -409,6 +411,21 @@ def is_field_tableType(left, right=None):
             if (isleft is True) \
             else False
     return ret
+
+def is_sliceType(value):
+    return True \
+        if (type(value) is slice) \
+        else False
+
+''' expression type validation
+'''
+def is_substrType(value):
+    op = value.op.__name__ \
+        if (is_expressionType(value) is True) \
+        else value
+    return True \
+        if (op == 'SUBSTR') \
+        else False
 
 
 SQLType = objectify(

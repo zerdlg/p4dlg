@@ -4,8 +4,8 @@ from libdlg.dlgStore import Lst, ZDict, objectify
 from libdlg.dlgUtilities import decode_bytes, ALLLOWER
 from libpy4.py4SpecIO import SpecIO
 
-'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 679 $] [$Revision: #26 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 680 $] [$Revision: #27 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 

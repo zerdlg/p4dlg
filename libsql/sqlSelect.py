@@ -9,8 +9,8 @@ from libdlg.dlgUtilities import (
 from libsql.sqlControl import *
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 679 $] [$Revision: #20 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 680 $] [$Revision: #21 $]
+     [$DateTime: 2025/04/07 07:06:36 $]
      [$Author: zerdlg $]
 '''
 
@@ -68,29 +68,35 @@ class Select(DLGSql):
             records=records,
             **kwargs
         )
-        #for fidx in fieldnames.getkeys():
-        #    if (is_expressionType(fieldnames[fidx]) is True):
-        #        expression = fieldnames.pop(fidx)
-        #        fieldnames.mergein(expression.left, fidx)
-        #        opname = expression.op.__name__.lower() \
-        #            if (callable(expression.op) is True) \
-        #            else expression.op.lower()
-        #        kwargs.update(**{opname: expression})
-        #        break
 
-        cfieldnames = StorageIndex(fieldnames.copy())#.storageindex(reversed=True)
-        for fidx in cfieldnames.getkeys():  # fieldnames.getkeys():
+        ''' Handle expressions passing for queries!
+        '''
+        cfieldnames = StorageIndex(fieldnames.copy())
+        for fidx in cfieldnames.getkeys():
             if (is_expressionType(cfieldnames[fidx]) is True):
                 expression = fieldnames.pop(fidx)
-                #fieldnameidx = fieldnames.index(expression)
-                #fieldnames.pop(fieldnameidx)
-                # fieldnames.mergein(expression.left, fidx)
-                # expressions.append(expression)
-                opname = expression.op.__name__.lower() \
-                    if (callable(expression.op) is True) \
-                    else expression.op.lower()
-                kwargs.update(**{opname: expression})
-                # break
+                if (is_substrType(expression) is False):
+                    #fieldnameidx = fieldnames.index(expression)
+                    #fieldnames.pop(fieldnameidx)
+                    # fieldnames.mergein(expression.left, fidx)
+                    # expressions.append(expression)
+                    opname = expression.op.__name__.lower() \
+                        if (callable(expression.op) is True) \
+                        else expression.op.lower()
+                    kwargs.update(**{opname: expression})
+                    break
+
+        ''' check expression & distinct values for substring expressions now
+            since they need to be handled *before* we process aggregators
+        '''
+        fieldname = None
+        if (is_substrType(expression) is True):
+            fieldname = expression.fieldname
+        elif (is_expressionType(distinct) is True):
+            expression = distinct
+            if (is_substrType(distinct) is True):
+                fieldname = distinct.fieldname
+                distinct = True
 
         kwargs.delete('fieldsmap', 'tablename')
         if (records is None):
@@ -101,6 +107,7 @@ class Select(DLGSql):
                 'sortby',
                 'orderby',
                 'distinct',
+                'substr',
                 'count',
                 'sum',
                 'avg',
@@ -145,7 +152,6 @@ class Select(DLGSql):
                 (self.reference is not None)
         ):
             oJoin = self.reference.right._table.on(self.reference)
-
         outrecords = Records(Lst(), cols, self.objp4)
         recordsiter = self.get_recordsIterator(records)
         while (eor is False):
@@ -182,11 +188,13 @@ class Select(DLGSql):
                             (not 'idx' in record)
                     ):
                         record.merge({'idx': idx})
+
                     ''' evaluate the current record & collect 
                         the result of each query statement                         
                     '''
                     QResults = Lst()
-                    #if (len(query) == 0):
+                    if (len(query) == 0):
+                        QResults.append(0)
                     '''
                     if (expression is not None):
                         op = expression.op \
@@ -202,8 +210,6 @@ class Select(DLGSql):
                         #    opname = exp_opname
                         record.update(**{opname: recresult})
                     '''
-                    #else:
-                    #    QResults.append(0)
                     for qry in query:
                         recresult = self.build_results(qry, record)
                         QResults.append(recresult)
@@ -278,6 +284,11 @@ class Select(DLGSql):
                                     TODO: this!
                                 '''
 
+                            if (is_substrType(expression) is True):
+                                expstore = ZDict({'substr':expression})
+                                record[fieldname] = self.aggregate(record, **expstore)
+                                #kwargs.delete('substr')
+
                             ''' should records be distinct?
                             
                                 * the distinct value can be one of:
@@ -286,38 +297,66 @@ class Select(DLGSql):
                                     - a field object (get its fieldname)
                                     - a fieldname (which is really the thing we are looking for)
                             '''
-                            if (distinct is False):
-                                distinct = None
-                            if (
-                                    (noneempty(distinct) is False) |
-                                    (hasattr(distinct, 'objp4') is True)
-                            ):
-                                fieldname = None
-                                if (isinstance(distinct, bool) is True):
-                                    if (distinct is True):
-                                        qry = query(0) \
-                                            if (len(query) > 0) \
-                                            else expression
-                                        if (qry is not None):
-                                            if (is_queryType(qry) is True):
-                                            #if (noneempty(qry) is False):
-                                                fieldname = qry.left.fieldname
-                                            elif (is_fieldType_or_expressionType(qry) is True):
-                                                fieldname = qry.fieldname
-                                        elif (fieldnames(0) is not None):
-                                            if (is_fieldType_or_expressionType(fieldnames(0)) is True):
-                                                fieldname = fieldnames(0).fieldname
+                            if (noneempty(distinct) is False):
+                                if (is_expressionType(distinct) is True):
+                                    kwargs.distinct = distinct
+                                if (is_fieldType(distinct) is True):
+                                    fieldname = distinct.fieldname
+                                elif (isinstance(distinct, str) is True):
+                                    fieldname = distinct
+                                elif (isinstance(distinct, bool) is True):
+                                    if (distinct is False):
+                                        distinct = None
+                                    elif (distinct is True):
+                                        if (fieldname is None):
+                                            qry = query(0) \
+                                                if (len(query) > 0) \
+                                                else expression
+                                            if (qry is not None):
+                                                if (is_queryType(qry) is True):
+                                                    fieldname = qry.left.fieldname
+                                                elif (is_fieldType_or_expressionType(qry) is True):
+                                                    fieldname = qry.fieldname
+                                            elif (len(fieldnames) > 0):
+                                                if (fieldnames(0) is not None):
+                                                    if (is_fieldType_or_expressionType(fieldnames(0)) is True):
+                                                        fieldname = fieldnames(0).fieldname
+                                                    else:
+                                                        fieldname = fieldnames(0).left.fieldname
                                             else:
-                                                fieldname = fieldnames(0).left.fieldname
-                                        else:
-                                            for kkey in kwargs.getkeys():
-                                                if (is_expressionType(kwargs[kkey]) is True):
-                                                    fieldname = kwargs[kkey].fieldname
-                                            #fieldname = fieldnames[0].fieldname \
-                                            #if (is_fieldType(fieldnames[0]) is True) \
-                                            #else fieldnames[0].left
-                                else:
-                                    fieldname = self.validate_distinct(distinct)
+                                                for kkey in kwargs.getkeys():
+                                                    if (is_expressionType(kwargs[kkey]) is True):
+                                                        fieldname = kwargs[kkey].fieldname
+                                    if (hasattr(distinct, 'objp4') is True):
+                                        fieldname = self.validate_distinct(distinct)
+                                        #fieldname = None
+                                        #if (isinstance(distinct, bool) is True):
+                                        #    if (distinct is True):
+                                        #        qry = query(0) \
+                                        #            if (len(query) > 0) \
+                                        #            else expression
+                                        #        if (qry is not None):
+                                        #            if (is_queryType(qry) is True):
+                                        #                fieldname = qry.left.fieldname
+                                        #            elif (is_fieldType_or_expressionType(qry) is True):
+                                        #                fieldname = qry.fieldname
+                                        #        elif (len(fieldnames) > 0):
+                                        #            if (fieldnames(0) is not None):
+                                        #                if (is_fieldType_or_expressionType(fieldnames(0)) is True):
+                                        #                    fieldname = fieldnames(0).fieldname
+                                        #                else:
+                                        #                    fieldname = fieldnames(0).left.fieldname
+                                        #        else:
+                                        #            for kkey in kwargs.getkeys():
+                                        #                if (is_expressionType(kwargs[kkey]) is True):
+                                        #                    fieldname = kwargs[kkey].fieldname
+                                        #else:
+                                        #    fieldname = self.validate_distinct(distinct)
+                                        #if (fieldname is not None):
+                                        #    distinctvalue = record(fieldname)
+                                        #    if (distinctvalue is not None):
+                                        #        if (distinctvalue not in distinctrecords):
+                                        #            distinctrecords.merge({distinctvalue: record}, overwrite=False)
                                 if (fieldname is not None):
                                     distinctvalue = record(fieldname)
                                     if (distinctvalue is not None):
@@ -344,7 +383,8 @@ class Select(DLGSql):
                 eor = True
                 bail(err)
 
-        if (distinct is not None):
+        #if (distinct is not None):
+        if (len(distinctrecords) > 0):
             outrecords = Records(distinctrecords.getvalues(), cols, self.objp4)
         ''' Time to join/merge records 
         '''

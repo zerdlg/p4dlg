@@ -89,9 +89,9 @@ __all__ = [
 ]
 mdata = """
         --[$File: //dev/p4dlg/libsh/shell.py $]
-        --[$Change: 679 $] 
-        --[$Revision: #21 $]
-        --[$DateTime: 2025/04/02 05:10:28 $]
+        --[$Change: 680 $] 
+        --[$Revision: #22 $]
+        --[$DateTime: 2025/04/07 07:06:36 $]
         --[$Author: zerdlg $]
         """
 

@@ -1,5 +1,5 @@
-import re
 import sys
+import re
 from datetime import date, time, datetime
 from functools import reduce
 from pprint import pformat
@@ -14,15 +14,17 @@ from libdlg.dlgUtilities import (
     isnum,
     is_array,
     basestring,
-    isanyfile
+    isanyfile,
+    ALLUPPER,
+    ALLLOWER
 )
 from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 679 $] 
-     [$Revision: #18 $]
-     [$DateTime: 2025/04/02 05:10:28 $]
+     [$Change: 681 $] 
+     [$Revision: #20 $]
+     [$DateTime: 2025/04/07 07:40:42 $]
      [$Author: zerdlg $]
 '''
 
@@ -37,10 +39,9 @@ __all__ = [
            'CASE', 'CASEELSE', 'DIFF', 'MATCH', 'SEARCH',
            'LOWER', 'UPPER', 'JOIN', 'JOIN_LEFT',
            'PRIMARYKEY', 'COALESCE', 'COALESCE_ZERO',
-           'EXTRACT', 'SUBSTRING', 'LIKE', 'ILIKE',
+           'EXTRACT', 'SUBSTR', 'LIKE', 'ILIKE',
            'SUM', 'ABS', 'LEN', 'DIV',
-           'AVG', 'MIN', 'MAX', 'BELONGS', 'IN',
-           'TRUEDIV', 'COUNT',
+           'AVG', 'MIN', 'MAX', 'BELONGS', 'IN', 'COUNT',
            'YEAR', 'MONTH', 'DAY',
            'DLGQuery', 'DLGExpression',
 ]
@@ -104,9 +105,6 @@ class DLGQuery(object):
         return f'<DLGQuery {qdict}>'
 
     __str__ = __repr__
-
-    #__hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
-
     __hash__ = object.__hash__
     __iter__ = lambda self: self.__dict__.__iter__()
 
@@ -175,7 +173,6 @@ class DLGQuery(object):
 
 
 class DLGExpression(object):
-    #__hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
     __hash__ = object.__hash__
     __iter__ = lambda self: self.__dict__.__iter__()
 
@@ -281,6 +278,32 @@ class DLGExpression(object):
         return f'<DLGExpression {qdict}>'
 
     __str__ = __repr__
+
+    def __getitem__(self, value):
+        if (isinstance(value, slice) is False):
+            return self[value: ADD(value, 1)]
+        else:
+            ''' resolve and rebuild the slice in case of None or 
+                negative values, then return a valid expression.
+            '''
+            start = OR(
+                SUB(self.len(), SUB(abs(value.start), 1)) \
+                    if (value.start < 0) \
+                    else value.start, 0
+            )
+            stop = self.len() \
+                if (value.stop is None) \
+                else SUB(self.len(), SUB(abs(value.stop), 1), start) \
+                if (value.stop < 0) \
+                else SUB(ADD(value.stop, 1), SUB(start, 1))
+            step = value.step
+            return DLGExpression(
+                self.objp4,
+                SUBSTR,
+                self,
+                slice(start, stop, step),
+                self.type
+            )
 
     def as_dict(self, flat=False):
         def recurse(obji):
@@ -392,13 +415,23 @@ class DLGExpression(object):
         '''
         return DLGQuery(self.objp4, BELONGS, self, value)
 
-    def contains(self, value):
+    def contains(self, value, case_sensitive=False):
         ''' USAGE:
 
                 >>> qry = (oP4.files.depotFile.contains('/myProjectName'))
                 >>> records = oP4(qry).select()
         '''
-        return DLGQuery(self.objp4, CONTAINS, self, value)
+        if isinstance(value, (list, tuple)):
+            subqueries = [
+                self.contains(str(v), case_sensitive=case_sensitive)
+                for v in value
+                if str(v)
+            ]
+            if (len(subqueries) == 0):
+                return self.contains('')
+            else:
+                return reduce(all and AND or OR, subqueries)
+        return DLGQuery(self.objp4, CONTAINS, self, value, case_sensitive=case_sensitive)
 
     def startswith(self, value):
         ''' USAGE:
@@ -474,13 +507,16 @@ class DLGExpression(object):
         return DLGExpression(self.objp4, MUL, self, value, type=self.type)
 
     def __div__(self, value):
-        return self.__truediv__(value)
+        return DLGExpression(self.objp4, DIV, self, value, type=self.type)
 
     def __truediv__(self, value):
-        return DLGExpression(self.objp4, TRUEDIV, self, value, type=self.type)
+        return self.__truediv__(value)
 
     def __mod__(self, value):
         return DLGExpression(self.objp4, MOD, self, value, type=self.type)
+
+    def substr(self, value, distinct=None):
+        return DLGExpression(self.objp4, SUBSTR, self, distinct=distinct, type='integer')
 
     def count(self, distinct=None):
         ''' USAGE:
@@ -752,12 +788,8 @@ def MUL(*args, **kwargs):
     return clsMUL()(*args, **kwargs)
 
 
-def TRUEDIV(*args, **kwargs):
-    return clsTRUEDIV()(*args, **kwargs)
-
-
 def DIV(*args, **kwargs):
-    return clsTRUEDIV()(*args, **kwargs)
+    return clsDIV()(*args, **kwargs)
 
 
 def MOD(*args, **kwargs):
@@ -782,6 +814,10 @@ def SUM(*args, **kwargs):
 
 def COUNT(*args, **kwargs):
     return clsCOUNT()(*args,**kwargs)
+
+
+def SUBSTR(*args, **kwargs):
+    return clsSUBSTRING()(*args, **kwargs)
 
 
 def COALESCE(*args, **kwargs):
@@ -854,11 +890,6 @@ def PRIMARYKEY(*args, **kwargs):
 def EXTRACT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsEXTRACT()(*args, **kwargs)
-
-
-def SUBSTRING(*args, **kwargs):
-    return clsNOTIMPLEMENTED(**kwargs)(*args)
-    #return clsSUBSTRING()(*args, **kwargs)
 
 
 def BETWEEN(*args, **kwargs):
@@ -1191,40 +1222,38 @@ class QClass(object):
             else values
         return sequence
 
-
-def op_error(*items, name=None, err=None):
-    items = Lst(items)
-    msg = f"Invalid `{name}` operation.\n" \
-        if (name is not None) \
-        else "Invalid operation.\n"
-    (
-        left,
-        right,
-        op,
-        other
-    ) = (
-        items(0),
-        items(1),
-        items(2),
-        items(3)
-    )
-    if (op is not None):
-        opname = op.__name__ \
+    def op_error(self, *items, name=None, err=None):
+        items = Lst(items)
+        msg = f"Invalid `{name}` operation.\n" \
+            if (name is not None) \
+            else "Invalid operation.\n"
+        (
+            left,
+            right,
+            op,
+            other
+        ) = (
+            items(0),
+            items(1),
+            items(2),
+            items(3)
+        )
+        if (op is not None):
+            opname = op.__name__ \
                 if (callable(op) is True) \
                 else op
-        operation = f"{left} {opname} {right}"
-        if (other is not None):
-            othername = other.__name__ \
-                if (type(other) is FunctionType) \
-                else other
-            operation += f" | {othername}"
-    else:
-        operation = f"{name}({left}, {right})"
-    msg += f"\n\t({operation})\n"
-    error = err or "- Error message not provided -"
-    msg += f"\n{error}.\n"
-    bail(msg)
-
+            operation = f"{left} {opname} {right}"
+            if (other is not None):
+                othername = other.__name__ \
+                    if (type(other) is FunctionType) \
+                    else other
+                operation += f" | {othername}"
+        else:
+            operation = f"{name}({left}, {right})"
+        msg += f"\n\t({operation})\n"
+        error = err or "- Error message not provided -"
+        msg += f"\n{error}.\n"
+        bail(msg)
 
 class clsNOTIMPLEMENTED(QClass):
     def __call__(self, *exp):
@@ -1315,7 +1344,7 @@ class clsAND(QClass):
                     )
                 return qres
             except Exception as err:
-                op_error(lambda left, right, op: (
+                self.op_error(lambda left, right, op: (
                     left,
                     right,
                     op or AND
@@ -1403,7 +1432,7 @@ class clsOR(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or OR
@@ -1444,7 +1473,7 @@ class clsXOR(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or XOR
@@ -1495,7 +1524,7 @@ class clsINVERT(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or INVERT
@@ -1548,7 +1577,7 @@ class clsNOT(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op, inversion: (
+            self.op_error(lambda left, right, op, inversion: (
                 left,
                 right,
                 op or NOT,
@@ -1607,7 +1636,7 @@ class clsNE(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or NE
@@ -1676,7 +1705,7 @@ class clsEQ(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or EQ
@@ -1718,7 +1747,7 @@ class clsLT(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or LT
@@ -1760,7 +1789,7 @@ class clsLE(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or LE
@@ -1803,7 +1832,7 @@ class clsGT(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or GT
@@ -1845,7 +1874,7 @@ class clsGE(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or GE
@@ -1896,7 +1925,7 @@ class clsCONTAINS(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or CONTAINS
@@ -1962,7 +1991,7 @@ class clsBELONGS(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or BELONGS
@@ -2010,7 +2039,7 @@ class clsON(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or STARTSWITH
@@ -2061,7 +2090,7 @@ class clsSTARTSWITH(QClass):
             )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or STARTSWITH
@@ -2107,7 +2136,7 @@ class clsENDSWITH(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or ENDSWITH
@@ -2153,7 +2182,7 @@ class clsMATCH(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right: (
+            self.op_error(lambda left, right: (
                 left,
                 right,
                 op or MATCH
@@ -2199,14 +2228,14 @@ class clsSEARCH(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right,: (
+            self.op_error(lambda left, right,: (
                 left,
                 right,
                 op or SEARCH
             ), name='SEARCH', err=err)
 
 '''
-    COUNT, ADD, MOD, SUM, AVG, LEN, ABS, MIN, MAX, SUB, MUL, TRUEDIV, DIV
+    COUNT, ADD, MOD, SUM, AVG, LEN, ABS, MIN, MAX, SUB, MUL, DIV
 '''
 class clsCOUNT(QClass):
     def __call__(self, *exps, distinct=None):
@@ -2265,7 +2294,7 @@ class clsCOUNT(QClass):
             elif (is_array(left) is True):
                 return len(left)
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or MAX
@@ -2308,7 +2337,7 @@ class clsMOD(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or MOD
@@ -2356,7 +2385,7 @@ class clsSUM(QClass):
                 return right
 
         except ValueError as err:
-            op_error(
+            self.op_error(
                 lambda left, right, op: (
                     left,
                     right,
@@ -2412,7 +2441,7 @@ class clsAVG(QClass):
             setattr(right, 'avg', average)
             return right
         except Exception as err:
-            op_error(
+            self.op_error(
                 lambda left, right, op: (
                     left,
                     right,
@@ -2422,23 +2451,32 @@ class clsAVG(QClass):
                      err=err
             )
 
-class clsLEN(QClass):
+class clsSUBTRING(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         if (
                 (right is None) &
-                (isinstance(left, (str, bool)))
+                (
+                        (isinstance(left, (str, bool)) is True) |
+                        (is_array(left) is True)
+                )
         ):
-            return len(left)
+            try:
+                return len(left)
+            except Exception as err:
+                bail(err)
+
         fieldname = left.fieldname if (
                 (is_fieldType_or_expressionType(left) is True) |
                 (is_tableType(left) is True)
         ) else left
+
         try:
             if (
                     (is_recordsType(right) is True) |
-                    (isinstance(right, list) is True)
+                    (isinstance(right, list) is True) |
+                    (type(right) is enumerate)
             ):
                 for record in right:
                     record.merge({'len': len(record[fieldname])})
@@ -2448,13 +2486,50 @@ class clsLEN(QClass):
                     (isinstance(right, dict) is True)
             ):
                 return len(right[fieldname])
-            elif (right is None):
-                try:
-                    return len(left)
-                except:
-                    return left
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
+                left,
+                right,
+                op or LEN
+            ),name='LEN', err=err)
+
+class clsLEN(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+        (left, right) = (exps(0), exps(1))
+        if (
+                (right is None) &
+                (
+                        (isinstance(left, (str, bool)) is True) |
+                        (is_array(left) is True)
+                )
+        ):
+            try:
+                return len(left)
+            except Exception as err:
+                bail(err)
+
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
+
+        try:
+            if (
+                    (is_recordsType(right) is True) |
+                    (isinstance(right, list) is True) |
+                    (type(right) is enumerate)
+            ):
+                for record in right:
+                    record.merge({'len': len(record[fieldname])})
+                return right
+            elif (
+                    (is_recordType(right) is True) |
+                    (isinstance(right, dict) is True)
+            ):
+                return len(right[fieldname])
+        except Exception as err:
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or LEN
@@ -2464,83 +2539,115 @@ class clsABS(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        (current_type, left_right_are_valid) \
-            = self.validate_field_type(left, right)
-        fieldname = left.fieldname if (
-                (is_fieldType_or_expressionType(left) is True) |
-                (is_tableType(left) is True)
-        ) else left
+        if (
+                (right is None) &
+                (isinstance(left, (str, int, float)) is True)
+        ):
+            left_type = type(left)
+            if (left_type is str):
+                left = float(left)
+            left = abs(left)
+            return left_type(left)
+
         try:
+            fieldname = left.fieldname if (
+                    (is_fieldType_or_expressionType(left) is True) |
+                    (is_tableType(left) is True)
+            ) else left
+
             if (
-                    (current_type is None) &
-                    (is_array(left) is True)):
-                if (isinstance(left, (str, int))):
-                    left_type = type(left)
-                    if (left_type is str):
-                        left = float(left)
-                    left = self.rounder(abs(left))
-                    return left_type(left)
-            elif (
-                    (current_type is not None) &
-                    (left_right_are_valid is True)):
+                    (is_recordsType(right) is True) |
+                    (isinstance(right, list) is True) |
+                    (type(right) is enumerate)
+            ):
+                for record in right:
+                    if (
+                            (is_recordType(record) is True) |
+                            (isinstance(right, dict) is True)
+                    ):
+                        value = record[fieldname]
+                        if (value in (str, int, float)):
+                            value_type = type(value)
+                            if (value_type is str):
+                                value = float(value)
+                            value = abs(value)
+
                 updated_records = Lst()
                 for record in right:
-                    current_value = record[fieldname]
-                    updvalue = abs(float(current_value))
-                    updvalue = current_type(self.rounder(updvalue))
-                    record.merge({fieldname: updvalue})
-                    if (record.code is not None):
-                        record.delete('code')
-                    updated_records.append(record)
+                    if (
+                            (is_recordType(record) is True) |
+                            (isinstance(right, dict) is True)
+                    ):
+                        current_value = record[fieldname]
+                        current_type = type(current_value)
+                        updvalue = abs(float(current_value))
+                        updvalue = current_type(updvalue)
+                        record.merge({fieldname: updvalue})
+                        updated_records.append(record)
+                updated_records = Records(updated_records)
                 return updated_records
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or ABS
             ), name='ABS', err=err)
 
-
 class clsMIN(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        (current_type, left_right_are_valid) \
-            = self.validate_field_type(left, right)
         (values, minvalue) = (set(), None)
-        fieldname = left.fieldname if (
-                (is_fieldType_or_expressionType(left) is True) |
-                (is_tableType(left) is True)
-        ) else left
-        try:
-            if (
-                    (current_type is None) &
-                    (is_array(left) is True)
-            ):
-                current_type = type(left[0])
-                for value in left:
-                    values.add(float(value))
+        if (
+                (right is None) &
+                (is_array(left) is True)
+        ):
+            try:
+                [values.add(float(value)) for value in left]
                 minvalue = min(values)
-            elif (
-                    (current_type is not None) &
-                    (left_right_are_valid is True)
+                return self.rounder(minvalue)
+            except Exception as err:
+                bail(err)
+        try:
+            fieldname = left.fieldname if (
+                    (is_fieldType_or_expressionType(left) is True) |
+                    (is_tableType(left) is True)
+            ) else left
+
+            if (
+                    (is_recordsType(right) is True) |
+                    (isinstance(right, list) is True) |
+                    (type(right) is enumerate)
             ):
                 for record in right:
-                    value = record[fieldname]
-                    values.add(float(value))
+                    if (
+                            (is_recordType(record) is True) |
+                            (isinstance(right, dict) is True)
+                    ):
+                        value = record[fieldname]
+                        if (value is not None):
+                            values.add(float(value))
 
-                right.mins = ZDict()
-                grprecords = right.groupby(fieldname, as_groups=True)
-                for (grpname, grprecs) in grprecords.items():
-                    grpmin = min([int(grprec[fieldname]) for grprec in grprecs])
-                    right.mins.merge({grpname: grpmin})
+                #right.mins = ZDict()
+                #grprecords = right.groupby(fieldname, as_groups=True)
+                #for (grpname, grprecs) in grprecords.items():
+                #    grpmins = set()
+                #    for grprec in grprecs:
+                #        if (grprec[fieldname] is not None):
+                #            grpmins.add(int(grprec[fieldname]))
+                #    grpmin = self.rounder(min(grpmins))
+                #    right.mins.merge({grpname: grpmin})
+                minvalue = self.rounder(min(values))
+            #elif (
+            #        (is_recordType(right) is True) |
+            #        (isinstance(dict, right) is True)
+            #):
+            #    return right[fieldname]
 
-                minvalue = min(values)
-            minvalue = current_type(minvalue)
             right.min = minvalue
             return right
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or MIN
@@ -2551,42 +2658,57 @@ class clsMAX(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        (current_type, left_right_are_valid) \
-            = self.validate_field_type(left, right)
         (values, maxvalue) = (set(), None)
-        fieldname = left.fieldname if (
-                (is_fieldType_or_expressionType(left) is True) |
-                (is_tableType(left) is True)
-        ) else left
-        try:
-            if (
-                    (current_type is None) &
-                    (is_array(left) is True)
-            ):
-                current_type = type(left[0])
-                for value in left:
-                    values.add(float(value))
+        if (
+                (right is None) &
+                (is_array(left) is True)
+        ):
+            try:
+                [values.add(float(value)) for value in left]
                 maxvalue = max(values)
-            elif (
-                    (current_type is not None) &
-                    (left_right_are_valid is True)
+                return self.rounder(maxvalue)
+            except Exception as err:
+                bail(err)
+        try:
+            fieldname = left.fieldname if (
+                    (is_fieldType_or_expressionType(left) is True) |
+                    (is_tableType(left) is True)
+            ) else left
+
+            if (
+                    (is_recordsType(right) is True) |
+                    (isinstance(right, list) is True) |
+                    (type(right) is enumerate)
             ):
                 for record in right:
-                    value = record[fieldname]
-                    values.add(float(value))
+                    if (
+                            (is_recordType(record) is True) |
+                            (isinstance(right, dict) is True)
+                    ):
+                        value = record[fieldname]
+                        if (value is not None):
+                            values.add(float(value))
 
-                right.maxx = ZDict()
-                grprecords = right.groupby(fieldname, as_groups=True)
-                for (grpname, grprecs) in grprecords.items():
-                    grpmax = max([int(grprec[fieldname]) for grprec in grprecs])
-                    right.maxx.merge({grpname: grpmax})
+                #right.maxs = ZDict()
+                #grprecords = right.groupby(fieldname, as_groups=True)
+                #for (grpname, grprecs) in grprecords.items():
+                #    grpmaxs = set()
+                #    for grprec in grprecs:
+                #        if (grprec[fieldname] is not None):
+                #            grpmaxs.add(int(grprec[fieldname]))
+                #    grpmax = self.rounder(min(grpmaxs))
+                #    right.mins.merge({grpname: grpmax})
+                maxvalue = self.rounder(max(values))
+            #elif (
+            #        (is_recordType(right) is True) |
+            #        (isinstance(dict, right) is True)
+            #):
+            #    return right[fieldname]
 
-                maxvalue = max(values)
-            maxvalue = current_type(maxvalue)
             right.max = maxvalue
             return right
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or MAX
@@ -2670,7 +2792,7 @@ class clsADD(QClass):
                     return reduce(lambda left, right: (left + right), self.getSequence(*exps))
             return right
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or ADD
@@ -2754,7 +2876,7 @@ class clsSUB(QClass):
                     return reduce(lambda left, right: (left - right), self.getSequence(*exps))
             return right
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or SUB
@@ -2838,15 +2960,15 @@ class clsMUL(QClass):
                     return reduce(lambda left, right: (left * right), self.getSequence(*exps))
             return right
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or MUL
             ), name='MUL', err=err)
 
-class clsTRUEDIV(QClass):
+class clsDIV(QClass):
     """
-    GT(TRUEDIV(p4.files.depotFile.len(), 2), 32)
+    GT(DIV(p4.files.depotFile.len(), 2), 32)
     or
     ((p4.files.depotFile.len() / 2) > 32)
 
@@ -2858,7 +2980,7 @@ class clsTRUEDIV(QClass):
                        'op': LEN,
                        'right': None},
               'objp4': '<Py4 anastasia.local:1777 >',
-              'op': TRUEDIV,
+              'op': TDIV,
               'right': 2},
      'objp4': '<Py4 anastasia.local:1777 >',
      'op': GT,
@@ -2888,18 +3010,19 @@ class clsTRUEDIV(QClass):
             ):
                 bail(f'First argument must be a number or an expression, got `{type(left)}`.')
             if (isinstance(left, dict) is True):
-                return ZDict({'op': TRUEDIV, 'left': left, 'right': right})
+                return ZDict({'op': DIV, 'left': left, 'right': right})
             elif (is_queryType(left) is True):
-                return DLGQuery(left.objp4, TRUEDIV, left, right)
+                return DLGQuery(left.objp4, DIV, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
                 if (hasattr(left, 'left')):
                     if (is_fieldType(left.left) is True):
-                        return DLGExpression(left.objp4, TRUEDIV, left, right)
+                        return DLGExpression(left.objp4, DIV, left, right)
                 fieldname = left.fieldname if (hasattr(left, 'fieldname')) else left
                 leftvalue = int(left.right)
                 if (
                         (is_recordsType(right) is True) |
-                        (isinstance(right, list) is True)
+                        (isinstance(right, list) is True) |
+                        (type(right) is enumerate)
                 ):
                     for record in right:
                         if (
@@ -2909,7 +3032,7 @@ class clsTRUEDIV(QClass):
                             total = int(leftvalue / record[fieldname]) \
                                 if (force_int is True) \
                                 else (leftvalue / record[fieldname])
-                            record.update(**{'TRUEDIV': total})
+                            record.update(**{'DIV': total})
                     return right
                 elif (
                         (
@@ -2932,8 +3055,8 @@ class clsTRUEDIV(QClass):
                     )
             ):
                 return reduce(lambda left, right: int(left / right)
-                if (force_int is True)
-                else (left / right), self.getSequence(*exps))
+                    if (force_int is True)
+                    else (left / right), self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
                 if (
@@ -2944,11 +3067,11 @@ class clsTRUEDIV(QClass):
                     else (left / right), self.getSequence(*exps))
             return right
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
-                op or TRUEDIV
-            ), name='TRUEDIV', err=err)
+                op or DIV
+            ), name='DIV', err=err)
 
 class clsCASE(QClass):
     ''' >>> condition = (p4.changes.user.startswith('z'))
@@ -2993,7 +3116,7 @@ class clsCASE(QClass):
                 qres = self.build_query(left, right, CASE)
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or CASE
@@ -3039,7 +3162,7 @@ class clsCASEELSE(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op, other,: (
+            self.op_error(lambda left, right, op, other,: (
                 left,
                 right,
                 op or CASEELSE,
@@ -3047,7 +3170,7 @@ class clsCASEELSE(QClass):
             ), name='CASEELSE', err=err)
 
 
-class REGEX(QClass):
+class clsREGEX(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
@@ -3096,7 +3219,7 @@ class REGEX(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or LIKE
@@ -3154,11 +3277,54 @@ class clsLIKE(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or LIKE
             ), name='LIKE', err=err)
+
+
+class clsSUBSTRING(QClass):
+    def __call__(self, *exps):
+        (left, right) = Lst(exps)
+        if (
+                (right is None) &
+                (
+                        (isinstance(left, (str, bool)) is True) |
+                        (is_array(left) is True)
+                )
+        ):
+            try:
+                return len(left)
+            except Exception as err:
+                bail(err)
+
+        fieldname = left.fieldname if (
+                (is_fieldType_or_expressionType(left) is True) |
+                (is_tableType(left) is True)
+        ) else left
+
+        try:
+            if (
+                    (is_recordsType(right) is True) |
+                    (isinstance(right, list) is True) |
+                    (type(right) is enumerate)
+            ):
+                for record in right:
+                    record.merge({'len': len(record[fieldname])})
+                return right
+            elif (
+                    (is_recordType(right) is True) |
+                    (isinstance(right, dict) is True)
+            ):
+                return right[fieldname][left.right]
+        except Exception as err:
+            self.op_error(lambda left, right, op: (
+                left,
+                right,
+                op or LEN
+            ),name='LEN', err=err)
+
 
 
 class clsILIKE(QClass):
@@ -3212,7 +3378,7 @@ class clsILIKE(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or ILIKE
@@ -3229,11 +3395,11 @@ class clsLOWER(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        if (
-                (right is None) &
-                (isinstance(left, str))
-        ):
-            return left.lower()()
+        if (right is None):
+            if (isinstance(left, str) is True):
+                return left.lower()
+            elif (is_array(left) is True):
+                return ALLLOWER(left)
         if (isinstance(left, dict) is True):
             return ZDict({'op': LOWER, 'left': left, 'right': right})
         elif (is_queryType(left) is True):
@@ -3261,7 +3427,7 @@ class clsLOWER(QClass):
                     except:
                         return left
             except Exception as err:
-                op_error(lambda left, right, op: (
+                self.op_error(lambda left, right, op: (
                     left,
                     right,
                     op or LOWER
@@ -3280,11 +3446,11 @@ class clsUPPER(QClass):
     def __call__(self, *exps, **kwargs):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
-        if (
-                (right is None) &
-                (isinstance(left, str))
-        ):
-            return left.upper()
+        if (right is None):
+            if (isinstance(left, str) is True):
+                return left.upper()
+            elif (is_array(left) is True):
+                return ALLUPPER(left)
         if (isinstance(left, dict) is True):
             return ZDict({'op': UPPER, 'left': left, 'right': right})
         elif (is_queryType(left) is True):
@@ -3312,7 +3478,7 @@ class clsUPPER(QClass):
                     except:
                         return left
             except Exception as err:
-                op_error(lambda left, right, op: (
+                self.op_error(lambda left, right, op: (
                     left,
                     right,
                     op or UPPER
@@ -3358,7 +3524,7 @@ class clsUPPER_(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or UPPER
@@ -3392,7 +3558,7 @@ class clsEPOCH(QClass):
                 qres = self.breakdown_query(left, right, EPOCH)
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or EPOCH
@@ -3437,7 +3603,7 @@ class clsDIFF(QClass):
                 )
             return qres
         except Exception as err:
-            op_error(lambda left, right, op: (
+            self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or DIFF
@@ -3464,11 +3630,6 @@ class clsCOALESCEZERO(QClass):
 
 
 class clsEXTRACT(QClass):
-    def __call__(self, *exps):
-        exps = Lst(exps)
-
-
-class clsSUBSTRING(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
 
@@ -3735,7 +3896,7 @@ def expression_table(op):
             "DIFF": DIFF,
             "COUNT": COUNT,
             "EXTRACT": EXTRACT,
-            "SUBSTRING": SUBSTRING,
+            "SUBSTR": SUBSTR,
             "LIKE": LIKE,
             "ILIKE": ILIKE,
             "SUM": SUM,
@@ -3743,8 +3904,8 @@ def expression_table(op):
             "AVG": AVG,
             "MIN": MIN,
             "MAX": MAX,
+            "DIV": DIV,
             "BELONGS": BELONGS,
-            "TRUEDIV": TRUEDIV,
             "YEAR": YEAR,
             "MONTH": MONTH,
             "DAY": DAY,
