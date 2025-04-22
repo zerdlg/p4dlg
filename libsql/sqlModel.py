@@ -4,7 +4,7 @@ except ImportError:
     import pickle
 from collections import OrderedDict
 
-from libdlg.dlgStore import ZDict, objectify, Lst
+from libdlg.dlgStore import Storage, objectify, Lst
 from libdlg.dlgUtilities  import fix_name, bail
 
 __all__ = ['Py4Model']
@@ -23,7 +23,7 @@ class Py4Model(object):
     ):
         self.normalize_tablenames = normalize_tablenames
         self.fixname = fix_name(tableformat)
-        self.modelized_tablefields = ZDict()
+        self.modelized_tablefields = Storage()
         self.common_table_attributes = OrderedDict()
         #self.schema = objectify(schema)
         self.p4schema = objectify(schema)#self.schema
@@ -31,7 +31,7 @@ class Py4Model(object):
         self.upgrades = self.p4schema.numUpgrades
         ''' get a list of recordTypes  
         '''
-        self.p4recordtypes = ZDict(
+        self.p4recordtypes = Storage(
             {
                 row.name: row for row in self.p4schema.recordtypes.record
             }
@@ -39,7 +39,7 @@ class Py4Model(object):
 
         ''' get a list of tables 
         '''
-        self.p4tables = ZDict(
+        self.p4tables = Storage(
             {
                 row.name: row for row in self.p4schema.tables.table
             }
@@ -62,7 +62,7 @@ class Py4Model(object):
                     for tbl in self.p4tables]
 
     def modelize_schema(self):
-        model = ZDict()
+        model = Storage()
         for (table, tbl_attributes) in self.p4tables.items():
             normalized_tablename = self.fixname(table, 'table') \
                 if (self.normalize_tablenames is True) \
@@ -76,7 +76,7 @@ class Py4Model(object):
                 if (not tableatt in self.common_table_attributes)]
             ''' set the current record 
             '''
-            currentrecord = tbl_attributes#ZDict(tbl_attributes)#.copy())
+            currentrecord = tbl_attributes#Storage(tbl_attributes)#.copy())
             ''' we need to add extra default fields to each table! 
             '''
             tablefields = objectify(

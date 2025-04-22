@@ -8,7 +8,7 @@ from libpy4.py4Options import Py4Options
 from libpy4.py4Run import Py4Run
 from libpy4.py4Sqltypes import Py4Table, Py4Field
 from libdlg.dlgStore import (
-    ZDict,
+    Storage,
     objectify,
     Lst
 )
@@ -41,9 +41,9 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 680 $] [$Revision: #47 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 693 $] [$Revision: #53 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 '''     a perforce client program.
@@ -77,6 +77,30 @@ schemadir = dirname(schemaxml.__file__)
             >>> qry = (oP4.clients.client.contains('fred'))
             >>> clients = oP4(qry).select()
             >>> clients
+            
+    NOTE: Reconciling path wildcards (ie. unix style or otherwise with 
+          perforce wildcards while using this abstraction) is unintuitive.
+          
+          Therefore, I suggest a good and clean regex.
+          
+          eg. match all files with a `.py` extension, but non recusively
+                       
+          consider the following Query.
+             
+            >>> qry = (p4.files.depotFile.match('^//dev/p4dlg/[^/]*\.py$'))
+            >>> files = p4(qry).select()
+          
+          which is equivalent to:  
+            
+            >>> files = p4(p4.files).select(qry)
+          
+          which is also equivalent to:
+          
+            >>> files = p4().select(qry)
+    
+            
+            
+    
 '''
 
 __all__ = ['Py4', 'p4connector']
@@ -120,7 +144,7 @@ class Py4(object):
         iter(self)
 
     def __init__(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         loglevel = kwargs.pop('loglevel') \
             if (kwargs.loglevel is not None) \
             else 'DEBUG'
@@ -364,7 +388,7 @@ class Py4(object):
             if (not configkey in self.p4globals):
                 setattr(self, attname, configpairs[configkey])
 
-        self.recCounter = ZDict(
+        self.recCounter = Storage(
                                     {
                                         'threshhold': self.recordchunks,
                                         'recordcounter': 0
@@ -374,7 +398,7 @@ class Py4(object):
         self.p4obj_configs = kwargs.exclude('oSchema')
 
     def __call__(self, query=None, *options, **kwargs):
-        (options, kwargs) = (Lst(options), ZDict(kwargs))
+        (options, kwargs) = (Lst(options), Storage(kwargs))
         (
             tablename,
             lastarg,
@@ -384,7 +408,7 @@ class Py4(object):
             = (
             kwargs.tablename,
             None,
-            ZDict(),
+            Storage(),
             None,
         )
 
@@ -414,7 +438,7 @@ class Py4(object):
                     reference = query
                     reference.flat = kwargs.flat or False
                     ''' re-define query as the query's left 
-                        side's Table object (_table)
+                        side Table object (_table)
                     '''
                     query = reference.left._table
                     tablename = query.tablename
@@ -488,10 +512,17 @@ class Py4(object):
         ''' Have we picked up any queries?
         '''
         if (len(p4Queries) > 0):
-            if (not tablename in self.tablememo.keys()):
+            if (not hasattr(self, tablename)):
                 self.memoizetable(tablename)
             ''' lastarg (| filename | specname)
             '''
+            if (tablename in (self.spec_args_are_optional + self.p4spec_requires_lastarg)):
+                qry = p4Queries(0)
+                if (
+                        (is_fieldType(qry.left) is True) &
+                        (qry.left.fieldname.lower() == tabledata.altarg)
+                ):
+                    lastarg = qry.right
             if (lastarg is None):
                 for item in (
                         'filename',
@@ -501,11 +532,15 @@ class Py4(object):
                     if (kwargs[item] is not None):
                         lastarg = kwargs[item]
                         break
-            if (
-                    (isinstance(lastarg, str) is True) &
-                    (not lastarg in options)
-            ):
-                options.append(lastarg)
+            #if (
+            #        #(tabledata.is_spec is False) &
+            #        (isinstance(lastarg, str) is True) &
+            #        (not lastarg in options)
+            #):
+            #    options.append(lastarg)
+
+        #if (lastarg is not None):
+        #    tabledata.update(**{'lastarg': lastarg})
 
         ''' add any global options to supglobals for temporary use
         '''
@@ -634,7 +669,7 @@ class Py4(object):
                         'ignore',
                         'tickets'
         ]
-        envvariables = ZDict()
+        envvariables = Storage()
         p4UserConfig = Py4Run(self, **cdata)()
         if (is_recordsType(p4UserConfig) is True):
             p4UserConfig = p4UserConfig(0).data
@@ -651,7 +686,7 @@ class Py4(object):
         return envvariables
 
     def define_p4globals(self, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         res = set()
         RSH_PORT_Error = "Can not define RSH port because the RSH string could not be built"
         RSH_MISSING_ROOT_ERROR = "Can not define RSH port, `p4droot` is required!"
@@ -775,6 +810,7 @@ class Py4(object):
                         **tabledata
                     )
                     setattr(self, tablename, oCmdTable)
+                    tabledata.tablename = tablename
             elif (tablename in self.usage_items):
                 try:
                     usageinfo = self.helpmemo[tablename]
@@ -809,7 +845,7 @@ class Py4(object):
     def define_lastarg(self, tablename, *cmdargs, **kwargs):
         if (tablename is None):
             return (None, cmdargs)
-        (cmdargs, kwargs) = (Lst(cmdargs), ZDict(kwargs))
+        (cmdargs, kwargs) = (Lst(cmdargs), Storage(kwargs))
         tabledata = self.memoizetable(tablename)
         usage = tabledata.tableoptions.usage
         lastarg = None
@@ -859,31 +895,46 @@ class Py4(object):
                 ''' priority 3
                 '''
                 if (isinstance(qry.right, (str, int)) is True):
-                    if (
-                            (
-                                    (isanyfile(str(qry.right)) is True) &
-                                    (qry.left.fieldname.lower() in (
-                                            'depotfile',
-                                            'clientfile',
-                                            'path')
-                                    )
-                            )
-                    ):
-                        p4args = self.p4globals + ['where', qry.right]
-                        out = self.p4OutPut(tablename, *p4args)(0)
-                        lastarg = out.depotFile
+                    if (qry.op in regex_ops):
+                        lastarg = None
+                        requires_filearg = False
+                    elif (qry.op in equal_ops):
                         if (
-                                (isdepotfile(lastarg) is True) &
-                                (isdepotfile(qry.right) is True) &
-                                (lastarg != qry.right)
+                                (
+                                        (isanyfile(str(qry.right)) is True) &
+                                        (qry.left.fieldname.lower() in (
+                                                'depotfile',
+                                                'clientfile',
+                                                'path'
+                                        )
+                                        )
+                                )
                         ):
-                            qry.right = lastarg
-
+                            ''' Strip out rev/change specifier (if any).
+                            '''
+                            filename = Lst(re.split(r'[@#]', qry.right))(0)
+                            p4args = self.p4globals + ['where', filename]
+                            out = self.p4OutPut(tablename, *p4args)(0)
+                            lastarg = out.depotFile
+                            if (lastarg != filename):
+                                if (
+                                        (isdepotfile(lastarg) is True) &
+                                        (isdepotfile(filename) is True)
+                                ):
+                                    qry.right = filename = lastarg
+                    else:
+                        ''' assume qry.right is the lastarg.
+                        '''
+                        lastarg = qry.right
+                    """
+                    elif (isinstance(qry.right, re.Pattern) is True):
+                        ''' or, lastly, is it a compiled regex (still a TODO: though)
+                        '''
+                    """
             if (noneempty(lastarg) is True):
                 ''' If all else fails, just use the clientFile
                 '''
                 lastarg = f'//{self._client}/...'
-
             ''' whatever the case, is the query's fieldname a revision 
                 or changelist specifier, or time specifier (relative or 
                 not), or revision action specifier? If yes, then pass that 
@@ -975,12 +1026,12 @@ class Py4(object):
             elif (tablename in spec_lastarg_pairs.keys()):
                 ''' any other spec
                 '''
-                if (
-                        (isinstance(cmdargs(-1), str) is True) &
-                        (isnum(cmdargs(-1)) is False) &
-                        (not cmdargs(-1).startswith('-'))
-                ):
-                    lastarg = cmdargs.pop(-1)
+                if (isinstance(cmdargs(-1), str) is True):
+                    if (
+                            (isnum(cmdargs(-1)) is False) &
+                            (not cmdargs(-1).startswith('-'))
+                    ):
+                        lastarg = cmdargs.pop(-1)
             elif (
                     (
                             (tablename in cmdargs) &
@@ -1058,7 +1109,7 @@ class Py4(object):
             args = ['print', sourcefile]
             cmdargs = self.objp4.p4globals + args
             out = Lst(self.objp4.p4OutPut('print', *cmdargs))
-            metadata = ZDict(out(0))
+            metadata = Storage(out(0))
             if (len(out) == 2):
                 source = out(1).data
             else:
@@ -1075,7 +1126,7 @@ class Py4(object):
             for q in query:
                 specifiers = []
                 if (
-                        (isinstance(q.right, ZDict)) |
+                        (isinstance(q.right, Storage)) |
                         (q.right.__name__ == fieldType(self.objp4))
                 ):
                     q = q.left
@@ -1187,7 +1238,6 @@ class Py4(object):
         if (opname in (andops + orops + xorops + notops)):
             for qlr in (qry.left, qry.right):
                 if (is_query_or_expressionType(qry) is True):
-                #if (type(qlr).__name__ in ('DLGQuery', 'DLGExpression')):
                     (
                         q,
                         left,
@@ -1248,7 +1298,7 @@ class Py4(object):
                     (isdepotfile(right) is True) &
                     (tablename is not None)
             ):
-                (lastarg, options, qry) = self.define_lastarg(tablename, *options, query=qry) #2
+                (lastarg, options, qry) = self.define_lastarg(tablename, *options, query=qry) #1
         if (tablename is None):
             tablename = qry.tablename
         if (noneempty(tabledata) is True):
@@ -1263,34 +1313,42 @@ class Py4(object):
             qkwargs = {}
             if (qry is not None):
                 qkwargs = {'query': qry}
-            (lastarg, options, qry) = self.define_lastarg(tablename, *options, **qkwargs)
-        if (lastarg is not None):
-            ''' is a rev | changelist specified in qry.right?
-            '''
-            if (isinstance(right, str) is True):
-                if (right in ('depotFile', 'clientFile', 'path')):
-                    if (reg_rev_change_specifier.match(right) is not None):
-                        for item in ('#', '@'):
-                            right_bits = re.split(item, right, maxsplit=1)
-                            if (len(right_bits) == 2):
-                                qry.right = right_bits[0]
-                                specifier = item
-                                specifier_value = right_bits[1]
-                                ''' the query's q.right value cannot contain any
-                                    revision specifiers because the value will
-                                    be validated against the record's own value 
-                                    thereby considering the record as being 
-                                    non-matching.
+            (lastarg, options, qry) = self.define_lastarg(tablename, *options, **qkwargs) #2
+        ''' is a rev | changelist specified in qry.right?
+        '''
+        if (
+                (isinstance(right, str) is True) &
+                (tabledata.is_spec is False)
+        ):
+            if (
+                    (lastarg is not None) |
+                    (qry.op in regex_ops)
+            ):
+                if (
+                        (right in ('depotFile', 'clientFile', 'path')) &
+                        (reg_rev_change_specifier.match(right) is not None)
+                ):
+                    for item in ('#', '@'):
+                        right_bits = re.split(item, right, maxsplit=1)
+                        if (len(right_bits) == 2):
+                            qry.right = right_bits[0]
+                            specifier = item
+                            specifier_value = right_bits[1]
+                            ''' the query's q.right value cannot contain any
+                                revision specifiers because the value will
+                                be validated against the record's own value 
+                                thereby considering the record as being 
+                                non-matching.
+                            '''
+                            if (isinstance(qry.left, Py4Field)):
+                                for (name, val) in {
+                                    'specifier': specifier,
+                                    'specifier_value': specifier_value
+                                }:
+                                    setattr(qry.left, name, val)
+                                ''' if not #head, try to use relative revision specifiers instead!
                                 '''
-                                if (isinstance(qry.left, Py4Field)):
-                                    for (name, val) in {
-                                        'specifier': specifier,
-                                        'specifier_value': specifier_value
-                                    }:
-                                        setattr(qry.left, name, val)
-                                    ''' if not #head, try to use relative revision specifiers instead!
-                                    '''
-                                break
+                            break
         return (
                 qry,
                 left,
@@ -1335,7 +1393,7 @@ class Py4(object):
         )
 
     def parseInputKeys(self, tabledata, specname=None, *cmdargs, **specinput):
-        (cmdargs, specinput) = (Lst(cmdargs), ZDict(specinput))
+        (cmdargs, specinput) = (Lst(cmdargs), Storage(specinput))
         if (type(specname).__name__ == 'Py4Table'):
             specname = specname.tablename
         elif (
@@ -1384,7 +1442,7 @@ class Py4(object):
         ) = \
             (
                 Lst(p4args),
-                ZDict(kwargs),
+                Storage(kwargs),
                 Lst(),
                 False
         )
@@ -1428,7 +1486,7 @@ class Py4(object):
         ) = \
             (
                 Lst(p4args),
-                ZDict(kwargs),
+                Storage(kwargs),
                 Lst(),
                 False
         )
@@ -1440,7 +1498,7 @@ class Py4(object):
                 (kwargs.lastarg is not None) &
                 (kwargs.lastarg != p4args(-1))
             ):
-                (specname, p4args, noqry) = self.define_lastarg(tablename, *p4args)
+                (specname, p4args, noqry) = self.define_lastarg(tablename, *p4args) #3
                 if (
                         (isinstance(specname, str) is True) &
                         (specname != p4args[-1])
@@ -1461,7 +1519,7 @@ class Py4(object):
                 out = objectify(loader(oFile))
                 if (isinstance(out, Lst) is True):
                     if (isinstance(out(0), tuple) is True):
-                        out = ZDict(out)
+                        out = Storage(out)
                 out = decode_bytes(out)
                 records.append(out)
             except (StopIteration, EOFError):
@@ -1501,7 +1559,7 @@ class Py4(object):
             = \
             (
                 Lst(p4args),
-                ZDict(specinput)
+                Storage(specinput)
             )
         objFile = Popen(
             p4args,
@@ -1552,12 +1610,14 @@ class Py4(object):
                         )
                     ):
                     out = decode_bytes(out)
-            return Flatten(**ZDict(out)).reduce()
+            return Flatten(**Storage(out)).reduce()
         finally:
             if (hasattr(objFile, 'close')):
                 objFile.close()
 
     def memoizetable(self, tablename):
+        if (tablename is None):
+            bail("Tablename can not be None")
         try:
             tabledata = self.tablememo[tablename]
         except KeyError:
@@ -1580,13 +1640,13 @@ class Py4(object):
                     None,
                     tablename,
                     None,
-                    ZDict(),
-                    ZDict(),
+                    Storage(),
+                    Storage(),
                     Lst(),
                     Lst(),
-                    ZDict(),
+                    Storage(),
                     Lst(),
-                    ZDict(),
+                    Storage(),
                     ''
                 )
             tabledata = self.tablememo[tablename] = objectify(
@@ -1625,7 +1685,7 @@ class Py4(object):
                             (tditem == 'fieldsmap') &
                             (len(tabledata.fieldnames) > 0)
                 ):
-                    tdvalue = ZDict(
+                    tdvalue = Storage(
                         zip(
                             [
                                 fname.lower() for fname in fieldnames
@@ -1649,6 +1709,12 @@ class Py4(object):
                 ):
                     tabledata.merge({okey: ovalue})
             #self.loginfo(f'p4table memoized: {tablename}')
+        if (
+                (tabledata.specfield is not None) &
+                (tabledata.altarg is not None)
+        ):
+            if (tabledata.specfield.lower() == tabledata.altarg):
+                tabledata.specfield = tabledata.specfield.lower()
         return tabledata
 
     def get_validglobals(self):

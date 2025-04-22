@@ -4,14 +4,14 @@ from functools import reduce
 from pprint import pprint
 
 from libfs.fsFileIO import ispath
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgUtilities import bail
 from libdlg.dlgControl import DLGControl
 from libdlg.contrib.prettytable.prettytable import PrettyTable
 
-'''  [$File: //dev/p4dlg/libdlg/dlgSearch.py $] [$Change: 609 $] [$Revision: #10 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgSearch.py $] [$Change: 683 $] [$Revision: #11 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Search']
@@ -58,12 +58,12 @@ class Search(DLGControl):
             maxrows=None,
             **kwargs
     ):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         self.maxrows = maxrows or 20
         self.mergeitems = lambda a, b: (a + b)
         self.objp4 = objp4
         if (self.objp4 is None):
-            self.objp4 = ZDict()
+            self.objp4 = Storage()
         loglevel = kwargs.loglevel \
             if (self.objp4 is None) \
             else self.objp4.loglevel or 'DEBUG'
@@ -112,8 +112,8 @@ class Search(DLGControl):
             parents
         ) = \
             (
-                ZDict(),
-                ZDict()
+                Storage(),
+                Storage()
             )
         for word in set(words):
             hist[word] = ((hist[word] or 0) + 1)
@@ -132,8 +132,8 @@ class Search(DLGControl):
             docinfo
         ) = \
             (
-                ZDict(),
-                ZDict()
+                Storage(),
+                Storage()
             )
         for (idx, item) in enumerate(items):
             words = self.get_words(item)
@@ -153,7 +153,7 @@ class Search(DLGControl):
             docinfo,
             terms
     ):
-        acc = ZDict()
+        acc = Storage()
         (hist, parents, norm) = self.bin(terms, subs=False)
         '''  so they cannot be repeated
         '''
@@ -241,7 +241,7 @@ class Search(DLGControl):
                     context = context.lstrip().rstrip()
                     record.insert(0, idx)
                     record.insert(3, context)
-                    searchrecord = ZDict(zip(keys, record))
+                    searchrecord = Storage(zip(keys, record))
                     records.append(searchrecord)
                 except Exception as err:
                     bail(err)

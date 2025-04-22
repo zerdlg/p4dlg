@@ -4,7 +4,7 @@ import re, socket
 from subprocess import PIPE, Popen
 from pprint import pprint
 
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libfs.fsFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import bail, decode_bytes
 from libpy4.py4IO import Py4
@@ -13,9 +13,9 @@ from libconnect.conP4 import ObjP4
 
 __all__ = ['ObjP4db']
 
-'''  [$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 609 $] [$Revision: #7 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 683 $] [$Revision: #8 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 
@@ -161,7 +161,7 @@ class ObjP4db(object):
         return self
 
     def update(self, name, **kwargs):
-        kwargs = ZDict(self.fixkeys(**kwargs))
+        kwargs = Storage(self.fixkeys(**kwargs))
         if (kwargs.port is not None):
             kwargs.port = set_localport(kwargs.p4droot)
         try:
@@ -195,7 +195,7 @@ class ObjP4db(object):
         if (self.varsdef(name) is not None):
             print(f'CreateError:\n Name already exists "{name}" - use self.update({name}) instead')
         else:
-            (args, kwargs) = (Lst(args), ZDict(self.fixkeys(**kwargs)))
+            (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
             objp4 = kwargs.objp4
             if (isinstance(objp4, str) is True):
                 objp4 = ObjP4(self.shellObj, loglevel='INFO').load(objp4)
@@ -228,7 +228,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
             print(f'CreateError:\n Name already exists "{name}" - use self.update({name}) instead')
         StopError = None
 
-        (args, kwargs) = (Lst(args), ZDict(self.fixkeys(**kwargs)))
+        (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
         try:
 
             p4name = f'p4connection_{name}'
@@ -243,7 +243,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
                     print(err)
             local_dbdata = f"{dbdir}/.dbdata"
             if (os.path.isfile(local_dbdata) is False):
-                inittxt = '''[$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 609 $] [$Revision: #7 $]\n[$DateTime: 2025/02/21 03:36:09 $]\n[$Author: zerdlg $]\n'''
+                inittxt = '''[$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 683 $] [$Revision: #8 $]\n[$DateTime: 2025/04/07 18:39:56 $]\n[$Author: mart $]\n'''
                 oFile = open(local_dbdata, 'w')
                 try:
                     oFile.write(inittxt)
@@ -322,7 +322,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
         else:
             try:
                 [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
-                ZDict(self.shellObj.__dict__).delete(name)
+                Storage(self.shellObj.__dict__).delete(name)
                 self.shellObj.kernel.shell.push(self.shellObj.__dict__)
                 self.setstored()
                 print(f'Reference ({name}) unloaded')

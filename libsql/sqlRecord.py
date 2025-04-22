@@ -1,7 +1,7 @@
 import decimal
 from datetime import date, datetime, time
 
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgUtilities import (
     reg_objdict,
     bail,
@@ -12,24 +12,23 @@ from libdlg.dlgUtilities import (
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgTables import DataTable
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecord.py $] [$Change: 652 $] [$Revision: #3 $]
-     [$DateTime: 2025/03/23 04:15:28 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecord.py $] [$Change: 691 $] [$Revision: #5 $]
+     [$DateTime: 2025/04/19 01:29:22 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Record']
 
 from pprint import pformat
 
-class Record(ZDict):
-
+class Record(Storage):
     __str__ = __repr__ = lambda self: f'<Record {pformat(self.as_dict())}>'
 
     def _fieldnames(self):
         return self.getkeys()
 
     def _fieldsmap(self):
-        return ZDict(zip(ALLLOWER(self._fieldnames()), self._fieldnames()))
+        return Storage(zip(ALLLOWER(self._fieldnames()), self._fieldnames()))
 
     def __setattr__(self, item, value):
         if (str(item).lower() in self._fieldsmap()):
@@ -96,7 +95,7 @@ class Record(ZDict):
             datetime,
             time
         )
-        record = ZDict(self.copy())
+        record = Storage(self.copy())
         for field in record.getkeys():
             try:
                 fieldvalue = record[field]
@@ -195,7 +194,7 @@ class Record(ZDict):
                 overwrite - add_missing - allow_nonevalue  - extend_listvalues
     '''
     def merge(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         any = args.storageindex(reversed=True) \
             if (len(args) > 0) \
             else Lst([kwargs]).storageindex(reversed=True) \
@@ -247,6 +246,6 @@ class Record(ZDict):
 
         for anyitem in any:
             mergedict(self.objectify(any[anyitem]) \
-                          if (isinstance(any[anyitem], ZDict) is False) \
+                          if (isinstance(any[anyitem], Storage) is False) \
                           else any[anyitem])
         return self

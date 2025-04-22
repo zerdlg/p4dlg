@@ -1,14 +1,14 @@
 from types import *
 from pprint import pformat
 
-'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 680 $] [$Revision: #17 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 693 $] [$Revision: #21 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 __all__ = [
     'Lst',
-    'ZDict',
+    'Storage',
     'StorageIndex',
     'objectify',
     'unobjectify'
@@ -80,8 +80,18 @@ class Lst(list):
 
     def idx_is_valid(self, idx, length):
         try:
-            if ((idx < length) & (length > 0)) \
-                    | ((-length < idx) & (idx < 0)):
+            if (
+                    (
+                            (
+                                    (idx < length) &
+                                    (length > 0)
+                            ) |
+                            (
+                                    (-length < idx) &
+                                    (idx < 0)
+                            )
+                    )
+            ):
                 return True
         except Exception as err:
             print(err)
@@ -89,21 +99,28 @@ class Lst(list):
 
     def getvalue(self, length, idx, default, cast):
         defaultvalue = lambda: 0
-        ret = (default, False)
-        if (self.idx_is_valid(idx, length) is True):
-            ret = (self[idx], cast)
-        elif (default is defaultvalue):
-            ret = (default, cast)
+        ret = (self[idx], cast) \
+            if (self.idx_is_valid(idx, length) is True) \
+            else (default, cast) \
+            if (default is defaultvalue) \
+            else (default, False)
         return ret
 
-    first = lambda self: self(0)
-    last = lambda self: self(-1)
+    (
+        first,
+        last
+    ) = \
+        (
+            lambda self: self(0),
+            lambda self: self(-1)
+        )
 
     def _getsets(self, *args):
         args = Lst(args)
         return self(
             set(args(0)),
-            set(args(1))) \
+            set(args(1))
+        ) \
             if (args(1) is not None) \
             else Lst(
                 [
@@ -179,7 +196,7 @@ class Lst(list):
     def clean(self, *args, **kwargs):
         ''' remove items from a copy without affecting the original
         '''
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         if (len(args) == 0):
             args = Lst(
                 '',
@@ -188,7 +205,6 @@ class Lst(list):
                 {},
                 ()
             )
-
         iterable = self.copy()
         for arg in args:
             iterable = Lst(
@@ -230,6 +246,62 @@ class Lst(list):
             self.pop(argidx)
             self.insert(argidx, arg2)
 
+    def occurence(self, *args):
+        ''' determine the number of occuring items in self, and return the indices for
+            each item respectively.
+
+            params: If no param, then get an account of all items in self. Otherwise,
+                    for each param, and if in self, get account for those items only.
+            usage eg.:
+                >>> duplist = Lst('a','b','c', 'c', 'd', 'a')
+                >>> duplist.occurence()
+                {'b': [1], 'a': [0, 5], 'd': [4], 'c': [2, 3]}
+
+                >>> duplist.occurence('d')
+                {'d': [4]}
+
+                >>> duplist.occurence('c')
+                {'c': [2, 3]}
+        '''
+        counter = {}
+        if (len(self) == 0):
+            print("No occurences of items is possible in 0 length list.")
+        else:
+            args = self if (len(args) == 0) else Lst(args)
+            indices = self.storageindex(reversed=True)
+            for item in args.nodups():
+                for (idx, value) in indices.items():
+                    if (item == value):
+                        try:
+                            counter[item].append(idx)
+                        except:
+                            counter[item] = [idx]
+        return counter
+
+    def countdups(self, *args):
+        ''' get number of duplicate items (not the number of occurences).
+
+            params: If no param, then get an account of all items in self, Otherwise,
+                    for each para, and if in self, get account for those items only.
+            usage eg.:
+                >>> duplist = Lst('a','b','c', 'c', 'd', 'a')
+                >>> duplist.countdups()
+                {'b': 0, 'a': 1, 'd': 0, 'c': 1}
+
+                >>> duplist.countdups('d')
+                {'d': 0}
+
+                >>> duplist.countdups('c')
+                {'c': 1}
+        '''
+        dupcounter = {}
+        if (len(self) == 0):
+            print("No duplicate items  in 0 length list.")
+        else:
+            occurences = self.occurence(*args)
+            dupcounter.update(**{key: (len(occurences[key]) - 1) for key in occurences})
+        return dupcounter
+
     def merge(self, *arglists, all=False, **sub):
         ''' merge Lst, [], () or *items to Lst
             ** substitute old item with new item
@@ -263,13 +335,14 @@ class Lst(list):
         '''
         for arg in arglists:
             if (isinstance(arg, list) is False):
+                #arg = [arg]
                 arg = [arg]
             self += arg
         for (key, value) in sub.items():
             self.replace(key, value, all=all)
         return self
 
-class ZDict(dict):
+class Storage(dict):
     ''' a dict with object-like attributes (and a few convenient methods) collections
     '''
     __slots__ = ()
@@ -278,7 +351,7 @@ class ZDict(dict):
     __getitem__ = dict.get
     __call__ = __getitem__
     __getstate__ = lambda self: None
-    __copy__ = lambda self: ZDict(self)
+    __copy__ = lambda self: Storage(self)
     __hash__ = lambda self: hash(
         (
             frozenset(self),
@@ -291,7 +364,16 @@ class ZDict(dict):
 
     def keysmap(self):
         keynames = self.getkeys()
-        return ZDict(zip([f.lower() for f in keynames], keynames))
+        return Storage(
+            zip(
+                [
+                    key.lower()
+                    if (isinstance(key, str) is True)
+                    else key for key in keynames
+                ],
+                keynames
+            )
+        )
 
     def __getattr__(self, key):
         keysmap = self.keysmap()
@@ -322,13 +404,13 @@ class ZDict(dict):
 
     @staticmethod
     def objectify(any):
-        return ZDict(
+        return Storage(
             {
-                key: ZDict.objectify(value) for (key, value) in any.items()
+                key: Storage.objectify(value) for (key, value) in any.items()
             }
         ) \
-            if (type(any) in (dict, ZDict)) \
-            else Lst(ZDict.objectify(value) for value in any) \
+            if (type(any) in (dict, Storage)) \
+            else Lst(Storage.objectify(value) for value in any) \
             if (
                 type(any) in (
                 list,
@@ -343,11 +425,11 @@ class ZDict(dict):
     def unobjectify(any):
         return dict(
             {
-                key: ZDict.unobjectify(value) for (key, value) in any.items()
+                key: Storage.unobjectify(value) for (key, value) in any.items()
             }
         ) \
             if (isinstance(any, dict)) \
-            else Lst(ZDict.unobjectify(value) for value in any) \
+            else Lst(Storage.unobjectify(value) for value in any) \
             if (isinstance(any, list)) \
             else any
 
@@ -464,8 +546,8 @@ class ZDict(dict):
                                             a.port=['avalue','bvalue','a','b','c']
     '''
     def merge(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
-        constrainsts = ZDict(
+        (args, kwargs) = (Lst(args), Storage(kwargs))
+        constrainsts = Storage(
             {
                 'overwrite': True,
                 'add_missing': True,
@@ -533,14 +615,14 @@ class ZDict(dict):
 
         for anyitem in any:
             mergedict(self.objectify(any[anyitem]) \
-                    if (isinstance(any[anyitem], (ZDict, StorageIndex)) is False) \
+                    if (isinstance(any[anyitem], (Storage, StorageIndex)) is False) \
                     else any[anyitem])
         return self
 
     ''' keys to lower & keys to upper - modifies original
     '''
     def lower(self, **any):
-        anydict = ZDict(any) or self
+        anydict = Storage(any) or self
         [
             anydict.update(
                 **{
@@ -551,7 +633,7 @@ class ZDict(dict):
         return anydict
 
     def upper(self, **any):
-        anydict = ZDict(any) or self
+        anydict = Storage(any) or self
         [
             anydict.update(
                 **{
@@ -563,7 +645,7 @@ class ZDict(dict):
     ''' keys to lower & keys to upper - does not modify original
     '''
     def keystolower(self, **any):
-        anydict = ZDict(self.copy() \
+        anydict = Storage(self.copy() \
               if (len(any) == 0) \
               else any.copy())
         [
@@ -572,7 +654,7 @@ class ZDict(dict):
         return anydict
 
     def keystoupper(self, **any):
-        anydict = ZDict(self.copy() \
+        anydict = Storage(self.copy() \
             if (len(any) == 0) \
             else any.copy())
         [
@@ -597,11 +679,11 @@ class ZDict(dict):
     unobjectify
 ) = \
     (
-        ZDict.objectify,
-        ZDict.unobjectify
+        Storage.objectify,
+        Storage.unobjectify
     )
 
-class StorageIndex(ZDict):
+class StorageIndex(Storage):
     __str__ = __repr__ = lambda self: f'<{type(self).__name__}({pformat(dict(self))})>'
 
     def __init__(self, *args, **kwargs):
@@ -659,7 +741,7 @@ class StorageIndex(ZDict):
         [self.rename(i, i - 1) for i in rkeys if (i >= idx)]
 
     def mergeright(self, *any, **kwargs):
-        (any, kwargs) = (Lst(any), ZDict(kwargs))
+        (any, kwargs) = (Lst(any), Storage(kwargs))
         if (len(any) > 0):
             [self.mergein(item, -1) for item in any]
         elif (len(kwargs) > 0):
@@ -673,7 +755,7 @@ class StorageIndex(ZDict):
         ) = \
             (
                 Lst(any),
-                ZDict(kwargs)
+                Storage(kwargs)
             )
         if (len(any) > 0):
             [self.mergein(item, 0) for item in any]
@@ -696,7 +778,7 @@ class StorageIndex(ZDict):
                 )
             )
         if (isinstance(objLst, int) is True):
-            return storelist
+            return self.get(objLst)#storelist
         if (len(objLst) > 0):
             if (type(objLst) is not StorageIndex):
                 if (isinstance(objLst(0), tuple) is False):
@@ -724,7 +806,7 @@ class StorageIndex(ZDict):
             elif (reversed is True):
                 storelist = StorageIndex(
                     {
-                        j: i for (i, j) in enumerate(objLst.getvalues())
+                        j: i for (i, j) in enumerate(objLst)
                     }
                 )
         else:

@@ -180,7 +180,7 @@ Version 15.07
 
 Released on July 10th 2015
 
-- Added `smart_query` support for 'contains' on fields of type 'list:string'
+- Added `szerdlg_query` support for 'contains' on fields of type 'list:string'
 - Implemented correct escaping for 'LIKE'
   (see https://github.com/web2py/pydal/issues/212)
 - Added support for `ondelete` with fields of type 'list:reference' on

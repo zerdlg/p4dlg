@@ -439,7 +439,7 @@ class SQLAdapter(BaseAdapter):
     def adapt(self, obj):
         return "'%s'" % obj.replace("'", "''")
 
-    def smart_adapt(self, obj):
+    def szerdlg_adapt(self, obj):
         if isinstance(obj, (int, float)):
             return str(obj)
         return self.adapt(str(obj))

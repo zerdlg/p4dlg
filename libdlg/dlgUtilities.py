@@ -29,7 +29,7 @@ try:
 except ImportError:
     import pickle
 
-from libdlg.dlgStore import ZDict, objectify, Lst, StorageIndex
+from libdlg.dlgStore import Storage, objectify, Lst, StorageIndex
 
 ''' maps py2 to 3 '''
 from importlib import reload
@@ -51,7 +51,7 @@ from urllib.request import FancyURLopener, urlopen
 from urllib.parse import quote as urllib_quote, unquote, urlencode, quote_plus as urllib_quote_plus
 from xmlrpc.client import ProtocolError
 
-''' dict backward compatibility (not for ZDict) 
+''' dict backward compatibility (not for Storage) 
     
     >>> d = {'a':1, 'b': 2}
     
@@ -64,9 +64,9 @@ from xmlrpc.client import ProtocolError
     >>> iteritems(d)
     [('a', 1), ('b', 2)]
     
-    for ZDict:
+    for Storage:
     
-    >>> sd = ZDict(d)
+    >>> sd = Storage(d)
     >>> sd.iterkeys()
     ['a', 'b']
     
@@ -77,9 +77,9 @@ from xmlrpc.client import ProtocolError
     [('a', 1), ('b', 2)]
   
 '''
-iterkeys = lambda d: iter(ZDict(d).getkeys())
-itervalues = lambda d: iter(ZDict(d).getvalues())
-iteritems = lambda d: iter(ZDict(d).getitems())
+iterkeys = lambda d: iter(Storage(d).getkeys())
+itervalues = lambda d: iter(Storage(d).getvalues())
+iteritems = lambda d: iter(Storage(d).getitems())
 integer_types = (int,)
 string_types = (str,)
 text_type = str
@@ -91,9 +91,9 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 680 $] [$Revision: #38 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 683 $] [$Revision: #40 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 __all__ = [
@@ -166,7 +166,7 @@ PY2 = sys.version_info[0] == 2
     Note: Though the message is, of course, quite helpful, the `severity` 
           value is a clear, and better, indication of what happens next.
 '''
-p4_error_severity = ZDict(
+p4_error_severity = Storage(
     {
         0: 'empty',     # nothing happened
         1: 'info',      # informative msg - good
@@ -382,7 +382,7 @@ ignore_actions = [
     "mx",
     "nx"
 ]
-fixep4names = ZDict(
+fixep4names = Storage(
     {
         'group': 'p4group',
         'db.group': 'p4group',
@@ -441,7 +441,7 @@ serializable = (
 )
 ''' TODO: implement _rname on aliased tables!
 '''
-table_alias = ZDict(
+table_alias = Storage(
     {
         'changelist': 'change',
         'workspace': 'client'
@@ -515,7 +515,7 @@ def decode_bytes(out):
                     out = ''.join(out.split("\n", 1)[1:])
         if (isinstance(out, dict)):
             if (set(map(type, out)) == {bytes}):
-                out = ZDict({k.decode('utf-8'): v.decode('utf-8')
+                out = Storage({k.decode('utf-8'): v.decode('utf-8')
                 if (type(v) is bytes)
                 else v for (k, v) in out.items()})
         return out
@@ -633,9 +633,9 @@ def casttype(_type, value):
     except:
         return value
 
-class Flatten(ZDict):
-    '''  Inherits ZDict but used primarely to reduce/flatten numbered
-         un-unique keys after merging ZDict objects (dicts)
+class Flatten(Storage):
+    '''  Inherits Storage but used primarely to reduce/flatten numbered
+         un-unique keys after merging Storage objects (dicts)
 
         I.e.: to unmangle marshalled output when setting the '-G' global option in p4 cmd lines in a terminal
 
@@ -727,7 +727,7 @@ class Flatten(ZDict):
         return self
 
     def __init__(self, *args, **kwargs):
-        super(ZDict, self).__init__()
+        super(Storage, self).__init__()
         [self.merge(arg) for arg in args if isinstance(arg, dict)]
         self.merge(kwargs)
         self.expand()
@@ -739,7 +739,7 @@ class Flatten(ZDict):
                     e.g.: {'keyname': 'value'} --> {'keyname0': 'value'}
         '''
         if (len(kwargs) > 0):
-            kwargs = ZDict(kwargs)
+            kwargs = Storage(kwargs)
             duplicatekeys = self.getkeys().intersect(kwargs.keys())
             previously_numbered_keys = self.get_numbered_keys()
             if (len(duplicatekeys) > 0):
@@ -1094,7 +1094,7 @@ def getTableOpKeyValue(qry):
         op
     )
 
-'''  convert a string query to a ZDict
+'''  convert a string query to a Storage
 
         I.e. >>> stringQueryToStorage("clients.client=gc.pycharm")
                 {'left': {'tablename': 'clients',
@@ -1159,7 +1159,7 @@ class __containschars__(object):
         return self
 
     def __init__(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         self.anycase = kwargs.anycase \
             if (isinstance(kwargs.anycase, bool)) \
             else False
@@ -1188,7 +1188,7 @@ class __containschars__(object):
         #    i = unicodedata.normalize('NFKD', i).encode('ascii', 'ignore')
         #    return i.lower() if (self.anycase is True) else i
         elif (isinstance(i, dict)):
-            if (isinstance(i, ZDict) is False):
+            if (isinstance(i, Storage) is False):
                 i = objectify(i)
             (storekeys, storevalues) = (i.getkeys(), i.getvalues())
             storevalues = [item.lower() for item in storevalues if (isinstance(item, str))]
@@ -1229,7 +1229,7 @@ class __containschars__(object):
     True
 '''
 def containschars(*args, **kwargs):
-    (args, kwargs) = (Lst(args), ZDict(kwargs))
+    (args, kwargs) = (Lst(args), Storage(kwargs))
     (searchin, term) = args if (len(args) == 2) else ('', '')
     if (len(args) != 2):
         print('bailing, 2 args required, got {} instead'.format(len(args)))
@@ -1267,7 +1267,7 @@ def ALLLOWER(litems, includekeys=False):
     if (isinstance(litems, str)):
         return litems.lower()
     elif (isinstance(litems, dict) is True):
-        litems = ZDict(litems)
+        litems = Storage(litems)
         for (key, value) in litems.items():
             if (isinstance(value, str)):
                 if (includekeys is True):
@@ -1292,7 +1292,7 @@ def ALLUPPER(litems, includekeys=False):
     if (isinstance(litems, str)):
         return litems.upper()
     elif (isinstance(litems, dict) is True):
-        litems = ZDict(litems)
+        litems = Storage(litems)
         for (key, value) in litems.items():
             if (isinstance(value, str)):
                 if (includekeys is True):
@@ -1383,13 +1383,13 @@ def storageIndexToList(_storeidx, default='idx'):
             [{'id': 2}, {'c': 'normand'}]]
     '''
 
-    return Lst(ZDict({'idx': default}).merge(_storeidx[idx])
+    return Lst(Storage({'idx': default}).merge(_storeidx[idx])
                if ()
                else '' for (idx, value) in _storeidx.items())
 
 def Casttype(_type, value):
     try:
-        if (isinstance(_type, (dict, ZDict))):
+        if (isinstance(_type, (dict, Storage))):
             return objectify(value)
         elif (isinstance(_type, list)):
             return Lst(value)
@@ -1413,7 +1413,7 @@ def fractions2Float(*args, **kwargs):
 
             ** kwargs.average is True -> returns an average float
     '''
-    (args, kwargs) = (Lst(args), ZDict(kwargs))
+    (args, kwargs) = (Lst(args), Storage(kwargs))
     decimals = kwargs.decimals or decimals_default
     average = kwargs.average or average_default
     sums = [float((Fraction(arg)) \
@@ -1431,7 +1431,7 @@ def percents2Float(*args, **kwargs):
 
             ** kwargs.average is True -> returns an average float
     '''
-    (args, kwargs) = (Lst(args), ZDict(kwargs))
+    (args, kwargs) = (Lst(args), Storage(kwargs))
     decimals = kwargs.decimals or decimals_default
     average = kwargs.average or average_default
     sums = [float(arg.strip('%')) for arg in args if ((isinstance(arg, str)) and ('%' in arg))]
@@ -1547,7 +1547,7 @@ class fix_name(object):
                 otherwize you may (I mean, will most certainly)
                 hit problems while defining the tables
         '''
-        self.reserved_keywords = ZDict(
+        self.reserved_keywords = Storage(
                                     {
                                         'group': 'p4group',
                                         'db.group': 'p4group',
@@ -1691,7 +1691,7 @@ class Plural(object):
             else seq
         if (noneempty(seq) is False):
             plural_sequence = Lst(self.pluralize(spec) for spec in sequence)
-            return ZDict(
+            return Storage(
                 zip(
                     sequence,
                     plural_sequence
@@ -1704,7 +1704,7 @@ class Plural(object):
         sequence = Lst(seq) if (type(seq) is not Lst) else seq
         if (noneempty(seq) is False):
             singular_sequence = Lst(self.singularize(spec) for spec in sequence)
-            return ZDict(
+            return Storage(
                 zip(
                     sequence,
                     singular_sequence

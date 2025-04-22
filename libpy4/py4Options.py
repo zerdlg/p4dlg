@@ -5,7 +5,7 @@ from libsql.sqlRecords import Records
 from libdlg.dlgStore import (
     Lst,
     objectify,
-    ZDict
+    Storage
 )
 from libdlg.dlgUtilities import (
     bail,
@@ -20,9 +20,9 @@ from libdlg.dlgUtilities import (
     spec_lastarg_pairs
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 680 $] [$Revision: #21 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 693 $] [$Revision: #25 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Py4Options']
@@ -84,7 +84,7 @@ class Py4Options(object):
             'critical'
         )
         ]
-        self.optiondefaults = ZDict()
+        self.optiondefaults = Storage()
         self.optionsdata = objectify(optionsdata)
 
     def __call__(self, *args, **kwargs):
@@ -116,17 +116,15 @@ class Py4Options(object):
                 Lst(),
                 Lst(),
                 Lst(),
-                ZDict(),
+                Storage(),
                 None,
                 Lst(),
-                ZDict(),
+                Storage(),
                 None,
                 None
             )
-
-        if (not self.tablename in [None] + self.objp4.usage_items):
+        if (not self.tablename in ([None] + self.objp4.usage_items)):
             ''' field `generic` gets an arbitrary value, say 1... who cares, really?
- 
             '''
             (data, generic, code, severity) = (None, 1, 'error', 3)
             cmdargs = Lst(
@@ -136,11 +134,22 @@ class Py4Options(object):
                                 '--explain'
                             ]
             )
+            ''' For a given table (cmd), figure out the p4 cmdline:
+                    Usage help      (eg. `print [-a -A -k -o localFile -q -m max] [-U] files...`
+                    options         (eg. -f)
+                    keywords        (eg. --force)
+                    optionsmaps     (eg. {'f': 'force',
+                                            ... 
+                                          }
+            '''
             datarecord = self.objp4.p4OutPut(self.tablename, *cmdargs)
             if (len(datarecord) > 0):
-                if (isinstance(datarecord, (list, Records))):
+                if (
+                        (isinstance(datarecord, list) is True) |
+                        (is_recordsType(datarecord) is True)
+                ):
                     datarecord = datarecord.first()
-                if (isinstance(datarecord, ZDict) is True):
+                if (isinstance(datarecord, dict) is True):
                     (
                         generic,
                         code,
@@ -161,11 +170,11 @@ class Py4Options(object):
                         (severity == 3)
                 ):
                     ''' generic 1, code 'error' & severity 3...                    
-                        I would thought that level 2 would serve better, but,
+                        
                         Such it is with perforce...  An error message, though not an error. 
                     '''
                     for line in data:
-                        ''' Looking for usage lines to build the p4 cmd line.
+                        ''' Examine each of the data lines:
                         '''
                         if (reg_explain.match(line) is not None):
                             result = Lst(
@@ -176,16 +185,20 @@ class Py4Options(object):
                                 if (len(result) == 1) \
                                 else (None, None)
                             if (opt is not None):
-                                ''' before we do anything, we need to remove the ()-
-                                    characters from all options & keywords, then we can 
-                                    add them to their respective data lists.
+                                ''' The perforce cmdline help is not dynamically generated.
+                                    That said, they are inconsistent, therefore have unpredictable
+                                    formatting and syntax. FOr that reason, instead of taking
+                                    advantage of such thin gs as brackets and other markers,
+                                    we will strip them all out and guess (deduce, come to a 
+                                    questionable conclusion, etc.) what the type options we have,
+                                    syntax, what args are required (if any), etc.
+                                    
+                                    Also, some p4 commands have more options than keywords... 
+                                    Potentially, we can make them up on the fly... but that's something
+                                    for later, when time permits. For now, we'll just hve to give our
+                                    best guess. 
                                 '''
                                 if (kwd is None):
-                                    ''' Some commands do have more options than 
-                                        keywords... Potentially, we can make them
-                                        up on the fly... but at a later when time 
-                                        permits.  
-                                    '''
                                     missing_keywords.append(kwd)
                                 else:
                                     kwd = re.sub('-', '', kwd)
@@ -199,25 +212,35 @@ class Py4Options(object):
                             usage = re.sub(r'^Usage: ', '', line)
                         elif (reg_p4help_for_usage.match(line) is not None):
                             usage = str(line).lstrip().rstrip()
+            ''' remove None values and empty strings.
+            '''
             options = options.clean()
             optionsmap.delete(None)
+            ''' Analyse the Usage string.
+            '''
             if (usage is not None):
                 ''' This is where we try build the table's cmdargs we need to run a p4 cmd. Its 
                     output will help define the required cmd options (if any).                     
                 '''
-                usage = re.sub('[\[\]]', '', usage)  # TODO: do something with | statements in usage line
+                usage = re.sub('[\[\]]', '', usage)     # TODO: do something with | statements in usage line
                 cmdargs = self.objp4.p4globals + [self.tablename]
+                ''' lastarg... as in >>> p4 edit //depot/files/...
+                                                 |---------------|
+                                                         |
+                                          the cmd's very last positional arg.
+                    
+                    figure out if the cmd:
+                        1. takes a last argument ?
+                        2. let's us guess what kind of arg we need ? (filename, specname, changelist, etc...)
+                        3. is optional / required ?
+                        4. has a default value ?
+                        5. let's us make one up ?
+                '''
                 lastarg = None
                 if (reg_filename.search(usage) is not None):
                     cmdargs += self.get_more_table_options(keywords)
                     rightside_mapping = f'//{self.objp4._client}/...'
                     cmdargs += [rightside_mapping]
-                elif (self.optionsdata.is_spec is True):
-                    if (self.tablename in spec_lastarg_pairs.getkeys()):
-                        lastarg = spec_lastarg_pairs[self.tablename].default
-                        cmdargs += ['--output', lastarg]
-                    else:
-                        cmdargs += ['--output']
                 elif (not self.tablename in (self.objp4.nocommands + self.objp4.initcommands)):
                     if (
                             (
@@ -232,7 +255,19 @@ class Py4Options(object):
                             cmdargs.append(cl)
                     else:
                         cmdargs += self.get_more_table_options(keywords)
+
+                ''' We don't don't need to run a spec cmd to lean about it's 
+                    fieldnames, so skip this next block if `is_spec` is True.
+                '''
+                if (self.optionsdata.is_spec is True):
+                    if (self.tablename in spec_lastarg_pairs.getkeys()):
+                        lastarg = spec_lastarg_pairs[self.tablename].default
+                        cmdargs += ['--output', lastarg]
+                    else:
+                        cmdargs += ['--output']
                 if (self.tablename not in ('submit',)):
+                    ''' Let's not try this with `p4 submit`, lest we screw ourselves up.
+                    '''
                     records = self.objp4.p4OutPut(self.tablename, *cmdargs, lastarg=lastarg)
                     if (
                             (
@@ -241,11 +276,56 @@ class Py4Options(object):
                             ) &
                             (
                                     (is_recordType(records(0)) is True) |
-                                    (isinstance(records(0), ZDict))
+                                    (isinstance(records(0), Storage))
                             ) &
                             (len(records) > 0)
                     ):
-                        rec0 = records(0)
+                        ''' using the -G global option may cause the resulting record to 
+                            contain numbered fields, like
+                            
+                                View0, View1, View2, View3, ...
+                            
+                            So we need to flatten/reduce & transform the record, eg.
+                                          
+                            from
+                                 <Record {'Client': 'computer_dlg',
+                                          'Description': 'Created by zerdlg.\n',
+                                          'Host': 'computer.local',
+                                          'LineEnd': 'local',
+                                          'Options': 'noallwrite noclobber nocompress unlocked nomodtime normdir',
+                                          'Owner': 'zerdlg',
+                                          'Root': '/Users/gc/anastasia/dev/p4dlg',
+                                          'SubmitOptions': 'submitunchanged',
+                                          'View0': '//qa/... //computer_dlg/qa/...',
+                                          'View1': '//spec/... //computer_dlg/spec/...',
+                                          'View2': '//release/... //computer_dlg/release/...',
+                                          'View3': '//git/... //computer_dlg/git/...',
+                                          'View4': '//dev/... //computer_dlg/dev/...',
+                                          'View5': '//depot/... //computer_dlg/depot/...',
+                                          'code': 'stat'}>
+
+                            to
+                                 <Record {'Client': 'computer_dlg',
+                                          'Description': 'Created by zerdlg.\n',
+                                          'Host': 'computer.local',
+                                          'LineEnd': 'local',
+                                          'Options': 'noallwrite noclobber nocompress unlocked nomodtime normdir',
+                                          'Owner': 'zerdlg',
+                                          'Root': '/Users/gc/anastasia/dev/p4dlg',
+                                          'SubmitOptions': 'submitunchanged',
+                                          'View': ['//swerve/... //computer_dlg/swerve/...',
+                                                   '//spec/... //computer_dlg/spec/...',
+                                                   '//release/... //computer_dlg/release/...',
+                                                   '//git/... //computer_dlg/git/...',
+                                                   '//dev/... //computer_dlg/dev/...',
+                                                   '//depot/... //computer_dlg/depot/...'],
+                                          'code': 'stat'}>
+        
+                        At any rate, run the cmd with the collected options and just 
+                        grab the resulting records' first record (rec0) and use its keys
+                        as fieldnames.
+                        '''
+                        rec0 = Flatten(**Storage(records(0))).reduce()
                         fieldnames = rec0.getkeys()
                         if (
                                 (len(fieldnames) == 1) &
@@ -257,18 +337,18 @@ class Py4Options(object):
                             rec_results = Lst(
                                 'code',
                                 'generic',
-                                'severity',
+                                #'severity',
                                 'data'
                             ).intersect(fieldnames)
                             if (
-                                    (len(rec_results) == 4) &
+                                    (len(rec_results) in (3, 4)) &
                                     (rec0.code == 'error')
                                     #& (rec0.severity >= 3)
                             ):
                                 error = rec0.data
                                 fieldnames = Lst()
-                            else:
-                                rec0 = Flatten(**ZDict(rec0)).reduce()
+
+                            if (len(fieldnames) == 0):
                                 ''' once flattened, retake the inventory of this record's fields
                                 '''
                                 fieldnames = rec0.getkeys()
@@ -283,7 +363,7 @@ class Py4Options(object):
                 (len(fieldsmap) == 0) &
                 (len(fieldnames) > 0)
         ):
-            fieldsmap = ZDict(
+            fieldsmap = Storage(
                 zip(
                     [
                         fname.lower() for fname in fieldnames
@@ -291,7 +371,6 @@ class Py4Options(object):
                     fieldnames
                 )
             )
-
         optionsref = objectify(
             {
                 'fieldnames': fieldnames,
@@ -309,8 +388,16 @@ class Py4Options(object):
         self.optionsdata.merge(optionsref)
         self.buildoptionvalues()
         if (self.optionsdata.is_spec is True):
-            ''' define spec references
+            ''' Define spec references (and, at the same time, get 
+                those fieldnames we so very much need). But first,
+                remove whatever fieldnames collected so far.   
             '''
+            [
+                self.optionsdata.update(**{fielditem: fieldvalue}) for (fielditem, fieldvalue) in {
+                'fieldnames': [],
+                'fieldsmap': {}
+            }.items()
+            ]
             specref = self.buildspecref(self.tablename)
             self.optionsdata.merge(specref)
         self.all_options = self.optionsdata.tableoptions.options \
@@ -318,10 +405,13 @@ class Py4Options(object):
         return self
 
     def buildoptionvalues(self):
+        ''' Update `self.optionsdata.fieldnames` & `self.optionsdata.fieldsmap` inplace then  move on.
+        '''
+        current_options = self.optionsdata.tableoptions.options
         usage = self.optionsdata.tableoptions.usage
         usage_items = Lst(re.split('\s', usage)[1:]).clean()
         usage_stoidx = usage_items.storageindex(reversed=True)
-        for arg in self.optionsdata.tableoptions.options:
+        for arg in current_options:
             for (idx, argitem) in usage_stoidx.items():
                 argname = re.sub('-', '', argitem)
                 if (argname == arg):
@@ -395,7 +485,7 @@ class Py4Options(object):
         specfields = specrec.Fields
         specitems = [re.split(r'\s', item) for item in specfields]
         fieldsdata = [
-            ZDict(
+            Storage(
                 zip(
                     self.objp4.specfield_headers, specitem
                 )
@@ -409,7 +499,7 @@ class Py4Options(object):
             if (noneempty(specdata) is False) \
             else Lst()
         fieldnames = Lst(fieldattr.name for fieldattr in fieldsdata).nodups()
-        fieldsmap = ZDict([(field.lower(), field) for field in fieldnames])
+        fieldsmap = Storage([(field.lower(), field) for field in fieldnames])
         specref = {
                    'fieldnames': fieldnames,
                    'fieldsmap': fieldsmap,

@@ -2,7 +2,7 @@ import os
 from types import *
 import datetime
 
-from libdlg.dlgStore import ZDict, Lst, objectify
+from libdlg.dlgStore import Storage, Lst, objectify
 from libdlg.dlgControl import DLGControl
 from libsql.sqlQuery import *
 from libdlg.dlgUtilities import (
@@ -18,7 +18,7 @@ from libsql.sqlRecordset import *
 from libsql.sqlRecords import Records
 from libsql.sqlSchemaTypes import *
 from libfs.fsFileIO import loadpickle
-from libsql.sqlSchema import getObjSchema
+from libsql.sqlSchema import get_schemaObject
 from libsql.sqlInvert import invert
 from libjnl.jnlFile import JNLFile
 #from libjnl.jnlGuess import GuessRelease
@@ -28,9 +28,9 @@ import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
 
-'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 680 $] [$Revision: #39 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 689 $] [$Revision: #45 $]
+     [$DateTime: 2025/04/15 05:30:50 $]
+     [$Author: mart $]
 '''
 
 '''     Journals (and checkpoints) are the textual representation of the metadata stored in a p4 DB. 
@@ -96,7 +96,7 @@ ignore_actions = [
                    "mx",
                    "nx"
 ]
-fixep4names = ZDict({
+fixep4names = Storage({
                    'group': 'p4group',
                    'db.group': 'p4group',
                    'type': 'p4type',
@@ -208,7 +208,7 @@ class P4Jnl(object):
 
         ''' Journal and SchemaXML class reference
         '''
-        (oSchema, version) = getObjSchema(journal, oSchema, version)
+        (oSchema, version) = get_schemaObject(journal, oSchema, version)
         (
             self.journal,
             self.oSchema,
@@ -246,7 +246,7 @@ class P4Jnl(object):
         self.recordchunks = kwargs.recordchunks or 15000
         self.maxrows = kwargs.maxrows or 0
         self.compute = Lst()
-        self.recCounter = ZDict(
+        self.recCounter = Storage(
             {
                 'threshhold': self.recordchunks,
                 'recordcounter': 0
@@ -255,10 +255,6 @@ class P4Jnl(object):
         self.tablepath = kwargs.tablepath or os.path.abspath('../../../storage')
         self.serialtables = os.path.join(self.tablepath, 'serialtables')
         self.oSchemaType = SchemaType(self)
-        ''' Spec types belonging to db.domain
-        '''
-        self.domaintypes = self.oSchemaType.values_names_bydatatype('DomainType')
-        self.tabletypesmap = self.oSchemaType.datatype_namemap()
         self.oNameFix = fix_name(kwargs.tableformat or 'remove')
 
     def __getattr__(self, tablename):
@@ -272,17 +268,19 @@ class P4Jnl(object):
             try:
                 if (not tablename in self.tablememo):
                     tabledata = self.memoizetable(tablename)
-                    setattr(self, tablename, JNLTable(
+                    oJNLTable = JNLTable(
                         self,
                         tablename,
                         self.oSchema,
                         **tabledata
                     )
-                            )
+                    setattr(self, tablename, oJNLTable)
+                    tabledata.tablename = tablename
             except KeyError as err:
                 self.logerror (err)
         try:
-            return self.__dict__[tablename]
+            objTable = self.__dict__[tablename]
+            return objTable
         except KeyError as err:
             bail(invalidAttributeError)
 
@@ -379,7 +377,7 @@ class P4Jnl(object):
                 if (right is not None) \
                 else None
             if (opname in AOX):
-                built = ZDict(
+                built = Storage(
                     {
                         'op': op,
                         'left': buildleft,
@@ -441,7 +439,7 @@ class P4Jnl(object):
                 else:
                     right = avalue
             if (op is not None):
-                built = ZDict(
+                built = Storage(
                     {
                         'op': op,
                         'left': left,
@@ -450,7 +448,7 @@ class P4Jnl(object):
                     }
                 )
             elif not (left or right):
-                built = ZDict({'op': op})
+                built = Storage({'op': op})
             else:
                 bail(f"Operator not supported: {opname}")
         built = DLGQuery(
@@ -606,7 +604,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             fieldtype = left.type
             if (self.oSchemaType.validate_datatype_name(fieldtype) is not None):
                 if (fieldtype in self.oSchemaType.flagnames()):
-                    right = self.oSchemaType.datatype_flag(right, fieldtype)
+                    right = self.oSchemaType.resolve_datatype_flag(right, fieldtype)
                     qry.right = str(right)
                 if (
                         (hasattr(right, 'left')) &
@@ -660,7 +658,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             *options,
             **kwargs
     ):
-        (options, kwargs) = (Lst(options), ZDict(kwargs))
+        (options, kwargs) = (Lst(options), Storage(kwargs))
         (
             tablename,
             tabledata,
@@ -668,7 +666,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         ) = \
             (
                 kwargs.tablename,
-                ZDict(),
+                Storage(),
                 None,
             )
         (
@@ -798,9 +796,9 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         '''
         initialfields = self.oSchema.p4model[tablename].fields
         fielddicts = initialfields.storageindex(reversed=True)
-        fieldsmap = ZDict({value.name.lower(): value.name for (key, value) in fielddicts.items()})
+        fieldsmap = Storage({value.name.lower(): value.name for (key, value) in fielddicts.items()})
         fieldnames = fieldsmap.getvalues()
-        fieldtypesmap = ZDict({value.type.lower(): value.type for (key, value) in fielddicts.items()})
+        fieldtypesmap = Storage({value.type.lower(): value.type for (key, value) in fielddicts.items()})
         return (
                 fieldnames,
                 fieldsmap,
@@ -808,7 +806,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         )
 
     def memoizetable(self, tablename):
-        tabledata = ZDict()
+        tabledata = Storage()
         if (tablename is not None):
             try:
                 tabledata = self.tablememo[tablename]
@@ -822,11 +820,12 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         (
                             self.getfieldmaps(tablename)
                     )
-                    tabledata = self.tablememo[tablename] = ZDict(
+                    tabledata = self.tablememo[tablename] = Storage(
                                         {
                                             'fieldsmap': fieldsmap,
                                             'fieldtypesmap': fieldtypesmap,
                                             'fieldnames': fieldnames,
+                                            #'tablename': tablename,
                                         }
                     )
                     '''  table attributes & specify keying fields
@@ -878,7 +877,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
         return sTables
 
 def jnlconnector(jnlfile, oSchema=None, version=None, **kwargs):
-    (oSchema, version) = getObjSchema(jnlfile, oSchema=oSchema, version=version)
+    (oSchema, version) = get_schemaObject(jnlfile, oSchema=oSchema, version=version)
     try:
         return P4Jnl(jnlfile, oSchema, version, **kwargs)
     except Exception as err:

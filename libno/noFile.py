@@ -1,6 +1,6 @@
 
 from libdlg.dlgUtilities import bail
-from libdlg.dlgStore import ZDict, Lst, objectify
+from libdlg.dlgStore import Storage, Lst, objectify
 from libdlg.dlgControl import DLGControl
 
 class NOFile(DLGControl):
@@ -40,7 +40,7 @@ class NOFile(DLGControl):
                 self.buffer.mergeright(line(item))
         elif (isinstance(bdata, str)):
             self.buffer.mergeright(line(bdata))
-        elif (isinstance(data, ZDict)):
+        elif (isinstance(data, Storage)):
             for key in bdata.getkeys():
                 self.buffer.mergeright(line(bdata[key]))
         else:

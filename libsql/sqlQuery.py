@@ -5,7 +5,7 @@ from functools import reduce
 from pprint import pformat
 from types import FunctionType
 
-from libdlg.dlgStore import Lst, ZDict, StorageIndex
+from libdlg.dlgStore import Lst, Storage, StorageIndex
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgUtilities import (
     getTableOpKeyValue,
@@ -22,16 +22,17 @@ from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 681 $] 
-     [$Revision: #20 $]
-     [$DateTime: 2025/04/07 07:40:42 $]
-     [$Author: zerdlg $]
+     [$Change: 693 $] 
+     [$Revision: #25 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 __all__ = [
            'ops', 'andops', 'orops', 'xorops', 'notops', 'dops',
            'optable', 'expression_table', 'all_ops_table',
            'QClass',
+\
            'NOT', 'AND', 'OR', 'XOR',
            'EQ', 'NE', 'GE', 'GT', 'LE', 'LT',
            'CONTAINS', 'ENDSWITH', 'STARTSWITH',
@@ -40,13 +41,15 @@ __all__ = [
            'LOWER', 'UPPER', 'JOIN', 'JOIN_LEFT',
            'PRIMARYKEY', 'COALESCE', 'COALESCE_ZERO',
            'EXTRACT', 'SUBSTR', 'LIKE', 'ILIKE',
-           'SUM', 'ABS', 'LEN', 'DIV',
-           'AVG', 'MIN', 'MAX', 'BELONGS', 'IN', 'COUNT',
+           'SUM', 'ABS', 'LEN', 'DIV', 'AVG',
+           'MIN', 'MAX', 'BELONGS', 'IN', 'COUNT',
            'YEAR', 'MONTH', 'DAY',
+\
            'DLGQuery', 'DLGExpression',
+           'comparison_ops', 'equal_ops', 'regex_ops',
 ]
 
-objectify = ZDict.objectify
+objectify = Storage.objectify
 
 class DLGQuery(object):
     def __init__(
@@ -59,7 +62,7 @@ class DLGQuery(object):
              *args,
              **kwargs
     ):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         self.objp4 = objp4
 
         [
@@ -93,7 +96,7 @@ class DLGQuery(object):
             self.inversion = True
 
     def __repr__(self):
-        qdict = ZDict(
+        qdict = Storage(
             {
                 'objp4': self.objp4,
                 'op': self.op,
@@ -163,10 +166,10 @@ class DLGQuery(object):
             return objii
 
         if flat:
-            return ZDict(recurse(self.__dict__))
+            return Storage(recurse(self.__dict__))
         else:
-            resd = ZDict()
-            for (key, value) in ZDict(self.__dict__).getitems():
+            resd = Storage()
+            for (key, value) in Storage(self.__dict__).getitems():
                 if key in ('objp4', 'op', 'left', 'right', 'fieldname', 'tablename'):
                     resd.merge({key: value})
             return resd
@@ -190,7 +193,7 @@ class DLGExpression(object):
             *options,
             **kwargs
     ):
-        (options, kwargs) = (Lst(options), ZDict(kwargs))
+        (options, kwargs) = (Lst(options), Storage(kwargs))
         self.options = options
         self.objp4 = objp4
         self.type = left.type \
@@ -260,7 +263,7 @@ class DLGExpression(object):
                                )
                     if (
                             (sumtypes > 1) |
-                            is_field_tableType(left)
+                            is_fieldType_or_tableType(left)
                     ):
                         [setattr(self, sqlitem, getattr(left, sqlitem)) for sqlitem in
                          ('fieldname', 'tablename') if (hasattr(self.left, sqlitem))]
@@ -281,22 +284,38 @@ class DLGExpression(object):
 
     def __getitem__(self, value):
         if (isinstance(value, slice) is False):
-            return self[value: ADD(value, 1)]
+            return self[value: (value + 1)]
         else:
             ''' resolve and rebuild the slice in case of None or 
                 negative values, then return a valid expression.
             '''
-            start = OR(
-                SUB(self.len(), SUB(abs(value.start), 1)) \
-                    if (value.start < 0) \
-                    else value.start, 0
-            )
-            stop = self.len() \
-                if (value.stop is None) \
-                else SUB(self.len(), SUB(abs(value.stop), 1), start) \
-                if (value.stop < 0) \
-                else SUB(ADD(value.stop, 1), SUB(start, 1))
-            step = value.step
+            (
+                start,
+                stop,
+                step
+            ) = \
+                (
+                    value.start or 0,
+                    value.stop or self.len(),
+                    value.step
+                )
+            if (start < 0):
+                start = SUB(
+                    self.len(),
+                    SUB(
+                        abs(value.start),
+                        1
+                    )
+                )
+            if (stop < 0):
+                stop = SUB(
+                    self.len(),
+                    SUB(
+                        abs(value.stop),
+                        1
+                    ),
+                    start
+                )
             return DLGExpression(
                 self.objp4,
                 SUBSTR,
@@ -308,39 +327,38 @@ class DLGExpression(object):
     def as_dict(self, flat=False):
         def recurse(obji):
             objii = dict()
-            for k, v in obji.items():
+            for (k, v) in obji.items():
                 if (k in ("left", "right")):
-                    if (isinstance(v, self.__class__)):
+                    if (isinstance(v, self.__class__) is True):
                         objii[k] = recurse(v.__dict__)
                     elif (is_fieldType(v) is True):
                         objii[k] = {
                             "tablename": v.tablename,
                             "fieldname": v.name
                         }
-                    elif (is_expressionType(v)):
+                    elif (is_expressionType(v) is True):
                         objii[k] = recurse(v.__dict__)
-                    elif (isinstance(v, serializable)):
+                    elif (isinstance(v, serializable) is True):
                         objii[k] = v
-                    elif (isinstance(v, (date, time, datetime))):
+                    elif (isinstance(v, (date, time, datetime)) is True):
                         objii[k] = self.oDate.to_string(v)
                 elif (k == "op"):
-                    if (callable(v)):
+                    if (callable(v) is True):
                         objii[k] = v.__name__
-                    elif (isinstance(v, basestring)):
+                    elif (isinstance(v, basestring) is True):
                         objii[k] = v
-                    else:
-                        pass
-                elif (isinstance(v, serializable)):
+                    else: pass
+                elif (isinstance(v, serializable) is True):
                     objii[k] = recurse(v) \
-                        if (isinstance(v, dict)) \
+                        if (isinstance(v, dict) is True) \
                         else v
             return objii
 
         if flat:
-            return ZDict(recurse(self.__dict__))
+            return Storage(recurse(self.__dict__))
         else:
-            resd = ZDict()
-            for (key, value) in ZDict(self.__dict__).getitems():
+            resd = Storage()
+            for (key, value) in Storage(self.__dict__).getitems():
                 if key in (
                         'objp4',
                         'op',
@@ -552,21 +570,24 @@ class DLGExpression(object):
         return DLGExpression(self.objp4, ABS, self, type=self.type)
 
     def regexp(self, value):
-        return DLGExpression(self.objp4, REGEX, self, value)
+        #return DLGExpression(self.objp4, REGEXP, self, value)
+        return DLGQuery(self.objp4, REGEXP, self, value)
 
     def match(self, value):
         ''' USAGE:
                 >>> qry = (oP4.files.depotFile.match('^\/\/dev\/.*.py$'))
                 >>> records = oP4(qry).select()
         '''
-        return DLGExpression(self.objp4, MATCH, self, value)
+        #return DLGExpression(self.objp4, MATCH, self, value)
+        return DLGQuery(self.objp4, MATCH, self, value)
 
     def search(self, value):
         ''' USAGE:
                 >>> qry = (oP4.clients.client.search('art'))
                 >>> records = oP4(qry).select()
         '''
-        return DLGExpression(self.objp4, SEARCH, self, value)
+        #return DLGExpression(self.objp4, SEARCH, self, value)
+        return DLGQuery(self.objp4, SEARCH, self, value)
 
     def lower(self):
         return DLGExpression(self.objp4, LOWER, self, None, type=self.type)
@@ -719,6 +740,8 @@ def STARTSWITH(*args, **kwargs):
 def ENDSWITH(*args, **kwargs):
     return clsENDSWITH()(*args, **kwargs)
 
+def REGEXP(*args, **kwargs):
+    return clsREGEX()(*args, **kwargs)
 
 def MATCH(*args, **kwargs):
     return clsMATCH()(*args, **kwargs)
@@ -817,7 +840,7 @@ def COUNT(*args, **kwargs):
 
 
 def SUBSTR(*args, **kwargs):
-    return clsSUBSTRING()(*args, **kwargs)
+    return clsSUBSTR()(*args, **kwargs)
 
 
 def COALESCE(*args, **kwargs):
@@ -949,7 +972,7 @@ class QClass(object):
                 return qres
 
     def build_query(self, left, right, OP, inversion=False):
-        qry = ZDict()
+        qry = Storage()
         if (OP in notops):
             inversion = True
         if (isinstance(left, bool) | isinstance(right, bool)):
@@ -973,7 +996,7 @@ class QClass(object):
             else:
                 left.right = right
 
-        return ZDict({'op': OP, 'left': left, 'right': right, 'inversion': inversion})
+        return Storage({'op': OP, 'left': left, 'right': right, 'inversion': inversion})
 
     def strQryItems(self, lrq):
         (tablename, fieldname, value, op) = (None, None, None, None)
@@ -1148,7 +1171,7 @@ class QClass(object):
             try:
                 # "@some[?,#,?#,op]@[?,#,?#,op]"
                 (tablename, field, value, op) = (None, None, None, None)
-                if (type(qry).__name__ in ('ZDict', 'DLGQuery')):
+                if (type(qry).__name__ in ('Storage', 'DLGQuery')):
                     tablename = qry.left.tablename
                     fieldname = qry.left.fieldname
                     value = qry.right
@@ -1317,15 +1340,15 @@ class clsAND(QClass):
         else:
             (left, right) = (exps(0), exps(1))
             try:
-                if (type(left).__name__ == 'ZDict'):
-                    qres = ZDict({'op': AND, 'left': left, 'right': right})
+                if (type(left).__name__ == 'Storage'):
+                    qres = Storage({'op': AND, 'left': left, 'right': right})
                 elif (type(left).__name__ == 'DLGQuery'):
                     qres = DLGQuery(left.objp4, AND, left, right)
                 elif (type(left).__name__ == 'DLGExpression'):
                     qres = DLGExpression(left.objp4, AND, left, right)
                 elif (isinstance(left, str) is True):
                     (tablename, fieldname, value, op) = self.strQryItems(left)
-                    qres = ZDict(
+                    qres = Storage(
                         {
                             'op': AND,
                             'left':
@@ -1400,8 +1423,8 @@ class clsOR(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': OR, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': OR, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, OR, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
@@ -1414,7 +1437,7 @@ class clsOR(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict(
+                qres = Storage(
                     {
                         'op': OR,
                         'left': {
@@ -1444,8 +1467,8 @@ class clsXOR(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': XOR, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': XOR, 'left': left, 'right': right})
             elif (type(left).__name__ in ('DLGQuery', 'DLGExpression')):
                 qres = DLGQuery(left.objp4, XOR, left, right)
             elif (
@@ -1456,7 +1479,7 @@ class clsXOR(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict(
+                qres = Storage(
                     {'op': XOR,
                      'left': {
                                 'tablename': tablename,
@@ -1498,8 +1521,8 @@ class clsINVERT(QClass):
         if (right is not None):
             bail(f"clsINVERT - right MUST be None! Check itn out.")
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': INVERT, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': INVERT, 'left': left, 'right': right})
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'DLGQuery')):
                 qres = DLGExpression(left.objp4, INVERT, left, right)
 
@@ -1507,7 +1530,7 @@ class clsINVERT(QClass):
                 qres = not left
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict(
+                qres = Storage(
                     {'op': INVERT,
                      'left': {
                                 'tablename': tablename,
@@ -1550,15 +1573,15 @@ class clsNOT(QClass):
         if (right is not None):
             bail(f"clsNOT - right MUST be None! Check itn out.")
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': NOT, 'left': left, 'right': right, 'inversion': True})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': NOT, 'left': left, 'right': right, 'inversion': True})
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'DLGQuery')):
                 qres = DLGQuery(left.objp4, NOT, left, right, inversion=True)
             elif ((isinstance(left, (bool, int)))):
                 qres = not left
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict(
+                qres = Storage(
                     {'op': NOT,
                      'inversion': True,
                      'left': {
@@ -1590,8 +1613,8 @@ class clsNE(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': NE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': NE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, NE, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
@@ -1648,8 +1671,8 @@ class clsEQ(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': EQ, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': EQ, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, EQ, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
@@ -1717,8 +1740,8 @@ class clsLT(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': LT, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': LT, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, LT, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
@@ -1731,7 +1754,7 @@ class clsLT(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict({'op': LT,
+                qres = Storage({'op': LT,
                                 'left': {
                                             'tablename': tablename,
                                             'fieldname': fieldname
@@ -1759,8 +1782,8 @@ class clsLE(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': LE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': LE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, LE, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
@@ -1773,14 +1796,14 @@ class clsLE(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict({'op': LE,
+                qres = Storage({'op': LE,
                                 'left': {
                                             'tablename': tablename,
                                             'fieldname': fieldname
                                         },
                                'right': value
                                 }
-                            )
+                               )
             else:
                 qres = self.build_query(
                                         left,
@@ -1801,21 +1824,21 @@ class clsGT(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': GT, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': GT, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, GT, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
                 qres = DLGExpression(left.objp4, GT, left, right)
             elif (
-                    (isinstance(left, (bool, int)))
-                    & (isinstance(right, (bool, int)))
+                    (isinstance(left, (bool, int, float)))
+                    & (isinstance(right, (bool, int, float)))
             ):
                 qres = reduce(lambda left, right: (left > right),
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict({'op': GT,
+                qres = Storage({'op': GT,
                                 'left':
                                         {
                                             'tablename': tablename,
@@ -1844,8 +1867,8 @@ class clsGE(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': GE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': GE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, GE, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
@@ -1858,7 +1881,7 @@ class clsGE(QClass):
                               self.getSequence(*exps))
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
-                qres = ZDict({'op': GE,
+                qres = Storage({'op': GE,
                                 'left': {
                                             'tablename': tablename,
                                             'fieldname': fieldname
@@ -1886,8 +1909,8 @@ class clsCONTAINS(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': CONTAINS, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': CONTAINS, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, CONTAINS, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -1904,14 +1927,14 @@ class clsCONTAINS(QClass):
                     qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': CONTAINS,
+                    qres = Storage({'op': CONTAINS,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
                                             },
                                     'right': value
-                                }
-                            )
+                                    }
+                                   )
             elif (is_array(right) is True):
                 right = tuple([right])
                 exps.pop(1)
@@ -1948,10 +1971,10 @@ class clsBELONGS(QClass):
             exps.insert(1, right)
         try:
             if (
-                    (type(left).__name__ == 'ZDict') &
+                    (type(left).__name__ == 'Storage') &
                     (is_array(right) is True)
             ):
-                qres = ZDict({'op': BELONGS, 'left': left, 'right': right})
+                qres = Storage({'op': BELONGS, 'left': left, 'right': right})
             elif (
                         (type(left).__name__ == 'DLGQuery') &
                         (is_array(right) is True)
@@ -1975,7 +1998,7 @@ class clsBELONGS(QClass):
                     qres = reduce(lambda left, right: (left in right),
                                 self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': BELONGS,
+                    qres = Storage({'op': BELONGS,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -2005,8 +2028,8 @@ class clsON(QClass):
         try:
             if (is_tableType(left) is True):
                 qres = DLGExpression(left.objp4, ON, left, right)
-            elif (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': ON, 'left': left, 'right': right})
+            elif (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': ON, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, ON, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -2023,7 +2046,7 @@ class clsON(QClass):
                     qres = reduce(lambda left, right: (re.match(f"^{right}.*$", left) is not None),
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': STARTSWITH,
+                    qres = Storage({'op': STARTSWITH,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -2054,8 +2077,8 @@ class clsSTARTSWITH(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': STARTSWITH, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': STARTSWITH, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, STARTSWITH, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -2073,7 +2096,7 @@ class clsSTARTSWITH(QClass):
                     qres = reduce(lambda left, right: condition,
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': STARTSWITH,
+                    qres = Storage({'op': STARTSWITH,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -2102,8 +2125,8 @@ class clsENDSWITH(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': ENDSWITH, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': ENDSWITH, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, ENDSWITH, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -2120,7 +2143,7 @@ class clsENDSWITH(QClass):
                     qres = reduce(lambda left, right: (re.match(f"^.*{right}$", left) is not None),
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': ENDSWITH,
+                    qres = Storage({'op': ENDSWITH,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -2142,14 +2165,59 @@ class clsENDSWITH(QClass):
                 op or ENDSWITH
             ), name='ENDSWITH', err=err)
 
+class clsREGEXP(QClass):
+    def __call__(self, *exps):
+        exps = Lst(exps)
+        (left, right) = (exps(0), exps(1))
+        try:
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': REGEXP, 'left': left, 'right': right})
+            elif (type(left).__name__ == 'DLGQuery'):
+                qres = DLGQuery(left.objp4, REGEXP, left, right)
+            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
+                qres = DLGExpression(left.objp4, REGEXP, left, right)
+            elif (
+                    (isinstance(left, (bool, int)))
+                    & (isinstance(right, (bool, int)))
+            ):
+                qres = reduce(lambda left, right: (re.match(f"{right}", left) is not None),
+                              self.getSequence(*exps))
+            elif (isinstance(left, str) is True):
+                (tablename, fieldname, value, op) = self.strQryItems(left)
+                if ((tablename, fieldname) == (None, None)):
+                    qres = reduce(lambda left, right: (re.match(f"{right}", left) is not None),
+                                  self.getSequence(*exps))
+                else:
+                    qres = Storage({'op': REGEXP,
+                                    'left': {
+                                                'tablename': tablename,
+                                                'fieldname': fieldname
+                                    },
+                                   'right': value
+                                    }
+                                   )
+            else:
+                qres = self.build_query(
+                                        left,
+                                        right,
+                                        REGEXP
+                )
+            return qres
+        except Exception as err:
+            self.op_error(lambda left, right: (
+                left,
+                right,
+                op or REGEXP
+            ), name='REGEX', err=err)
+
 
 class clsMATCH(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': MATCH, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': MATCH, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, MATCH, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -2166,7 +2234,7 @@ class clsMATCH(QClass):
                     qres = reduce(lambda left, right: (re.match(f"{right}", left) is not None),
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': MATCH,
+                    qres = Storage({'op': MATCH,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -2187,6 +2255,10 @@ class clsMATCH(QClass):
                 right,
                 op or MATCH
             ), name='MATCH', err=err)
+        '''
+            '//dev/p4dlg/__init__.py'
+            '^//dev/p4dlg/*.py$'
+        '''
 
 
 class clsSEARCH(QClass):
@@ -2194,8 +2266,8 @@ class clsSEARCH(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': SEARCH, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': SEARCH, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, SEARCH, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -2212,7 +2284,7 @@ class clsSEARCH(QClass):
                     qres = reduce(lambda left, right: (re.search(f"{right}", left) is not None),
                               self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': SEARCH,
+                    qres = Storage({'op': SEARCH,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -2256,10 +2328,10 @@ class clsCOUNT(QClass):
                     (is_recordsType(right) is True) |
                     (type(right) is enumerate)
             ):
-                right.counts = ZDict()
+                right.counts = Storage()
                 grprecords = right.groupby(fieldname, as_groups=True)
                 if (isinstance(distinct, bool) is True):
-                    distinctrecords = ZDict()
+                    distinctrecords = Storage()
                     if (distinct is True):
                         for (grpname, grprecs) in grprecords.items():
                             for record in grprecs:
@@ -2305,8 +2377,8 @@ class clsMOD(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': MOD, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': MOD, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, MOD, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -2321,7 +2393,7 @@ class clsMOD(QClass):
                 if ((tablename, fieldname) == (None, None)):
                     qres = reduce(lambda left, right: (left % right), self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': MOD,
+                    qres = Storage({'op': MOD,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -2360,7 +2432,7 @@ class clsSUM(QClass):
                 for record in right:
                     qsum += int(record[fieldname])
 
-                right.sums = ZDict()
+                right.sums = Storage()
                 grprecords = right.groupby(fieldname, as_groups=True)
                 for (grpname, grprecs) in grprecords.items():
                     grpsum = 0
@@ -2421,7 +2493,7 @@ class clsAVG(QClass):
                 length = len(right)
                 asum = sum([float(record[fieldname]) for record in right])
 
-                right.avgs = ZDict()
+                right.avgs = Storage()
                 grprecords = right.groupby(fieldname, as_groups=True)
                 for (grpname, grprecs) in grprecords.items():
                     grpaverage = [int(grprec[fieldname]) for grprec in grprecs]
@@ -2451,7 +2523,7 @@ class clsAVG(QClass):
                      err=err
             )
 
-class clsSUBTRING(QClass):
+class clsSUBTR(QClass):
     def __call__(self, *exps):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
@@ -2628,7 +2700,7 @@ class clsMIN(QClass):
                         if (value is not None):
                             values.add(float(value))
 
-                #right.mins = ZDict()
+                #right.mins = Storage()
                 #grprecords = right.groupby(fieldname, as_groups=True)
                 #for (grpname, grprecs) in grprecords.items():
                 #    grpmins = set()
@@ -2689,7 +2761,7 @@ class clsMAX(QClass):
                         if (value is not None):
                             values.add(float(value))
 
-                #right.maxs = ZDict()
+                #right.maxs = Storage()
                 #grprecords = right.groupby(fieldname, as_groups=True)
                 #for (grpname, grprecs) in grprecords.items():
                 #    grpmaxs = set()
@@ -2744,7 +2816,7 @@ class clsADD(QClass):
             ):
                 bail(f'First argument must be a number or an expression, got `{type(left)}`.')
             if (isinstance(left, dict) is True):
-                return ZDict({'op': ADD, 'left': left, 'right': right})
+                return Storage({'op': ADD, 'left': left, 'right': right})
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, ADD, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
@@ -2828,7 +2900,7 @@ class clsSUB(QClass):
             ):
                 bail(f'First argument must be a number or an expression, got `{type(left)}`.')
             if (isinstance(left, dict) is True):
-                return ZDict({'op': SUB, 'left': left, 'right': right})
+                return Storage({'op': SUB, 'left': left, 'right': right})
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, SUB, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
@@ -2912,7 +2984,7 @@ class clsMUL(QClass):
             ):
                 bail(f'First argument must be a number or an expression, got `{type(left)}`.')
             if (isinstance(left, dict) is True):
-                return ZDict({'op': MUL, 'left': left, 'right': right})
+                return Storage({'op': MUL, 'left': left, 'right': right})
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, MUL, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
@@ -3010,7 +3082,7 @@ class clsDIV(QClass):
             ):
                 bail(f'First argument must be a number or an expression, got `{type(left)}`.')
             if (isinstance(left, dict) is True):
-                return ZDict({'op': DIV, 'left': left, 'right': right})
+                return Storage({'op': DIV, 'left': left, 'right': right})
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, DIV, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
@@ -3086,8 +3158,8 @@ class clsCASE(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': CASE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': CASE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, CASE, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -3104,7 +3176,7 @@ class clsCASE(QClass):
                     qres = reduce(lambda left, right: (left ^ right),
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': CASE,
+                    qres = Storage({'op': CASE,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -3128,8 +3200,8 @@ class clsCASEELSE(QClass):
         exps = Lst(exps)
         (left, right, other) = (exps(0), exps(1), exps(2))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': CASEELSE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': CASEELSE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, CASEELSE, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -3146,7 +3218,7 @@ class clsCASEELSE(QClass):
                     qres = reduce(lambda left, right, other: ((left ^ right) | other),
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': CASEELSE,
+                    qres = Storage({'op': CASEELSE,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -3185,8 +3257,8 @@ class clsREGEX(QClass):
                     if (left.endswith('%') is True) \
                     else (f"^{left}$", CONTAINS)
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': LIKE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': LIKE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, LIKE, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -3203,7 +3275,7 @@ class clsREGEX(QClass):
                     ismatch = (re.search(left, right) is not None)
                     qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': LIKE,
+                    qres = Storage({'op': LIKE,
                                     'left': {
                                         'tablename': tablename,
                                         'fieldname': fieldname
@@ -3243,8 +3315,8 @@ class clsLIKE(QClass):
                     else (f"^{right}$", CONTAINS)
             right = re.sub('%', '', right)
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': LIKE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': LIKE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, LIKE, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -3261,7 +3333,7 @@ class clsLIKE(QClass):
                     ismatch = (re.search(right, left) is not None)
                     qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': LIKE,
+                    qres = Storage({'op': LIKE,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -3284,7 +3356,7 @@ class clsLIKE(QClass):
             ), name='LIKE', err=err)
 
 
-class clsSUBSTRING(QClass):
+class clsSUBSTR(QClass):
     def __call__(self, *exps):
         (left, right) = Lst(exps)
         if (
@@ -3344,8 +3416,8 @@ class clsILIKE(QClass):
                     else (f"^{right}$", CONTAINS)
             (right, left) = (re.sub('%', '', right).lower(), left.lower())
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': LIKE, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': LIKE, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, LIKE, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -3362,7 +3434,7 @@ class clsILIKE(QClass):
                     ismatch = (re.search(right, left) is not None)
                     qres = reduce(lambda left, right: ismatch, self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': LIKE,
+                    qres = Storage({'op': LIKE,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -3401,7 +3473,7 @@ class clsLOWER(QClass):
             elif (is_array(left) is True):
                 return ALLLOWER(left)
         if (isinstance(left, dict) is True):
-            return ZDict({'op': LOWER, 'left': left, 'right': right})
+            return Storage({'op': LOWER, 'left': left, 'right': right})
         elif (is_queryType(left) is True):
             return DLGQuery(left.objp4, LOWER, left, right)
         elif (is_fieldType_or_expressionType(left) is True):
@@ -3452,7 +3524,7 @@ class clsUPPER(QClass):
             elif (is_array(left) is True):
                 return ALLUPPER(left)
         if (isinstance(left, dict) is True):
-            return ZDict({'op': UPPER, 'left': left, 'right': right})
+            return Storage({'op': UPPER, 'left': left, 'right': right})
         elif (is_queryType(left) is True):
             return DLGQuery(left.objp4, UPPER, left, right)
         elif (is_fieldType_or_expressionType(left) is True):
@@ -3495,8 +3567,8 @@ class clsUPPER_(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': UPPER, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': UPPER, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, UPPER, left, right)
             elif (type(left).__name__ == 'DLGExpression'):
@@ -3508,7 +3580,7 @@ class clsUPPER_(QClass):
                 if (tablename, fieldname) == (None, None):
                     qres = left.upper()
                 else:
-                    qres = ZDict({'op': UPPER,
+                    qres = Storage({'op': UPPER,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -3537,8 +3609,8 @@ class clsEPOCH(QClass):
         (left, right) = (exps(0), exps(1))
         oDateTime = DLGDateTime()
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': EPOCH, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': EPOCH, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, EPOCH, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -3551,7 +3623,7 @@ class clsEPOCH(QClass):
                     left = oDateTime.to_p4date(left)
                     qres = oDateTime.to_epoch(left)
                 else:
-                    qres = ZDict({'op': EPOCH, 'left':
+                    qres = Storage({'op': EPOCH, 'left':
                         {'tablename': tablename, 'fieldname': fieldname},
                                     'right': value})
             else:
@@ -3569,8 +3641,8 @@ class clsDIFF(QClass):
         exps = Lst(exps)
         (left, right) = (exps(0), exps(1))
         try:
-            if (type(left).__name__ == 'ZDict'):
-                qres = ZDict({'op': DIFF, 'left': left, 'right': right})
+            if (type(left).__name__ == 'Storage'):
+                qres = Storage({'op': DIFF, 'left': left, 'right': right})
             elif (type(left).__name__ == 'DLGQuery'):
                 qres = DLGQuery(left.objp4, DIFF, left, right)
             elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
@@ -3587,7 +3659,7 @@ class clsDIFF(QClass):
                     qres = reduce(lambda left, right: (left - right),
                                   self.getSequence(*exps))
                 else:
-                    qres = ZDict({'op': DIFF,
+                    qres = Storage({'op': DIFF,
                                     'left': {
                                                 'tablename': tablename,
                                                 'fieldname': fieldname
@@ -3868,7 +3940,7 @@ def expression_table(op):
             returns all
     '''
 
-    expression_ops = ZDict(
+    expression_ops = Storage(
         {
             # Expression(self.objp4, op)
             "JOIN" : JOIN,
@@ -3928,12 +4000,11 @@ def expression_table(op):
     elif (op in expression_ops.getvalues()):
         return op
 
-
 andops = (AND, 'AND', '&')
 orops = (OR, 'OR', '|')
 xorops = (XOR, 'XOR', '^')
 notops = (NOT, 'NOT', '~')
-dops = ZDict({'equal': (EQ, "EQ", '='),
+dops = Storage({'equal': (EQ, "EQ", '='),
                 'notequal': (NE, "NE", '!='),
                 'greaterthan': (GT, "GT", '>'),
                 'greaterequal': (GE, "GE", '>='),
@@ -3951,7 +4022,7 @@ dops = ZDict({'equal': (EQ, "EQ", '='),
                 'and': andops,
                 'or': orops,
                 'xor': xorops})
-ops = ZDict({EQ: ("EQ", '='),
+ops = Storage({EQ: ("EQ", '='),
                NE: ("NE", '!='),
                GT: ("GT", '>'),
                GE: ("GE", '>='),
@@ -3963,9 +4034,27 @@ ops = ZDict({EQ: ("EQ", '='),
  \
                STARTSWITH: ('STARTSWITH', '#^'),
                ENDSWITH: ('ENDSWITH', '#$'),
+               REGEXP: ('REGEXP', '#&'),
                MATCH: ('MATCH', '##'),
                SEARCH: ('SEARCH', '#?'),
  \
                AND: ('AND', '&'),
                OR: ('OR', '|'),
                XOR: ('XOR', '^')})
+regex_ops = (
+    REGEXP, 'REGEXP', '#&',
+    MATCH, 'MATCH', '##',
+    SEARCH, 'SEARCH', '#?'
+)
+equal_ops = (
+    EQ, "EQ", '=',
+    NE, "NE", '!='
+)
+comparison_ops = (
+    EQ, "EQ", '=',
+    NE, "NE", '!=',
+    GT, "GT", '>',
+    GE, "GE", '>=',
+    LT, "LT", '<',
+    LE, "LE", '<='
+)

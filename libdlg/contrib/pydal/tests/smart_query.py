@@ -1,13 +1,13 @@
 from pydal import DAL, Field
 from pydal._compat import integer_types
-from pydal.helpers.methods import smart_query
+from pydal.helpers.methods import szerdlg_query
 
 from ._adapt import DEFAULT_URI, IS_GAE, IS_IMAP, drop
 from ._compat import unittest
 
 
 @unittest.skipIf(IS_IMAP, "Skip nosql")
-class TestSmartQuery(unittest.TestCase):
+class TestSzerdlgQuery(unittest.TestCase):
     def testRun(self):
         db = DAL(DEFAULT_URI, check_reserved=["all"])
 
@@ -67,35 +67,35 @@ class TestSmartQuery(unittest.TestCase):
 
         keywords = "a_table.boolean_field = True"
         q = db.a_table.boolean_field == True
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         if not IS_GAE:
             # Test string field query
             # starts with
             keywords = 'a_table.string_field starts with "pydal"'
             q = db.a_table.string_field.startswith("pydal")
-            smart_q = smart_query(fields, keywords)
-            self.assertEqual(smart_q, q)
+            szerdlg_q = szerdlg_query(fields, keywords)
+            self.assertEqual(szerdlg_q, q)
 
             # ends with
             keywords = 'a_table.string_field ends with "Rocks!!"'
             q = db.a_table.string_field.endswith("Rocks!!")
-            smart_q = smart_query(fields, keywords)
-            self.assertEqual(smart_q, q)
+            szerdlg_q = szerdlg_query(fields, keywords)
+            self.assertEqual(szerdlg_q, q)
 
             # contains
             keywords = 'a_table.string_field contains "Rocks"'
             q = db.a_table.string_field.contains("Rocks")
-            smart_q = smart_query(fields, keywords)
-            self.assertEqual(smart_q, q)
+            szerdlg_q = szerdlg_query(fields, keywords)
+            self.assertEqual(szerdlg_q, q)
 
         # Don't work for some reason
         # # like
         # keywords = 'a_table.string_field like "%Rocks%"'
         # q = (db.a_table.string_field.like('%Rocks%'))
-        # smart_q = smart_query(fields, keywords)
-        # self.assertTrue(smart_q == q)
+        # szerdlg_q = szerdlg_query(fields, keywords)
+        # self.assertTrue(szerdlg_q == q)
         # -----------------------------------------------------------------------------
 
         # -----------------------------------------------------------------------------
@@ -134,163 +134,163 @@ class TestSmartQuery(unittest.TestCase):
         #         # {op}
         #         keywords = 'a_table.integer_field {test_op} 1'
         #         q = (db.a_table.integer_field {result_op} 1)
-        #         smart_q = smart_query(fields, keywords)
-        #         self.assertTrue(smart_q == q)""".format(op=op,
+        #         szerdlg_q = szerdlg_query(fields, keywords)
+        #         self.assertTrue(szerdlg_q == q)""".format(op=op,
         #                                                 test_op=op[0],
         #                                                 result_op='==' if op[1] == '=' else op[1])
 
         # ('=', '=')
         keywords = "a_table.integer_field = 1"
         q = db.a_table.integer_field == 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # ('==', '=')
         keywords = "a_table.integer_field == 1"
         q = db.a_table.integer_field == 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' is ','=')
         keywords = "a_table.integer_field is 1"
         q = db.a_table.integer_field == 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' equal ', '=')
         keywords = "a_table.integer_field  equal  1"
         q = db.a_table.integer_field == 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' equals ', '=')
         keywords = "a_table.integer_field  equals  1"
         q = db.a_table.integer_field == 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' equal to ', '=')
         keywords = "a_table.integer_field  equal to  1"
         q = db.a_table.integer_field == 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # This one not allow over integer it seems
         # # ('<>', '!=')
         # keywords = 'a_table.integer_field <> 1'
         # q = (db.a_table.integer_field != 1)
-        # smart_q = smart_query(fields, keywords)
-        # self.assertTrue(smart_q == q)
+        # szerdlg_q = szerdlg_query(fields, keywords)
+        # self.assertTrue(szerdlg_q == q)
 
         # (' not equal ', '!=')
         keywords = "a_table.integer_field  not equal  1"
         q = db.a_table.integer_field != 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' not equal to ', '!=')
         keywords = "a_table.integer_field  not equal to  1"
         q = db.a_table.integer_field != 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # ('<', '<')
         keywords = "a_table.integer_field < 1"
         q = db.a_table.integer_field < 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' less than ', '<')
         keywords = "a_table.integer_field  less than  1"
         q = db.a_table.integer_field < 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # ('<=', '<=')
         keywords = "a_table.integer_field <= 1"
         q = db.a_table.integer_field <= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
-        # This one is invalid, maybe we should remove it from smart_query
+        # This one is invalid, maybe we should remove it from szerdlg_query
         # # ('=<', '<=')
         # keywords = 'a_table.integer_field =< 1'
         # q = (db.a_table.integer_field <= 1)
-        # smart_q = smart_query(fields, keywords)
-        # self.assertTrue(smart_q == q)
+        # szerdlg_q = szerdlg_query(fields, keywords)
+        # self.assertTrue(szerdlg_q == q)
 
         # (' less or equal ', '<=')
         keywords = "a_table.integer_field  less or equal  1"
         q = db.a_table.integer_field <= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' less or equal than ', '<=')
         keywords = "a_table.integer_field  less or equal than  1"
         q = db.a_table.integer_field <= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' equal or less ', '<=')
         keywords = "a_table.integer_field  equal or less  1"
         q = db.a_table.integer_field <= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' equal or less than ', '<=')
         keywords = "a_table.integer_field  equal or less than  1"
         q = db.a_table.integer_field <= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # ('>', '>')
         keywords = "a_table.integer_field > 1"
         q = db.a_table.integer_field > 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' greater than ', '>')
         keywords = "a_table.integer_field  greater than  1"
         q = db.a_table.integer_field > 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
-        # This one is invalid, maybe we should remove it from smart_query
+        # This one is invalid, maybe we should remove it from szerdlg_query
         # # ('=>', '>=')
         # keywords = 'a_table.integer_field => 1'
         # q = (db.a_table.integer_field >= 1)
-        # smart_q = smart_query(fields, keywords)
-        # self.assertTrue(smart_q == q)
+        # szerdlg_q = szerdlg_query(fields, keywords)
+        # self.assertTrue(szerdlg_q == q)
 
         # ('>=', '>=')
         keywords = "a_table.integer_field >= 1"
         q = db.a_table.integer_field >= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' greater or equal ', '>=')
         keywords = "a_table.integer_field  greater or equal  1"
         q = db.a_table.integer_field >= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' greater or equal than ', '>=')
         keywords = "a_table.integer_field  greater or equal than  1"
         q = db.a_table.integer_field >= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' equal or greater ', '>=')
         keywords = "a_table.integer_field  equal or greater  1"
         q = db.a_table.integer_field >= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
 
         # (' equal or greater than ', '>=')
         keywords = "a_table.integer_field  equal or greater than  1"
         q = db.a_table.integer_field >= 1
-        smart_q = smart_query(fields, keywords)
-        self.assertEqual(smart_q, q)
+        szerdlg_q = szerdlg_query(fields, keywords)
+        self.assertEqual(szerdlg_q, q)
         # -----------------------------------------------------------------------------
 
         # -----------------------------------------------------------------------------
@@ -302,19 +302,19 @@ class TestSmartQuery(unittest.TestCase):
         # (' in ', 'belongs') -> field.belongs(1, 2, 3)
         # keywords = 'a_table.integer_field in "1, 2, 3"'
         # q = (db.a_table.integer_field.belongs([1, 2, 3]))
-        # smart_q = smart_query(fields, keywords)
-        # self.assertEqual(smart_q, q)
+        # szerdlg_q = szerdlg_query(fields, keywords)
+        # self.assertEqual(szerdlg_q, q)
 
         # keywords = 'a_table.id in "1, 2, 3"'
         # q = (db.a_table.id.belongs([1, 2, 3]))
-        # smart_q = smart_query(fields, keywords)
-        # self.assertEqual(smart_q, q)
+        # szerdlg_q = szerdlg_query(fields, keywords)
+        # self.assertEqual(szerdlg_q, q)
         #
         # # (' not in ' , 'notbelongs'),
         # keywords = 'a_table.integer_field not in "1, 2, 3"'
         # q = (~db.a_table.id.belongs([1, 2, 3]))
-        # smart_q = smart_query(fields, keywords)
-        # self.assertTrue(smart_q == q)
+        # szerdlg_q = szerdlg_query(fields, keywords)
+        # self.assertTrue(szerdlg_q == q)
 
         # -----------------------------------------------------------------------------
         # cleanup table

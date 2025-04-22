@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 from pickle import load
 
-from libdlg.dlgStore import ZDict, objectify, Lst
+from libdlg.dlgStore import Storage, objectify, Lst
 from libdlg.dlgUtilities import noneempty, casttype
 from libfs.fsFileIO import loadpickle, dumppickle
 
@@ -24,9 +24,9 @@ from libfs.fsFileIO import loadpickle, dumppickle
 objdict_regex = re.compile('^(\w+)\.([^.]+)$')
 now = datetime.now
 
-'''  [$File: //dev/p4dlg/libsh/shVars.py $] [$Change: 609 $] [$Revision: #9 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsh/shVars.py $] [$Change: 691 $] [$Revision: #11 $]
+     [$DateTime: 2025/04/19 01:29:22 $]
+     [$Author: mart $]
 '''
 
 __all__ = ('VARSObject', 'clsVars')
@@ -151,7 +151,7 @@ class VARSObject(object):
                     for varkey in self.varsobject})
 
     def __getitem__(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         if ((len(args) + len(kwargs)) == 0):
             '''
                     no args, no kwargs, only one thing to do...
@@ -203,7 +203,7 @@ class VARSObject(object):
     __nonzero__ = lambda self: len(self.__dict__) > 0
     __getattr__ = __getitem__
     __delitem__ = object.__delattr__
-    __copy__ = lambda self: ZDict(self)
+    __copy__ = lambda self: Storage(self)
     __call__ = __getitem__
 
     def __eq__(self, other):
@@ -216,18 +216,19 @@ class VARSObject(object):
         return not (self == other)
 
     def __copy__(self):
-        return ZDict(dict(self))
+        return Storage(dict(self))
 
     def __init__(self, clsObj, varsname):
-        self.__dict__ = ZDict({})
+        self.__dict__ = Storage({})
         self.clsObj = clsObj
         self.varsname = varsname
         self.maxtextwidth = 80
-        self.varsobject = ZDict()
-        self.prefix = self.clsObj.varsdata[varsname].prefix \
-            if (hasattr(self.clsObj.varsdata, varsname)) \
+        self.varsobject = Storage()
+        self.varsdata = self.clsObj.varsdata
+        self.prefix = self.varsdata[varsname].prefix \
+            if (hasattr(self.varsdata, varsname)) \
             else None
-        self.varspickle = ZDict()
+        self.varspickle = Storage()
 
     def haskeys(self, *args):
         return True \
@@ -235,7 +236,7 @@ class VARSObject(object):
             else False
 
     def add(self, *args, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         if (len(Lst(args)) > 0):
             argsdata = {
                 iValues(0): iValues(1) \
@@ -247,7 +248,7 @@ class VARSObject(object):
         return self.update_add_remove(**kwargs)
 
     def remove(self, *args, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         if (len(Lst(args)) > 0):
             kwargs.merge(
                 {
@@ -261,7 +262,7 @@ class VARSObject(object):
         return self.update_add_remove(**kwargs)
 
     def update(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         if (len(Lst(args)) > 0):
             argsdata = {
                 iValues(0): iValues(1) for (idx, iValues) in args.inpairs()
@@ -283,7 +284,7 @@ class VARSObject(object):
         if (type(argslist.first()) is NoneType):
             return self.getargs_all()
         elif (argslist.sametype(str) is True):
-            return ZDict(
+            return Storage(
                 {
                     varkey: self.varsobject[varkey].varvalue for varkey \
                         in argslist if (varkey in self.varsobject)
@@ -309,10 +310,10 @@ class VARSObject(object):
                 } for (varname, varvalue) in kwargs.items()
             ]
         )
-        rows = ZDict()
+        rows = Storage()
         for row in urows:
             varname = row.pop('varname')
-            row = ZDict({varname: row})
+            row = Storage({varname: row})
             if (row[varname].varvalue is not None):
                 self.varsobject.merge(row)
             elif (
@@ -324,7 +325,7 @@ class VARSObject(object):
                     vvalue = self.clsObj.__dict__[row.prefixname]
                     res = clsVars(self.clsObj, self.varsname)(varname, vvalue)
                     valuetype = dict \
-                        if (type(vvalue) is ZDict) \
+                        if (type(vvalue) is Storage) \
                         else type(vvalue)
                     row[varname].merge(
                         {
@@ -339,7 +340,7 @@ class VARSObject(object):
         return rows
 
     def define_row(self, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         varname = kwargs.varname \
             if (noneempty(kwargs.varname) is False) \
             else self.varspickle.first() \
@@ -369,7 +370,7 @@ class VARSObject(object):
                 else casttype(vartype, precastedvalue) \
                 if (type(precastedvalue).__name__ != vartype) \
                 else 'str'
-            return ZDict(
+            return Storage(
                 {
                     'prefixname': prefixname,
                     'varname': varname,
@@ -414,7 +415,7 @@ class VARSObject(object):
             vartype = stored_type \
                 if (
                     (noneempty(stored_type) is False) \
-                    & (type(value) is not ZDict)
+                    & (type(value) is not Storage)
             ) \
                 else type(value)
             varvalue = casttype(vartype, value)
@@ -474,42 +475,43 @@ class VARSObject(object):
                 self.varspickle.merge({key: value})
 
     def load_varspickle(self):
-        p = self.clsObj.varsdata[self.varsname].path
+        p = self.varsdata[self.varsname].path
         if (os.path.exists(p)):
             try:
-                return loadpickle(p) or ZDict()
+                return loadpickle(p) or Storage()
             except Exception as err:
-                return load(p) or ZDict()
+                return load(p) or Storage()
         self.dump_varspickle()
-        return ZDict()
+        return Storage()
 
     def dump_varspickle(self):
         if (noneempty(self.varsobject) is False):
             dumppickle(self.varsobject,
-                self.clsObj.varsdata[self.varsname].path)
+                       self.varsdata[self.varsname].path)
 
 class clsVars:
-    def __init__(self, obj, varsname=None):
+    def __init__(self, clsObj, varsname=None):
         (
-            self.obj,
+            self.clsObj,
             self.varsname
         ) = \
             (
-                obj,
+                clsObj,
                 varsname
             )
+        self.varsdata = self.clsObj.varsdata
 
     def __call__(self, *args, **kwargs):
-        record = self.obj.varsdata[self.varsname].objvars(*args, **kwargs)
+        record = self.varsdata[self.varsname].objvars(*args, **kwargs)
         if (isinstance(record, dict)):
-            prefix = self.obj.varsdata[self.varsname].prefix
-            Vars = self.obj.varsdata[self.varsname].Vars
+            prefix = self.varsdata[self.varsname].prefix
+            Vars = self.varsdata[self.varsname].Vars
             for varname in record:
                 configvalue = record[varname]
-                if (isinstance(configvalue, ZDict) is True):#if (hasattr(configvalue, 'action')):
+                if (isinstance(configvalue, Storage) is True):#if (hasattr(configvalue, 'action')):
                     if (configvalue.action == 'set'):
-                        self.obj.clsVars(
-                            self.obj,
+                        self.clsObj.clsVars(
+                            self.clsObj,
                             self.varsname).set(
                                         varname,
                                         configvalue.varvalue,
@@ -532,7 +534,7 @@ class clsVars:
                             }
                         )
                     elif (configvalue.action == 'unset'):
-                        self.obj.clsVars(self, self.varsname).unset(varname, prefix)
+                        self.clsObj.clsVars(self, self.varsname).unset(varname, prefix)
                         #self.unset(varname, prefix)
                         [Vars.delete(name) for name in (varname, \
                             configvalue.prefixname) if (name in Vars)]
@@ -562,14 +564,14 @@ class clsVars:
                 prefixname
             ]
         )
-        objContainers = [self.obj, globals()]
+        objContainers = [self.clsObj, globals()]
         if (
                 (hasattr(self, 'varsname') is True) \
                 & (noneempty(getattr(self, 'varsname')) is False)
         ):
-            objContainers.append(self.obj.varsdata[self.varsname].sqVars)
-        if (hasattr(self.obj, 'bs')):
-            objContainers.append(self.obj.bs.locals)
+            objContainers.append(self.varsdata[self.varsname].sqVars)
+        if (hasattr(self.clsObj, 'bs')):
+            objContainers.append(self.clsObj.bs.locals)
         for varname in names:
             for _obj in objContainers:
                 if (isinstance(_obj, dict)):
@@ -594,15 +596,15 @@ class clsVars:
                 vartype = _vartype \
                     if (noneempty(_vartype) is False) \
                     else type(varvalue)
-                setattr(self.obj, varname, varvalue)
+                setattr(self.clsObj, varname, varvalue)
                 globals().__setitem__(varname, varvalue)
                 if (
                         (noneempty(prefixname) is False)
                         & (noneempty(self.varsname) is False)
                 ):
-                    setattr(self.obj, prefixname, varvalue)
+                    setattr(self.clsObj, prefixname, varvalue)
                     globals().__setitem__(prefixname, varvalue)
-                    self.obj.varsdata[self.varsname].sqVars.merge(
+                    self.varsdata[self.varsname].sqVars.merge(
                         {
                             varname: {
                                 'varvalue': varvalue,

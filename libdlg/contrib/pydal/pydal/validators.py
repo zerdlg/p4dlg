@@ -2885,7 +2885,7 @@ official_top_level_domains = [
     "sl",
     "sling",
     "sm",
-    "smart",
+    "szerdlg",
     "smile",
     "sn",
     "sncf",
@@ -3075,7 +3075,7 @@ official_top_level_domains = [
     "vuelos",
     # w
     "wales",
-    "walmart",
+    "walzerdlg",
     "walter",
     "wang",
     "wanggou",

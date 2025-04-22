@@ -18,8 +18,8 @@ class BaseRepresenter(Representer):
     @for_type("boolean", adapt=False)
     def _boolean(self, value):
         if value and not str(value)[:1].upper() in "0F":
-            return self.adapter.smart_adapt(self.dialect.true)
-        return self.adapter.smart_adapt(self.dialect.false)
+            return self.adapter.szerdlg_adapt(self.dialect.true)
+        return self.adapter.szerdlg_adapt(self.dialect.false)
 
     @for_type("id", adapt=False)
     def _id(self, value):

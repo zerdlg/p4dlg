@@ -1,12 +1,13 @@
 import re
 
-from libdlg.dlgStore import Lst, ZDict, objectify
+from libdlg.dlgStore import Lst, Storage, objectify
 from libdlg.dlgUtilities import decode_bytes, ALLLOWER
 from libpy4.py4SpecIO import SpecIO
+from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 680 $] [$Revision: #27 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 693 $] [$Revision: #31 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 ''' Usage example:
@@ -15,8 +16,6 @@ from libpy4.py4SpecIO import SpecIO
     cmdargs = ['--user', 'zerdlg', '--port', 'anastasia.local:1777']
     inforecord = Py4Run(objp4, *cmdargs, tablename='info')()(0)
 '''
-
-
 __all__ = ['Py4Run']
 
 class Py4Run(object):
@@ -37,7 +36,7 @@ class Py4Run(object):
         ) = \
             (
                 cmdargs,
-                ZDict(tabledata)
+                Storage(tabledata)
             )
 
         ''' Py4 does provide its own logger, if objp4 IS iinstance of Py4, then use it.
@@ -57,7 +56,7 @@ class Py4Run(object):
         pass
 
     def __call__(self, *cmdargs, **cmdkwargs):
-        (cmdargs, cmdkwargs) = (Lst(cmdargs), ZDict(cmdkwargs))
+        (cmdargs, cmdkwargs) = (Lst(cmdargs), Storage(cmdkwargs))
         join_datachunks = cmdkwargs.joindata_chunks or False
         ''' tablename should exist in tablememo
         '''
@@ -78,10 +77,12 @@ class Py4Run(object):
                 self.objp4.spec_takes_no_lastarg + ['submit']
             )
         )
-        lastarg = None
-
-        if (not tablename in noargs_cmds):
-            (lastarg, cmdargs, noqry) = self.objp4.define_lastarg(tablename, *cmdargs)
+        lastarg = cmdkwargs.lastarg
+        if (
+                (lastarg is None) &
+                (not tablename in noargs_cmds)
+        ):
+            (lastarg, cmdargs, noqry) = self.objp4.define_lastarg(tablename, *cmdargs) #0
 
         self.objp4.p4globals += self.objp4.supglobals
         ''' tablename must be cmdargs' 1st argument. so either insert 
@@ -171,12 +172,17 @@ class Py4Run(object):
                             cmdargs.pop(cmdargs.index(tablename))
                             cmdargs.insert(0, tablename)
                         elif (len(cmdargs) > 0):
-                           if (tablename == 'spec'):
-                               if (cmdargs(-1) != 'spec'):
-                                   if (cmdargs(-1) in self.objp4.p4spec):
-                                       if (tablename not in cmdargs):
-                                           cmdargs.insert(-2, tablename)
-                if (lastarg is not None):
+                            if (
+                                    (tablename == 'spec') &
+                                    (cmdargs(-1) != 'spec') &
+                                    (cmdargs(-1) in self.objp4.p4spec) &
+                                    (tablename not in cmdargs)
+                            ):
+                                cmdargs.insert(-2, tablename)
+                if (
+                        (lastarg is not None) &
+                        (lastarg not in cmdargs)
+                ):
                     cmdargs.append(lastarg)
                 ''' no matter what, be it input or output, 
                     we need a spec's output
@@ -186,7 +192,7 @@ class Py4Run(object):
                         tablename,
                         lastarg,
                         *cmdargs,
-                        **specinput#**cmdkwargs
+                        **specinput
                     )
                     return specres
                 finally:
@@ -227,9 +233,9 @@ class Py4Run(object):
                     output = self.objp4.p4OutPut_noCommands(tablename, *cmdargs)
                 else:
                     output = self.objp4.p4OutPut(
-                                                    tablename,
-                                                    *cmdargs,
-                                                    **cmdkwargs
+                        tablename,
+                        *cmdargs,
+                        **cmdkwargs
                     )
 
                     if (
@@ -244,9 +250,9 @@ class Py4Run(object):
                         )
                         ):
                             if (not None in (
-                                            output(1).code,
-                                            output(1).data
-                                        )
+                                    output(1).code,
+                                    output(1).data
+                            )
                             ):
                                 ''' decision: join or don't join data chunks 
                                     *** think about the size of the combined chunks of text
@@ -258,7 +264,7 @@ class Py4Run(object):
                                     data = ''
                                     for out_chunk in output[1:]:
                                         data += out_chunk.data
-                                    output = ZDict(
+                                    output = Storage(
                                         {
                                             'code': metadata,
                                             'data': data
@@ -266,11 +272,11 @@ class Py4Run(object):
                                     )
                     if (
                             (tablename in self.objp4.nocommands) &
-                            (type(output).__name__ == 'Records')
+                            (is_recordsType(output) is True)
                     ):
                         if (len(output) == 1):
                             output = output(0)
-                            if (hasattr(output, 'data') is True):
+                            if (hasattr(output, 'data')):
                                 output = output.data
             else:
                 cmdargs.pop(cmdargs.index('-G'))

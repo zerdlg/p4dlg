@@ -6,7 +6,7 @@ from libdlg.dlgDateTime import DLGDateTime
 from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgUtilities import (
     isnum,
     bail,
@@ -19,9 +19,9 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 680 $] [$Revision: #7 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 693 $] [$Revision: #14 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['DLGSql', 'fields2ints']
@@ -29,7 +29,7 @@ __all__ = ['DLGSql', 'fields2ints']
 
 def fields2ints(record):
     # crecord = Record(record.copy())
-    crecord = ZDict(record.copy())
+    crecord = Storage(record.copy())
     for fkey in crecord.getkeys():
         if (isnum(record[fkey]) is True):
             try:
@@ -42,6 +42,9 @@ def fields2ints(record):
 
 
 class DLGSql(DLGControl):
+    ''' `commitlist` are records yet to be committed to the target `DB system`
+    '''
+
     def __getitem__(self, item):
         try:
             return self.__dict__.get(item)
@@ -58,11 +61,11 @@ class DLGSql(DLGControl):
             query=None,
             **tabledata
     ):
-        self.tabledata = tabledata = ZDict(tabledata)
+        self.tabledata = tabledata = Storage(tabledata)
         self.closed = False
         self.objp4 = objp4
         if (self.objp4 is None):
-            self.objp4 = ZDict()
+            self.objp4 = Storage()
         [
             setattr(
                 self,
@@ -99,7 +102,7 @@ class DLGSql(DLGControl):
             be a little more specific as to the type of domain
             we're looking at. 
         '''
-        self.domaintypes = self.oSchemaType.values_names_bydatatype('DomainType') \
+        self.domaintypes = self.oSchemaType.valuesnames_bydatatype('DomainType') \
             if (self.oSchemaType is not None) \
             else self.get_domaintypes()
         ''' decide on how we modify the p4 table names,
@@ -215,7 +218,7 @@ class DLGSql(DLGControl):
                 cols or self.cols,
                 records or self.records,
                 Lst(fieldnames),
-                ZDict(kwargs)
+                Storage(kwargs)
             )
 
         self.records = self.select(
@@ -277,9 +280,9 @@ class DLGSql(DLGControl):
 
         try:
             if (isinstance(record, list)):
-                record = ZDict(zip(self.cols, record))
+                record = Storage(zip(self.cols, record))
             (record_is_error, error_data) = is_error()
-            skip_record = ZDict(
+            skip_record = Storage(
                 {
                     'record_is_error': (record_is_error is True),
                     'ignore_action': (
@@ -394,7 +397,7 @@ class DLGSql(DLGControl):
                     None,
                 )
             if (type(qry).__name__ in (
-                    'ZDict',
+                    'Storage',
                     'DLGQuery',
                     'DLGExpression'
             )
@@ -550,7 +553,7 @@ class DLGSql(DLGControl):
             record.appendleft(idx)
             actionfield = 1
         if (record[actionfield] not in ignore_actions):
-            record = ZDict(
+            record = Storage(
                 zip(
                     cols,
                     record
@@ -567,7 +570,7 @@ class DLGSql(DLGControl):
         elif (
                 (isinstance(qry, (str, list))) |
                 (type(qry).__name__ in (
-                        'ZDict',
+                        'Storage',
                         'DLGQuery',
                         'DLGExpression'
                 )
@@ -623,30 +626,39 @@ class DLGSql(DLGControl):
             else op(value, right)
         return receval
 
-    def parse_qry(self, op, left, right, record, qry=None):
-        receval = left(record) \
-            if (type(left) is LambdaType) \
-            else None
-        if (isinstance(qry, str) is True):
-            receval = self.evaluate(left, record=record)
-        elif (
-                (isinstance(left, dict) is True) |
-                (is_queryType(left) is True) |
-                (is_fieldType(left) is True)
-        ):
-            value = left.op(left, record) \
-                if (is_queryType(left) is True) \
-                else record[left.fieldname]
-            [int(item) for item in (value, left, right) if (isnum(item) is True)]
-            receval = op(left, record) \
-                if (right is None) \
-                else op(value, right)
-        else:
-            receval = op(left, right)
+    def calculate_receval(self, receval):
         if (isinstance(receval, bool) is True):
             receval = int(receval)
         return ((receval & 1) | 0)
 
+    def parse_qry(self, op, left, right, record, qry=None):
+        if (type(left) is LambdaType):
+            return self.calculate_receval(left(record))
+        if (isinstance(qry, str) is True):
+            receval = self.evaluate(left, record=record)
+            return self.calculate_receval(receval)
+
+        value = None
+        if (
+                (isinstance(left, dict) is True) |
+                (is_fieldType_or_queryType(left) is True)
+        ):
+            value = left.op(left, record) \
+                if (is_queryType(left) is True) \
+                else record[left.fieldname]
+        if (value is not None):
+            left = value
+        if (op in comparison_ops):
+            if (
+                    (right is not None) &
+                    (isnum(left) is True) &
+                    (isnum(right) is True)
+            ):
+                (left, right) = (float(left), float(right))
+        if (right is None):
+            right = record
+        receval = op(left, right)
+        return self.calculate_receval(receval)
     '''
     >>> ((p4.files.depotFile.len() + 1) > 64)
     or >>> 
@@ -759,12 +771,12 @@ class DLGSql(DLGControl):
             ):
                 # not sure... needs testing
                 if (left is not None):
-                    built = self.parse(buildleft.op, buildleft.left, buildleft.right, record)
+                    built = self.parse_qry(buildleft.op, buildleft.left, buildleft.right, record)
                 elif not (left or right):
                     built = DLGExpression(self.objp4, op)
 
         elif (exp_func is not None):
-            for (akey, avalue) in ZDict(
+            for (akey, avalue) in Storage(
                     {
                         'left': left,
                         'right': right
@@ -785,10 +797,7 @@ class DLGSql(DLGControl):
                     left = avalue
                 else:
                     right = avalue
-            if (
-                    (is_expressionType(left) is True) |
-                    (is_fieldType(left) is True)
-            ):
+            if (is_fieldType_or_expressionType(left) is True):
                 built = self.parse_exp(
                     op,
                     left,
@@ -799,7 +808,7 @@ class DLGSql(DLGControl):
                 built = op(left, right)
 
         elif (qry_func is not None):
-            for (akey, avalue) in ZDict(
+            for (akey, avalue) in Storage(
                     {
                         'left': left,
                         'right': right
@@ -841,7 +850,7 @@ class DLGSql(DLGControl):
         return built
 
     def aggregate(self, records, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         (orderby,
          limitby,
          groupby,
@@ -1058,7 +1067,13 @@ class DLGSql(DLGControl):
                 # return filter(lambda rec: (rec[1][2] in tablenames), records)
             except Exception as err:
                 bail(err)
-
+        if (
+                (is_recordType(records) is True) &
+                (self.query is not None)
+        ):
+            outrecords = Records([], [], objp4=self.objp4)
+            outrecords.insert(0, records)
+            return enumerate(outrecords, start=1)
         return enumerate(records, start=1) \
             if (type(records) is not enumerate) \
             else records
@@ -1112,9 +1127,17 @@ class DLGSql(DLGControl):
             records=None,
             **kwargs
     ):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         fieldnames = Lst(fieldnames)
         ''' query
+        
+        if (query is None):
+            if (isinstance(self.query, list) is True):
+                self.query.append(query)
+            else:
+                query = self.query or []
+        elif (isinstance(query, list) is True):
+            query = Lst([query])
         '''
         if (query is None):
             query = self.query or []
@@ -1136,37 +1159,48 @@ class DLGSql(DLGControl):
                 cols.pop(cols.index('code'))
             except Exception as err:
                 self.objp4.logwarning(err)
-        ''' tablename
+
+        ''' tablename & records
         '''
         tablename = self.tablename or self.tabledata.tablename
         if (tablename is None):
             try:
-                tablename = query(0).left.tablename if (isinstance(query, Lst) is True) else query.left.tablename
+                tablename = query(0).left.tablename \
+                    if (isinstance(query, Lst) is True) \
+                    else query.left.tablename
             except:
                 if (self.reference is not None):
                     tablename = self.reference.left.tablename
-        ''' records
+
+        ''' It could happen - that tablename might still be None
         '''
-        if (records is None):
-            records = self.records
-        ''' records is not enumerator, let's start grasping.
+        if (tablename is None):
+            if (fieldnames(0) is None):
+                for key in kwargs.keys():
+                    if (is_expressionType(kwargs[key]) is True):
+                        tablename = kwargs[key].tablename
+            elif (is_expressionType(fieldnames(0)) is True):
+                tablename = fieldnames(0).tablename
+        ''' records is not enumerator or it is None, let's start grasping.
         '''
-        if (type(records) != enumerate):
-            if (is_recordsType(records) is True):
-                if (len(records) == 0):
-                    if (tablename is None):
-                        if (fieldnames(0) is None):
-                            for key in kwargs.keys():
-                                if (is_expressionType(kwargs[key]) is True):
-                                    tablename = kwargs[key].tablename
-                        elif (is_expressionType(fieldnames(0)) is True):
-                            tablename = fieldnames(0).tablename
-                    records = self.objp4(self.objp4[tablename]).records
-                else:
-                    records = self.get_recordsIterator(records)
+        if (
+                (records is None) |
+                (type(records) != enumerate)
+        ):
+            records = Records([], [], self.objp4, **self.tabledata)
+            if (self.records is not None):
+                if (is_recordType(self.records) is True):
+                    if (len(self.records) > 0):
+                        records = self.records
+                elif (type(self.records) == enumerate):
+                    records = self.records
+            if (tablename is not None):
+                if (type(records) != enumerate):
+                    if (len(records) == 0):
+                        records = self.objp4(self.objp4[tablename]).records
             else:
                 recset = None
-                if (noneempty(query) is False):
+                if (len(query) > 0):
                     if (isinstance(query, str) is True):
                         ''' TODO:
                             comeback here & support str queries
@@ -1178,6 +1212,7 @@ class DLGSql(DLGControl):
                         if (is_fieldType_or_expressionType(fieldnames(0)) is True) \
                         else self.objp4(self.objp4[tablename])
                 records = recset.records
+
         fieldsmap = self.fieldsmap or self.tabledata.fieldsmap
         fieldnames = Lst(fieldnames).storageindex(reversed=True)
         return (tablename, fieldnames, fieldsmap, query, cols, records)
@@ -1189,7 +1224,7 @@ class DLGSql(DLGControl):
                 self.objp4.updateenv(**record)
                 record.update(
                     **{
-                        key: eval(value, ZDict(), self.objp4.env)
+                        key: eval(value, Storage(), self.objp4.env)
                     }
                 )
                 self.loginfo(f'computed new column ({key})')

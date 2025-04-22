@@ -1,6 +1,6 @@
 from libdlg.dlgDateTime import DLGDateTimeConvert
 from libsql.sqlRecords import Records
-from libdlg.dlgStore import ZDict, Lst, StorageIndex
+from libdlg.dlgStore import Storage, Lst, StorageIndex
 from libdlg.dlgUtilities import (
     bail,
     reg_dbtablename,
@@ -9,9 +9,9 @@ from libdlg.dlgUtilities import (
 from libsql.sqlControl import *
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 680 $] [$Revision: #21 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 693 $] [$Revision: #28 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 __all__ = ('Select',)
@@ -29,6 +29,10 @@ class Select(DLGSql):
             datetype='datetime',
             **kwargs
     ):
+
+        #if (len(fieldnames) == 1):
+        #    if (isinstance(fieldnames[0], list) is True):
+        #        fieldnames = Lst(fieldnames).pop(0)
         (
             kwargs,
             eor,
@@ -40,10 +44,10 @@ class Select(DLGSql):
             expression,
         ) = \
             (
-                ZDict(kwargs),
+                Storage(kwargs),
                 False,
                 0,
-                ZDict(),
+                Storage(),
                 set(),
                 None,
                 None,
@@ -68,12 +72,15 @@ class Select(DLGSql):
             records=records,
             **kwargs
         )
-
-        ''' Handle expressions passing for queries!
+        #if (query is None):
+        #    query = self.query
+        ''' last minute queries and expressions
         '''
         cfieldnames = StorageIndex(fieldnames.copy())
         for fidx in cfieldnames.getkeys():
             if (is_expressionType(cfieldnames[fidx]) is True):
+                ''' Handle expressions that attempt to pass for queries!
+                '''
                 expression = fieldnames.pop(fidx)
                 if (is_substrType(expression) is False):
                     #fieldnameidx = fieldnames.index(expression)
@@ -85,6 +92,13 @@ class Select(DLGSql):
                         else expression.op.lower()
                     kwargs.update(**{opname: expression})
                     break
+            elif (is_queryType(cfieldnames[fidx]) is True):
+                if (query is None):
+                    query = fieldnames.pop(fidx)
+                elif (isinstance(query, list) is True):
+                    query.append(query)
+        if (is_tableType(fieldnames(0)) is True):
+            bail("there doesn't seem to be any valid reason to pass in a DLGTable class reference as a parameter when selecting records.")
 
         ''' check expression & distinct values for substring expressions now
             since they need to be handled *before* we process aggregators
@@ -118,6 +132,9 @@ class Select(DLGSql):
                 'sub',
                 'mul',
                 'mod',
+                'match',
+                'search',
+                'regex',
         )
         kwargs.delete(*[aggregator for aggregator in aggregators if (kwargs[aggregator] is None)])
         ''' Are we joining records ? 
@@ -188,7 +205,6 @@ class Select(DLGSql):
                             (not 'idx' in record)
                     ):
                         record.merge({'idx': idx})
-
                     ''' evaluate the current record & collect 
                         the result of each query statement                         
                     '''
@@ -219,7 +235,7 @@ class Select(DLGSql):
                         ''' if any, compute new columns now and adjust the record
                         '''
                         if (len(self.compute) > 0):
-                            record = ZDict(self.computecolumns(record))
+                            record = Storage(self.computecolumns(record))
                         ''' match column to their records 
                             hum...
                             
@@ -230,7 +246,7 @@ class Select(DLGSql):
                         if (len(fieldnames) > 0):
                             ''' we have a custom field list to output! - re-define the record accordingly!
                             '''
-                            rec = ZDict()
+                            rec = Storage()
                             for fn in fieldnames.keys():
                                 field = fieldnames[fn].fieldname \
                                     if (is_fieldType(fieldnames[fn]) is True) \
@@ -285,7 +301,7 @@ class Select(DLGSql):
                                 '''
 
                             if (is_substrType(expression) is True):
-                                expstore = ZDict({'substr':expression})
+                                expstore = Storage({'substr':expression})
                                 record[fieldname] = self.aggregate(record, **expstore)
                                 #kwargs.delete('substr')
 
@@ -297,7 +313,7 @@ class Select(DLGSql):
                                     - a field object (get its fieldname)
                                     - a fieldname (which is really the thing we are looking for)
                             '''
-                            if (noneempty(distinct) is False):
+                            if (distinct is not None):
                                 if (is_expressionType(distinct) is True):
                                     kwargs.distinct = distinct
                                 if (is_fieldType(distinct) is True):
@@ -329,34 +345,6 @@ class Select(DLGSql):
                                                         fieldname = kwargs[kkey].fieldname
                                     if (hasattr(distinct, 'objp4') is True):
                                         fieldname = self.validate_distinct(distinct)
-                                        #fieldname = None
-                                        #if (isinstance(distinct, bool) is True):
-                                        #    if (distinct is True):
-                                        #        qry = query(0) \
-                                        #            if (len(query) > 0) \
-                                        #            else expression
-                                        #        if (qry is not None):
-                                        #            if (is_queryType(qry) is True):
-                                        #                fieldname = qry.left.fieldname
-                                        #            elif (is_fieldType_or_expressionType(qry) is True):
-                                        #                fieldname = qry.fieldname
-                                        #        elif (len(fieldnames) > 0):
-                                        #            if (fieldnames(0) is not None):
-                                        #                if (is_fieldType_or_expressionType(fieldnames(0)) is True):
-                                        #                    fieldname = fieldnames(0).fieldname
-                                        #                else:
-                                        #                    fieldname = fieldnames(0).left.fieldname
-                                        #        else:
-                                        #            for kkey in kwargs.getkeys():
-                                        #                if (is_expressionType(kwargs[kkey]) is True):
-                                        #                    fieldname = kwargs[kkey].fieldname
-                                        #else:
-                                        #    fieldname = self.validate_distinct(distinct)
-                                        #if (fieldname is not None):
-                                        #    distinctvalue = record(fieldname)
-                                        #    if (distinctvalue is not None):
-                                        #        if (distinctvalue not in distinctrecords):
-                                        #            distinctrecords.merge({distinctvalue: record}, overwrite=False)
                                 if (fieldname is not None):
                                     distinctvalue = record(fieldname)
                                     if (distinctvalue is not None):
@@ -377,13 +365,13 @@ class Select(DLGSql):
                                     outrecords.insert(idx, record)
             except (StopIteration, EOFError):
                 eor = True
-                if (hasattr(records, 'read')):
-                    records.close()
+                if (hasattr(records, 'close')):
+                    if (records.close is not None):
+                        records.close()
             except Exception as err:
                 eor = True
                 bail(err)
 
-        #if (distinct is not None):
         if (len(distinctrecords) > 0):
             outrecords = Records(distinctrecords.getvalues(), cols, self.objp4)
         ''' Time to join/merge records 

@@ -1,12 +1,12 @@
 import os, sys
 import logging
 
-from libdlg.dlgStore import ZDict
+from libdlg.dlgStore import Storage
 from libdlg.dlgUtilities import bail
 
-'''  [$File: //dev/p4dlg/libdlg/dlgLogger.py $] [$Change: 609 $] [$Revision: #4 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgLogger.py $] [$Change: 683 $] [$Revision: #5 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['LogHandler']
@@ -117,7 +117,7 @@ class LogHandler(object):
                 handlers = ['filehandler', 'streamhandler']
             ''' map handler name to logging handler
             '''
-            kwhandler = ZDict({'filehandler': self.get_filehandler,
+            kwhandler = Storage({'filehandler': self.get_filehandler,
                                  'streamhandler': self.get_streamhandler,
                                  'nullhandler': self.get_nullhandler,
                                  'dbhandler': self.get_dbhandler})

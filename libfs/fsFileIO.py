@@ -29,7 +29,7 @@ try:
 except ImportError:
     import pickle
 
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgError import LockingError
 
 '''  [$File: //dev/p4dlg/libdlg/fsFileIO.py $] [$Change: 467 $] [$Revision: #10 $]
@@ -108,37 +108,37 @@ def readwritepickle(filename, value=None):
         oFile.write(objFile)
         oFile.truncate()
         out = ast.literal_eval(str(objFile))
-        return ZDict(out) \
+        return Storage(out) \
             if (isinstance(out, dict)) \
-            else out or ZDict()
+            else out or Storage()
     finally:
         oFile.close()
 
 def loadpickle(filename):
     if (os.path.exists(filename) is False):
-        return ZDict()
+        return Storage()
     pFile = fileopen(filename, 'rb')
     try:
         out = pickle.load(pFile)
-        return ZDict(out) \
+        return Storage(out) \
             if (isinstance(out, dict)) \
-            else out or ZDict()
+            else out or Storage()
     except pickle.UnpicklingError as err:
         return readwritepickle(filename)
     except EOFError:
-        return ZDict()
+        return Storage()
     except Exception as err:
         e = raiseException(Exception, err)
-        return ZDict()
+        return Storage()
     finally:
         pFile.close()
 
 def loadspickle(obj):
     try:
         out = ast.literal_eval(str(pickle.loads(obj)))
-        return ZDict(out) \
+        return Storage(out) \
             if (isinstance(out, dict)) \
-            else out or ZDict()
+            else out or Storage()
     except pickle.UnpicklingError as err:
         print(err, False)
     except EOFError:
@@ -148,7 +148,7 @@ def dumppickle(obj, filename):
     pFile = get_fileobject(filename, 'wb')
     try:
         obj = dict(obj) \
-            if (type(obj).__name__ in ('ZDict', 'StorageIndex')) \
+            if (type(obj).__name__ in ('Storage', 'StorageIndex')) \
             else obj
         pickle.dump(obj, pFile)
     finally:
@@ -156,7 +156,7 @@ def dumppickle(obj, filename):
 
 def dumpspickle(obj):
     obj = dict(obj) \
-        if (type(obj).__name__ in ('ZDict', 'StorageIndex')) \
+        if (type(obj).__name__ in ('Storage', 'StorageIndex')) \
         else list(obj) \
         if (type(obj) is Lst) \
         else obj
@@ -439,70 +439,72 @@ def recurse(root, callback):
         else:
             print(f'Skipping {filepath}')
 
-def file_isempty(p):
-    if (os.path.isfile(p)):
+def file_isempty(filename):
+    if (os.path.isfile(filename)):
         return False \
-            if (os.path.getsize(p) > 0) \
+            if (os.path.getsize(filename) > 0) \
             else True
 
-def ispath(p):
+def ispath(filename):
     ''' is file & exists on FS '''
-    if (isinstance(p, str)):
-        return (os.path.exists(p))
+    if (isinstance(filename, str)):
+        return (os.path.exists(filename))
     return False
 
 def isserialized(filename):
     return (re.match(r'^[\<{].*[}\/\>]$', re.sub('\n', '', filename)) is not None)
 
-def isxmldoc(_file):
+def isxmldoc(filename):
     if (
-            (isinstance(_file, str)) &
-            (isfile(_file) is False)
+            (isinstance(filename, str)) &
+            (isfile(filename) is False)
     ):
-        return (re.match(r"^\<\?xml (.*?)\?\>$", re.sub('\n', '', _file)) is not None)
+        return (re.match(r"^\<\?xml (.*?)\?\>$", re.sub('\n', '', filename)) is not None)
     return False
 
-def is_compressed(f):
+def is_compressed(filename):
     ''' check if gzip:
            if (fileobj.read(2)=='\037\213'):
                yes, this is a gzip file         '''
-    if (hasattr(f, 'read') is True):
+    if (hasattr(filename, 'read') is True):
         return False
-    mtype = mimetypes.guess_type(f)
+    mtype = mimetypes.guess_type(filename)
     return True \
         if (mtype[1] == 'gzip') \
         else False
 
-def isfsfile(_file):
-    return (re.match(r'^\/[^/]|^[^/].*\/.*$', _file) is not None)
+def isfsfile(filename):
+    return (re.match(r'^\/[^/]|^[^/].*\/.*$', filename) is not None)
 
-def isdepotfile(_file):
+def isdepotfile(filename):
+    if (filename.startswith('//')):
+        filename = filename.lstrip('//')
     return (
-                (re.match(r'//.*$', _file) is not None) &
-                (not _file.endswith('/'))
+                (re.match(r'//.*$', filename) is not None) &
+                (not filename.endswith('/'))
     )
 
-def isclientfile(_file):
-    return (re.match(r'^//[^0-9].*/[^0-9].*[^/]$', _file) is not None)
+def isclientfile(filename):
+    return (re.match(r'^//[^0-9].*/[^0-9].*[^/]$', filename) is not None)
 
-def isanyfile(_file):
+def isanyfile(filename):
     for (name, isfunc) in {
                             'is_depotfile': isdepotfile,
                             'is_fsfile': isfsfile,
                             'is_clientfile': isclientfile
                         }.items():
-        if (isfunc(_file) is True):
+        if (isfunc(filename) is True):
             return True
     return False
 
-def isfile(_file):
-    return (re.match(r'^[.*]|[//]|/.*$', _file) is not None)
+def isfile(filename):
+    return (re.match(r'^[.*]|[//]|/.*$', filename) is not None)
 
-def isrecursive(_file):
-    return (re.match(r"^.*(\.\.\.)|^.*(\*\*).*$", _file) is not None)
+def isrecursive(filename):
+    return (re.match(r"^.*(\.\.\.)|^.*(\*\*).*$", filename) is not None)
 
-def iswildcard(_file):
-    return (re.match(r"^.*(\.\.\.)|.*\*$", _file) is not None)
+def iswildcard(filename):
+    return (re.match(r"^.*(\.\.\.)|.*\*$", filename) is not None)
 
 def get_fileobject(filename, mode='rb', lock=False):
     '''  return something with attribute 'read'
@@ -620,7 +622,7 @@ def readwrite(
 def loadconfig(filename):
     oFile = fileopen(filename, 'r')
     try:
-        return ZDict(json.load(oFile))
+        return Storage(json.load(oFile))
     finally:
         oFile.close()
 
@@ -650,7 +652,7 @@ def loaddumpconfig(
         oFile.seek(0)
         json.dump(content, oFile, indent=indent)
         oFile.truncate()
-        return ZDict(content)
+        return Storage(content)
     finally:
         oFile.close()
 
@@ -668,10 +670,10 @@ def guessfilemode(*args, **kwargs):
         r'^[a+]+$': 'append'
     }
 
-    (args, kwargs) = (Lst(args), ZDict(kwargs))
+    (args, kwargs) = (Lst(args), Storage(kwargs))
 
     def iterreg(*args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         (
             idex,
             mode,
@@ -726,7 +728,7 @@ class Hash(object):
         self.digest = digest
 
     def __call__(self, value):
-        hashdict = ZDict(
+        hashdict = Storage(
                             {
                              'md5': hashlib.md5,
                              'sha1': hashlib.sha1,

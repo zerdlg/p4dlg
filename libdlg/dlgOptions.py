@@ -1,6 +1,6 @@
 import sys
 import argparse
-from libdlg.dlgStore import ZDict, objectify, Lst
+from libdlg.dlgStore import Storage, objectify, Lst
 
 ''' a parser to handle cmd line options
 
@@ -28,9 +28,9 @@ from libdlg.dlgStore import ZDict, objectify, Lst
                                    "If you mess up, try try again!"},                           
 '''
 
-'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 609 $] [$Revision: #5 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 683 $] [$Revision: #6 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['ArgsParser', ]
@@ -230,7 +230,7 @@ class ArgsParser(object):
             for (optname, optvalue) in optparser.items():
                 options = Lst([f'--{optname}', ])
                 if (isinstance(optvalue, dict)):
-                    kwoptions = ZDict(optvalue.copy())
+                    kwoptions = Storage(optvalue.copy())
                     ''' add optional `short` options 
                     '''
                     if (kwoptions.short is not None):

@@ -1,12 +1,12 @@
 from libjnl.jnlIO import P4Jnl
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libfs.fsFileIO import is_writable, make_writable
-from libsql.sqlSchema import getObjSchema
+from libsql.sqlSchema import get_schemaObject
 
-'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 680 $] [$Revision: #19 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 689 $] [$Revision: #22 $]
+     [$DateTime: 2025/04/15 05:30:50 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['ObjJnl']
@@ -133,9 +133,9 @@ Manage connections to journals and checkpoints.
     ):
         if (journal is None):
             return
-        (oSchema, version) = getObjSchema(journal, oSchema, version)
+        (oSchema, version) = get_schemaObject(journal, oSchema, version)
         if (oSchema is not None):
-            value = ZDict({'journal': journal, 'oSchema': oSchema})
+            value = Storage({'journal': journal, 'oSchema': oSchema})
             self.varsdef(name, value)
             ojnl = P4Jnl(journal, oSchema, loglevel=self.loglevel)
             self.shellObj.kernel.shell.push({name: ojnl})
@@ -147,10 +147,10 @@ Manage connections to journals and checkpoints.
         if (len(kwargs) > 0):
             self.unload(name)
             old_value = self.varsdef(name)
-            kwargs = ZDict(kwargs)
+            kwargs = Storage(kwargs)
             journal = kwargs.journal or old_value.journal
             oSchema = kwargs.oSchema or old_value.oSchema
-            new_value = ZDict({'journal': journal, 'oSchema': oSchema})
+            new_value = Storage({'journal': journal, 'oSchema': oSchema})
             self.varsdef(name, new_value)
             print(f'Reference ({name}) updated')
             ojnl = P4Jnl(journal, oSchema, loglevel=self.loglevel)
@@ -177,7 +177,7 @@ Manage connections to journals and checkpoints.
             [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
         except KeyError as err:
             print(err)
-        ZDict(self.shellObj.__dict__).delete(name)
+        Storage(self.shellObj.__dict__).delete(name)
         self.setstored()
         print(f'Reference ({name}) unloaded')
 

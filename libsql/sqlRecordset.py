@@ -10,25 +10,27 @@ import timeit
 #from libsql.sqlQuery import DLGQuery, DLGExpression
 from libsql.sqlSelect import Select
 from libsql.sqlRecords import Records
-from libdlg.dlgStore import ZDict, Lst, objectify
+from libdlg.dlgStore import Storage, Lst, objectify
 from libdlg.dlgUtilities import noneempty, bail
 from libfs.fsFileIO import ispath, loadspickle
 from libdlg.dlgSearch import Search
 from libsql.sqlValidate import *
 from libjnl.jnlFile import JNLFile
+from libsh import varsdata
+from libsh.shVars import clsVars
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 680 $] [$Revision: #20 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 693 $] [$Revision: #27 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 class RecordSet(object):
     #__hash__ = lambda self: hash(
     #    (frozenset(self),
     #     frozenset(self.recordset))
-    #     #frozenset(ZDict(self.__dict__).getvalues()))
+    #     #frozenset(Storage(self.__dict__).getvalues()))
     #)
 
     __iter__ = lambda self: self.__dict__.__iter__()
@@ -154,7 +156,7 @@ class RecordSet(object):
     '''
     '''      (op in ('#^', '#$', '#')) / (op == '!#')
     '''
-    env = ZDict()
+    env = Storage()
 
     def __init__(
             self,
@@ -167,6 +169,9 @@ class RecordSet(object):
         (args, tabledata) = (Lst(args), objectify(tabledata))
         self.tabledata = tabledata
         self.objp4 = objp4
+        self.varsdata = varsdata
+        self.p4recordvars = clsVars(self, 'p4recordvars')
+        self.jnlrecordsvars = clsVars(self, 'jnlrecordvars')
         ''' logging
         '''
         [
@@ -193,7 +198,7 @@ class RecordSet(object):
             setattr(self, tdata, tabledata[tdata]) for tdata in tabledata
         ]
 
-        self.oSchema = self.objp4.oSchema or ZDict()
+        self.oSchema = self.objp4.oSchema or Storage()
         self.cols = self.fieldnames if (hasattr(self, 'fieldnames')) else Lst()
         ''' recordset is the reference to jnlFile.JNLFile
             should be re-used for the constraint_recordset
@@ -201,7 +206,8 @@ class RecordSet(object):
         self.recordset = records
         ''' records
         '''
-        self.records = self.defineRecords(records)
+        lastarg = tabledata.pop('lastarg') if (tabledata.lastarg is not None) else None
+        self.records = self.defineRecords(records)#, **{'lastarg': lastarg})
         ''' queries
         '''
         self.query = query
@@ -259,7 +265,7 @@ class RecordSet(object):
         ) = \
             (
                 Lst(queries),
-                ZDict(kwargs)
+                Storage(kwargs)
             )
         if (
                 (len(queries) == 1) &
@@ -275,7 +281,7 @@ class RecordSet(object):
         return queries
 
     def __call__(self, *queries, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         if (
                 (self.query is None) &
                 (len(queries) > 0)
@@ -289,7 +295,7 @@ class RecordSet(object):
     def defineCols(self, records):
         recs = (rec[1] for rec in records)
         cols = Lst()
-        record = ZDict(next(recs))
+        record = Storage(next(recs))
         if (len(record) > 0):
             cols = record.getkeys()
         else:
@@ -319,7 +325,7 @@ class RecordSet(object):
         except Exception as err:
             bail(err)
 
-    def defineRecords(self, records):
+    def defineRecords(self, records, **kwargs):
             if (hasattr(records, 'loads')):
                 records = loadspickle(records)
                 if (len(self.cols) == 0):
@@ -339,8 +345,12 @@ class RecordSet(object):
                     ):
                         self.cols = records.cols or record.getkeys()
                     return enumerate(records)
-                else:
-                    return records
+                elif (is_P4Jnl(self.objp4) is True):
+                    oJNLFile = JNLFile(self.objp4.journal, reader=self.objp4.reader)
+                    return enumerate(oJNLFile.reader(), start=1)
+                #elif (is_Py4(self.objp4) is True):
+                #    self.objp4
+                return records
 
             ''' Nothing so far?
             
@@ -368,8 +378,8 @@ class RecordSet(object):
                 '''
             elif (type(records).__name__ == 'Py4Run'):
                 if (hasattr(records, 'options')):
-                    records = getattr(records, '__call__')(*records.options)
-                return ZDict(records) \
+                    records = getattr(records, '__call__')(*records.options, **kwargs)
+                return records \
                     if (isinstance(records, dict)) \
                     else enumerate(records, start=1)
 
@@ -454,7 +464,7 @@ class RecordSet(object):
                  estimates=False,
                  **kwargs
     ):
-        (options, kwargs) = (Lst(options), ZDict(kwargs))
+        (options, kwargs) = (Lst(options), Storage(kwargs))
         records = self.select(close=False)
         (start, end) = limitby \
             if (noneempty(limitby) is False) \
@@ -506,7 +516,7 @@ class RecordSet(object):
                             if not (isinstance(self.query, list)) \
                             else self.query
                         for q in query:
-                            if (isinstance(q.right, ZDict)):
+                            if (isinstance(q.right, Storage)):
                                 q = q.left
                             if (q.right == syncFile):
                                 specifier = q.left.specifier
@@ -531,7 +541,7 @@ class RecordSet(object):
                              syncFile = f'{syncFile}{specifier}{record.rev}'
                         syncfiles.append(syncFile)
 
-            for (key, value) in ZDict(kwargs.copy()).items():
+            for (key, value) in Storage(kwargs.copy()).items():
                 if (key.lower() in self.objp4.tablememo['sync'].cmdref.fieldsmap.getkeys()):
                     optkey = f'--{key}'
                     if (noneempty(value) is False):
@@ -660,7 +670,7 @@ class RecordSet(object):
                             if not (isinstance(self.query, list)) \
                             else self.query
                         for q in query:
-                            if (isinstance(q.right, ZDict)):
+                            if (isinstance(q.right, Storage)):
                                 q = q.left
                             if (q.right == sourceFile):
                                 specifier = q.left.specifier
@@ -692,17 +702,17 @@ class RecordSet(object):
                 ) = \
                     (
                         None,
-                        ZDict()
+                        Storage()
                     )
                 if (isinstance(item, dict)):
-                    item = ZDict(item)
+                    item = Storage(item)
                     if (item.Description is not None):
                         source = item.Description
                     elif (item.desc is not None):
                         source = item.desc
                     metadata = item
                 elif (isinstance(item, Lst)):
-                    metadata = ZDict(item(0))
+                    metadata = Storage(item(0))
                     if (len(out) == 2):
                         source = out(1).data
                     else:
@@ -712,7 +722,7 @@ class RecordSet(object):
                 results = self.oSearch(source, *term)
                 for result in results:
                     context = re.sub('^\s*', '... ', result.context)
-                    searchdata = ZDict(
+                    searchdata = Storage(
                         {
                             'score': result.score,
                             'search_terms': result.terms,
@@ -750,7 +760,7 @@ class RecordSet(object):
         ) = \
             (
                 Lst(args),
-                ZDict(kwargs)
+                Storage(kwargs)
             )
         ''' 
             TODO: Include this  
@@ -763,25 +773,142 @@ class RecordSet(object):
         ) = \
             (
                 Lst(args),
-                ZDict(kwargs)
+                Storage(kwargs)
             )
         ''' 
             TODO: include this. 
+            
+    * figure this out!
+    
+    return getattr(self.objp4, self.tablename)(**update_fields)
+    Records(records, cols, self.objp4)
+            
+    def commit(self):
+        #self.delete('')
+        res = getattr(self.objp4, self.tablename)(**self.updateargs)
+        self.updateargs = Storage()
+        return res    
         '''
 
-    def update(self, **update_fields):
-        records = self.select(update_fields=update_fields)
-        #indices = self.select('idx')
-        #records.update(**update_fields)
-        records.update(**update_fields)
-        self.records = records
-        return records
+    def update(self, **updateargs):
+        ''' This `update` method updates a set of records (or
+            a single record, like a spec) but does NOT save/submit
+            anything to the Server. To do so, as with any reliable
+            DB system, the records (rows) must be committed.
+
+            Since we should be able to commit when ever the user is ready,
+            as opposed to simply being committed after a successful records
+            update, we dump the updated records in a `vars` object (a pickle/cache).
+            This way, we can commit when ready. See documentation for committing records.
+        '''
+        if (is_Py4(self.objp4) is True):
+            recordsvars = self.p4recordvars
+            if (recordsvars(self.tablename) is None):
+                recordsvars(self.tablename, Records())
+            if (self.is_spec is True):
+                ''' In the case of a spec, we update one record at a time.
+                    Which requires that `self.records` be a singular reference
+                    to class Record().
+                    
+                    The `update` workflow for a spec.
+                    
+                    1) make sure self,.records *is* a Record()
+                    2) remove fields that would otherwise prevent
+                       the spec to be saved to the server.
+                    3) Save/dump the record to `recordsvars`.
+                       
+                       * All recordvars keys are tablenames, while
+                         all recordsvars values are Records objects.
+                         Therefor singular specs are then inserted into
+                         the Records object. As follows:
+                         
+                         {tablename: Records(), }
+                         
+                         VIEW a recordsvars table Records object:
+                            >>> recordsvars(tablename)
+                            <Records (n)>
+                         CREATE a new empty Records object:
+                            >>> recordsvars(tablename, Records())                     
+                         DELETE a row:
+                            >>> recordsvars(tablename, None)   
+                         ADD a record to an existing table Records object:
+                            >>> recordsvars(tablename).insert(-1, myRecord)
+                         DELETE a single record from a Records object:
+                            likely something like this:
+                            >>> record = next(filter(lambda record: (recordsvars.altarg) == <specname>, recordsvars(tablename)))
+                            >>> recordsvars(tablename).pop(record)
+                            <spec record>
+                            
+                            wrapped in an easy to access func, like this:
+                            
+                            def delete_vars_record(tablename, specname):
+                                record = next(
+                                            filter(
+                                                lambda record: (recordsvars.altarg == <specname>), 
+                                                recordsvars(tablename)
+                                                )
+                                            )
+                                popped_record = recordsvars(tablename).pop(record)
+                                return popped_record
+                    
+                    TODO: Setup a decorator to enforce stuff like
+                          minimum `admin` access rights, otherwise bail
+                          this action. eg.:
+                          
+                          @requires_admin
+                        
+                          * For now, assuming the user has enough access to delete specs.
+                '''
+                crecord = self.records.copy()
+                if (is_recordType(self.records) is True):
+                    self.records.merge(**updateargs)
+                    [self.records.delete(key) for key in crecord.keys() \
+                     if key.lower() in ('access', 'update', 'code')]
+                    if (recordsvars(self.tablename) is None):
+                        recordsvars(self.tablename, Records())
+                    recordsvars(self.tablename).insert(-1, self.records)
+            else:
+                ''' to be selective, select your target records.
+                
+                    TODO: Trim down this list to make sure the cmd 
+                          creates a new rev and requires to be submitted
+                          to the server.
+                '''
+                eor = False
+                records = (record for record in self.select())
+                while (eor is False):
+                    try:
+                        rec = next(records)
+                        rec.merge(**updateargs)
+                        recordsvars(self.tablename).insert(-1, rec)
+                    except Exception as err:
+                        bail(err)
+                    except StopIteration:
+                        eor = True
 
     def delete(self, *args, **kwargs):
-        indices = self.select()
-        for idx in indices:
-            self.records.delete()
-        return self.records
+        if (is_Py4(self.objp4) is True):
+            recordsvars = self.p4recordvars
+            if (recordsvars(self.tablename) is None):
+                recordsvars(self.tablename, Records())
+            if (self.is_spec is True):
+                if (is_recordType(self.records) is True):
+                    specname = self.records[self.tablename]
+                    if (recordsvars(self.tablename) is not None):
+                        recordsvars(self.tablename, None).insert(-1, self.records)
+                    res = self.objp4[self.tablename]('-df', specname)
+                    return res
+            else:
+                eor = False
+                recids = (id for i in len(self.select()))
+                while (eor is False):
+                    try:
+                        recid = next(recids)
+                        recordsvars(self.tablename).pop(recid)
+                    except Exception as err:
+                        bail(err)
+                    except StopIteration:
+                        eor = True
 
     def _select(
                 self,
@@ -832,7 +959,9 @@ class RecordSet(object):
                 close_session=True,
                 **kwargs
     ):
-        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
+        (fieldnames, kwargs) = (Lst(fieldnames), Storage(kwargs))
+        if (isinstance(fieldnames(0), list) is True):
+            fieldnames = Lst(fieldnames(0))
 
         tablename = self.tablename \
             if (hasattr(self, 'tablename')) \
@@ -843,8 +972,14 @@ class RecordSet(object):
             else kwargs.tablename \
             if (kwargs.tablename is not None) \
             else fieldnames(0).tablename \
-            if (is_fieldType_or_expressionType(fieldnames(0)) is True) \
+            if (
+                (is_fieldType_or_expressionType(fieldnames(0)) is True) |
+                (is_tableType(fieldnames(0)) is True)
+        ) \
             else None
+
+        if (not hasattr(self, 'tablename')):
+            self.tablename = tablename
 
         objp4 = self.objp4 \
             if (hasattr(self, 'objp4')) \
@@ -875,7 +1010,11 @@ class RecordSet(object):
             query=query,
             **tabledata
         )
-
+        if (
+                (len(self.tabledata) in (0, 3)) |
+                (self.tabledata is None)
+        ):
+            self.tabledata = tabledata
         if (self.reference is not None):
             kwargs.update(
                 join=self.reference.right._table.on(self.reference),
@@ -894,7 +1033,7 @@ class RecordSet(object):
     def defineAggregateKWargs(self, *fieldnames, name=None, query=None, **kwargs):
         if (name is None):
             bail('sqlRecordset.defineAggregateKWargs() requires a valid name (`count`, `sum` or `avg`)')
-        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
+        (fieldnames, kwargs) = (Lst(fieldnames), Storage(kwargs))
         (
             tabledata,
             tablename,

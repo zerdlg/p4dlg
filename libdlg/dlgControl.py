@@ -3,12 +3,12 @@ import os, sys
 import logging
 
 from libdlg.dlgUtilities import bail
-from libdlg.dlgStore import Lst, ZDict
+from libdlg.dlgStore import Lst, Storage
 from libdlg.dlgLogger import LogHandler
 
-'''  [$File: //dev/p4dlg/libdlg/dlgControl.py $] [$Change: 609 $] [$Revision: #6 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgControl.py $] [$Change: 683 $] [$Revision: #7 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['DLGControl']
@@ -124,7 +124,7 @@ class LogHandler(object):
                 handlers = ['filehandler', 'streamhandler']
             ''' map handler name to logging handler
             '''
-            kwhandler = ZDict({'filehandler': self.get_filehandler,
+            kwhandler = Storage({'filehandler': self.get_filehandler,
                                  'streamhandler': self.get_streamhandler,
                                  'nullhandler': self.get_nullhandler,
                                  'dbhandler': self.get_dbhandler})
@@ -138,7 +138,7 @@ class LogHandler(object):
         return self
 
 class DLGControl(object):
-    #__shared__ = ZDict()
+    #__shared__ = Storage()
     def __init__(
             self,
             loggername='P4DLG',
@@ -148,7 +148,7 @@ class DLGControl(object):
             **kwargs
     ):
         #self.__dict__ = self.__shared__
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         if (logfile is None):
             dateitems = datetime.datetime.now().ctime().split()
             dateitems.pop(3)

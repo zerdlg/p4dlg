@@ -3,7 +3,7 @@ import re
 from xml.etree.ElementTree import ElementTree
 from libsql.sqlModel import Py4Model
 from libdlg.dlgStore import (
-    ZDict,
+    Storage,
     objectify,
     Lst
 )
@@ -20,9 +20,9 @@ from libfs.fsFileIO import (
 )
 from libdlg.dlgDateTime import DLGDateTime
 
-'''  [$File: //dev/p4dlg/libsql/sqlSchema.py $] [$Change: 609 $] [$Revision: #4 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlSchema.py $] [$Change: 689 $] [$Revision: #7 $]
+     [$DateTime: 2025/04/15 05:30:50 $]
+     [$Author: mart $]
 '''
 
 __all__ = [
@@ -34,12 +34,12 @@ __all__ = [
     'to_releasename',
     'to_versionname',
     'schemaxmlversion',
-    'version_to_xmlfilename',
+    'versionname_to_xmlfilename',
     'fullxmlpath',
     'SchemaMatch',
     'guessversion',
-    'getLatestCheckpointAction',
-    'getObjSchema'
+    'get_lastCheckpointAction',
+    'get_schemaObject'
     ]
 
 ''' an re to match against a version number ('2014.2')
@@ -61,9 +61,9 @@ versionstrict_re = f'^{version_re}$'
 '''
 versionxmlpath_re = f'^.*{version_re}\.xml$'
 
-releasexml_filename = '^schema_r(\d){0,2}\.\d+\.xml$'
+release_xmlfile = '^schema_r(\d){0,2}\.\d+\.xml$'
 
-def versionxml_filename_re(version):
+def version_xmlfile_re(version):
     regex = get_versionregex(version)
     return f'^schema_{regex}\.xml$'
 
@@ -123,12 +123,12 @@ def to_versionname(ver):
         if (is_releasename(ver) is True) \
         else ver
 
-def version_to_xmlfilename(version):
+def versionname_to_xmlfilename(version):
     ''' quick version to & xmlfilename function
         * both '2016.2' & 'r16.2' result in 'schema_2014.2.xml'
 
             >>> version='2014.2'
-            >>> version_to_xmlfilename(version)
+            >>> versionname_to_xmlfilename(version)
             'schema_2014.2.xml'
     '''
     version = to_releasename(version)
@@ -171,7 +171,7 @@ def fullxmlpath(schemadir, version):
 
             does the version match something that looks like "schema_r16.2.xml" ?
     '''
-    (res, matches) = SchemaMatch(versionxml_filename_re(version))(version)
+    (res, matches) = SchemaMatch(version_xmlfile_re(version))(version)
     if (matches is True):
         return os.path.join(schemadir, version)
     ''' does the version match something that looks like either "r16.2" or "2016.2" ?
@@ -179,7 +179,7 @@ def fullxmlpath(schemadir, version):
     regex = get_versionregex(version)
     (res, matches) = SchemaMatch(regex)(version)
     if (matches is True):
-        return os.path.join(schemadir, version_to_xmlfilename(version))
+        return os.path.join(schemadir, versionname_to_xmlfilename(version))
     ''' does the version match something that looks like a path to a file that ends with ".xml" ?
     '''
     (res, matches) = SchemaMatch(versionxmlpath_re)(version)
@@ -354,15 +354,16 @@ def guessversion(jnlfile):
             except Exception  as err:
                 print(err)
     finally:
-        oFile.close()
+        if (hasattr(oFile, 'close')):
+            oFile.close()
     if (len(upgrades) > 0):
         upgrade = str(max(upgrades))
         schema_upgrades = oSchemaxml.p4schema.upgrades.upgrade
-        rec = ZDict(next(filter(lambda rec: rec.index == upgrade, schema_upgrades)))
+        rec = Storage(next(filter(lambda rec: rec.index == upgrade, schema_upgrades)))
         release = to_releasename(rec.release_id)
         return (release, rec)
 
-def getLatestCheckpointAction(jnlfile):
+def get_lastCheckpointAction(jnlfile):
     ''' returns  tuple
         ('1628211713', '2021/08/05 18:01:53')
     '''
@@ -391,7 +392,7 @@ def getLatestCheckpointAction(jnlfile):
         ckpt_datetime = DLGDateTime().to_p4date(ckpt_epoch)
         return (ckpt_epoch, ckpt_datetime)
 
-def getObjSchema(jnlfile, oSchema=None, version=None):
+def get_schemaObject(jnlfile, oSchema=None, version=None):
     if (oSchema is not None):
         if (version is None):
             version = oSchema.version
@@ -422,7 +423,7 @@ class SchemaXML(object):
         ''' local
         '''
         self.schemadir = schemadir or get_schemadir()
-        self.version = self.latestrelease_local() \
+        self.version = self.local_latestrelease() \
             if (version in ('latest', None)) \
             else version
         ''' remote
@@ -432,10 +433,17 @@ class SchemaXML(object):
         self.rightURL = 'doc/schema/index.xml'
         ''' schema & model
         '''
-        (self.p4schema, self.p4model) = (None, None)
-        localschemacontent = self.loadxmlschema_local(self.version)
-        if (localschemacontent is not None):
-            self.p4schema = localschemacontent.p4schema
+        (
+            self.p4schema,
+            self.p4model
+        ) = \
+            (
+                None,
+                None
+            )
+        local_schemacontent = self.load_localxmlschema(self.version)
+        if (local_schemacontent is not None):
+            self.p4schema = local_schemacontent.p4schema
             oModel = Py4Model(self.p4schema)
             self.p4model = oModel.modelize_schema()
 
@@ -444,10 +452,10 @@ class SchemaXML(object):
 
     ''' list schema files, both local and remote from 'ftp://ftp.perforce.com/perforce/'
     '''
-    def listreleases_remote(self):
+    def list_remotereleases(self):
         releases = []
         try:
-            remotereleases = self.readxmlfile_remote(url=self.leftURL).split()
+            remotereleases = self.read_remotexmlfile(url=self.leftURL).split()
         except Exception as err:
             errmsg = f"Check your internet connection, or the URL is invalid ({self.leftURL})\n"
             bail(f'URLError: {errmsg}.\n{err}\n')
@@ -463,17 +471,17 @@ class SchemaXML(object):
                         releases.append(p4version)
         return Lst(sorted(releases))
 
-    def listreleases_local(self):
+    def list_localreleases(self):
         try:
             releases = Lst(
                     getversion_from_filename(schema) for schema \
-                        in self.listxmlfiles_local()
+                        in self.list_localxmlfiles()
             )
         except Exception as err:
             releases = Lst()
         return Lst(sorted(releases))
 
-    def listxmlfiles_local(self):
+    def list_localxmlfiles(self):
         try:
             return sorted(
                 [
@@ -484,31 +492,31 @@ class SchemaXML(object):
         except:
             return []
 
-    def versionexists_local(self, version):
-        versions = self.listreleases_local()
+    def local_versionexists(self, version):
+        versions = self.list_localreleases()
         return True \
             if (version in versions) \
             else False
 
-    def versionexists_remote(self, version):
-        versions = self.listreleases_remote()
+    def remote_versionexists(self, version):
+        versions = self.list_remotereleases()
         return True \
             if (version in versions) \
             else False
 
-    def latestrelease_local(self):
-        localschemas = self.listreleases_local()
+    def local_latestrelease(self):
+        localschemas = self.list_localreleases()
         latestschema = max(localschemas)
         return getversion_from_filename(latestschema)
 
-    def latestrelease_remote(self):
-        remoteschemas = self.listreleases_remote()
+    def remote_latestrelease(self):
+        remoteschemas = self.list_remotereleases()
         latestschema = max(remoteschemas)
         return latestschema
 
     ''' write local (schema_<>.xml)
     '''
-    def writexmlfile_local(
+    def write_localxmlfile(
             self,
             version,
             localfile=None,
@@ -536,7 +544,7 @@ class SchemaXML(object):
                     oFile.close()
         else:
             try:
-                schema = self.readxmlfile_remote(version)
+                schema = self.read_remotexmlfile(version)
             except Exception as err:
                 status = 'skipped'
                 return (
@@ -556,10 +564,9 @@ class SchemaXML(object):
 
         if (os.path.exists(localxmlfilepath)):
             if (overwrite is True):
-                if (is_writable(localxmlfilepath) is False):
-                    if (preview is False):
-                        make_writable(localxmlfilepath)
                 if (preview is False):
+                    if (is_writable(localxmlfilepath) is False):
+                        make_writable(localxmlfilepath)
                     os.remove(localxmlfilepath)
                 status = 'removed'
             else:
@@ -580,17 +587,16 @@ class SchemaXML(object):
                 error = err.msg
                 status = f'{status}-failed'
             finally:
-                oFile.close()
-
+                if (hasattr(oFile, 'close')):
+                    oFile.close()
         if (preview is True):
             status = f'{status} - previewed'
-
         return (
             status,
             error
         )
 
-    def _schema_update(
+    def update_localschema(
             self,
             ver,
             overwrite,
@@ -604,7 +610,7 @@ class SchemaXML(object):
                 error
             ) = \
                 (
-                    self.writexmlfile_local(
+                    self.write_localxmlfile(
                         ver,
                         overwrite=overwrite,
                         preview=preview,
@@ -617,7 +623,6 @@ class SchemaXML(object):
                         (err.status == '404')
                 ):
                     error = f"No remote schema available for p4 release `{ver}`"
-
         return (
             ver,
             status,
@@ -647,8 +652,8 @@ class SchemaXML(object):
             return (arg1, arg2)
 
         (newonly, overwrite) = either(newonly, overwrite)
-        localversions = self.listreleases_local()
-        remoteversions = versions or self.listreleases_remote()
+        localversions = self.list_localreleases()
+        remoteversions = versions or self.list_remotereleases()
         max_version = max(localversions)
         (results, skip, EOV) = ([], True, False)
         result_headers = [
@@ -678,23 +683,6 @@ class SchemaXML(object):
                             (is_new is False)
                         )
                 ):
-
-                #if OR(
-                #        OR(
-                #            AND(
-                #                (is_new is False),
-                #                (overwrite is True)
-                #            ),
-                #            AND(
-                #                (newonly is True),
-                #                (is_new is True)
-                #            )
-                #        ),
-                #        AND(
-                #            (newonly is False),
-                #            (is_new is False)
-                #        )
-                #):
                     skip = False
 
                 if (skip is True):
@@ -702,7 +690,7 @@ class SchemaXML(object):
                         if (preview is True) \
                         else 'Skipped'
                     result = [ver, status, None]
-                    result = ZDict(
+                    result = Storage(
                         zip(
                             result_headers,
                             list(result)
@@ -710,12 +698,12 @@ class SchemaXML(object):
                     )
                     results.append(result)
                 else:
-                    result = self._schema_update(
+                    result = self.update_localschema(
                         ver,
                         overwrite,
                         preview,
                     )
-                    result = ZDict(
+                    result = Storage(
                         zip(
                             result_headers,
                             list(result)
@@ -728,18 +716,19 @@ class SchemaXML(object):
 
     ''' read remote (index.xml)
     '''
-    def readxmlfile_local(self, ver):
+    def read_localxmlfile(self, ver):
         if (is_versionname(ver) is True):
             ver = to_releasename(ver)
-        filename = version_to_xmlfilename(ver)
+        filename = versionname_to_xmlfilename(ver)
         localfile = os.path.join(self.schemadir, filename)
         oFile = fileopen(localfile, 'r')
         try:
             return oFile.read()
         finally:
-            oFile.close()
+            if (hasattr(oFile, 'close')):
+                oFile.close()
 
-    def readxmlfile_remote(self, ver=None, url=None):
+    def read_remotexmlfile(self, ver=None, url=None):
         urlpath = f'{self.leftURL}/{ver}/{self.rightURL}' \
             if (ver is not None) \
             else url
@@ -752,15 +741,16 @@ class SchemaXML(object):
         except Exception as err:
             bail(err)
         finally:
-            oFile.close()
+            if (hasattr(oFile, 'close')):
+                oFile.close()
 
-    def xmlfilename_local(self, ver):
+    def local_xmlfile(self, ver):
         if (is_versionname(ver) is True):
             ver = to_releasename(ver)
-        localxmlfile = os.path.join(self.schemadir, version_to_xmlfilename(ver))
+        localxmlfile = os.path.join(self.schemadir, versionname_to_xmlfilename(ver))
         return localxmlfile
 
-    def loadxmlschema_local(self, ver):
+    def load_localxmlschema(self, ver):
         xmlfile = fullxmlpath(self.schemadir, ver)
         if (os.stat(xmlfile).st_size > 0):
             oFile = open(xmlfile, 'rb')
@@ -775,12 +765,13 @@ class SchemaXML(object):
                     }
                 )
             except Exception as err:
-                return ZDict()
+                return Storage()
             finally:
-                oFile.close()
+                if (hasattr(oFile, 'close')):
+                    oFile.close()
 
     def xmlschema2Storage(self, elem, text_as_atrributes=True):
-        elemdict = ZDict()
+        elemdict = Storage()
         items = elem.attrib
         if (len(items) > 0):
             elemdict.merge(items)

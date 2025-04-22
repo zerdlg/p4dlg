@@ -2,15 +2,15 @@ import re
 from datetime import datetime, date, time
 from time import mktime, strptime
 
-from libdlg.dlgStore import Lst, ZDict
+from libdlg.dlgStore import Lst, Storage
 from libdlg.dlgUtilities import (
     noneempty,
     reg_datetime_fieldname
 )
 
-'''  [$File: //dev/p4dlg/libdlg/dlgDateTime.py $] [$Change: 609 $] [$Revision: #13 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libdlg/dlgDateTime.py $] [$Change: 683 $] [$Revision: #14 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 ''' USAGE:
@@ -55,7 +55,7 @@ class DLGDateTime(object):
              utc=False,
              **kwargs
     ):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         (self.sep, self.utc) = (sep, utc)
         ''' date/time formats
         '''
@@ -429,7 +429,7 @@ class DLGDateTime(object):
             >>> oP4QDT.to_datetime(*[2019,6,9])
             datetime(2019,8,19,0,0)
         '''
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         if (len(args) == 1):
             dt = args(0)
             if (isinstance(args(0), str) is True):
@@ -582,7 +582,7 @@ class DLGDateTimeConvert(object):
                 fld.fieldname,
                 fld.type
             ) \
-                if (type(fld).__name__ == 'ZDict') \
+                if (type(fld).__name__ == 'Storage') \
                 else (
                 None,
                 None

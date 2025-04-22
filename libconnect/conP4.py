@@ -2,7 +2,7 @@ import os
 import re
 from subprocess import PIPE, Popen
 
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libfs.fsFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import (
     decode_bytes,
@@ -14,9 +14,9 @@ from libdlg import bail
 
 __all__ = ['ObjP4']
 
-'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 680 $] [$Revision: #18 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 689 $] [$Revision: #21 $]
+     [$DateTime: 2025/04/15 05:30:50 $]
+     [$Author: mart $]
 '''
 
 class ObjP4(object):
@@ -111,9 +111,11 @@ class ObjP4(object):
     def help(self):
         return self.helpstr
 
-    def __init__(self, shellObj, loglevel='DEBUG'):
+    def __init__(self, shellObj, loglevel='INFO'):
         self.shellObj = shellObj
-        self.loglevel = loglevel.upper()
+        if (loglevel is not None):
+            loglevel = loglevel.upper()
+        self.loglevel = loglevel
         self.stored = None
         self.varsdef = self.shellObj.cmd_p4vars
         self.setstored()
@@ -128,7 +130,9 @@ class ObjP4(object):
 
     def fixkeys(self, **kwargs):
         def fixkey(key):
-            return re.sub(r'^p4', '', key) if (key != 'p4droot') else key
+            return re.sub(r'^p4', '', key) \
+                if (key != 'p4droot') \
+                else key
         return {fixkey(kkey): value for (kkey, value) in kwargs.items()}
 
     def delete(self, name, key):
@@ -155,7 +159,7 @@ class ObjP4(object):
                 [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
             except KeyError as err:
                 print(err)
-            ZDict(self.shellObj.__dict__).delete(name)
+            Storage(self.shellObj.__dict__).delete(name)
             self.setstored()
 
     def setstored(self):
@@ -170,7 +174,7 @@ class ObjP4(object):
     def update(self, name, **kwargs):
         if (self.varsdef(name) is None):
             print(f'UpdateError:\nNo such key "{name}"')
-        kwargs = ZDict(self.fixkeys(**kwargs))
+        kwargs = Storage(self.fixkeys(**kwargs))
         if (kwargs.port is not None):
             kwargs.port = set_localport(kwargs.p4droot)
         try:
@@ -190,7 +194,7 @@ class ObjP4(object):
         if (self.varsdef(name) is not None):
             print(f'CreateError:\nName already exists "{name}" - use p4con.update({name}, **kwargs) instead')
         try:
-            (args, kwargs) = (Lst(args), ZDict(self.fixkeys(**kwargs)))
+            (args, kwargs) = (Lst(args), Storage(self.fixkeys(**kwargs)))
             (
                 objp4,
                 oSchema,
@@ -307,7 +311,7 @@ class ObjP4(object):
         else:
             try:
                 [self.shellObj.kernel.shell.all_ns_refs[idx][name] for idx in range(0, 2)]
-                ZDict(self.shellObj.__dict__).delete(name)
+                Storage(self.shellObj.__dict__).delete(name)
                 self.shellObj.kernel.shell.push(self.shellObj.__dict__)
                 self.setstored()
                 print(f'Reference ({name}) unloaded')

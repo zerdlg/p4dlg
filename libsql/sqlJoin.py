@@ -3,9 +3,9 @@ from libsql.sqlRecords import Records
 from libsql.sqlRecord import Record
 from libdlg.dlgUtilities import isnum, bail
 
-'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 680 $] [$Revision: #10 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 682 $] [$Revision: #11 $]
+     [$DateTime: 2025/04/07 17:18:46 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Join']

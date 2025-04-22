@@ -2,20 +2,21 @@ import re
 from libdlg.dlgUtilities import (
     bail,
     isnum,
+    IsMatch,
     ALLLOWER
 )
-from libdlg.dlgStore import Lst, ZDict
+from libdlg.dlgStore import Lst, Storage
 from libsql.sqlQuery import BELONGS
 from libsql.sqlSchema import SchemaXML
+from libsql.sqlValidate import *
 
 __all__ = [
     'SchemaType'
 ]
 
 class SchemaType(object):
-
-    flagnames = lambda self: Lst(dtype.name for dtype in self.datatypes_flags())
-    bitmasknames = lambda self: Lst(dtype.name for dtype in self.datatypes_bitmasks())
+    flagnames = lambda self: Lst(dtype.name for dtype in self.datatype_flags())
+    bitmasknames = lambda self: Lst(dtype.name for dtype in self.datatype_bitmasks())
 
     def __init__(self, objJnl=None, oSchema=None, version='latest'):
         oSchema = objJnl.oSchema \
@@ -39,12 +40,100 @@ class SchemaType(object):
         self.recordtypes = oP4Schema.recordtypes.record
         self.tables = oP4Schema.tables.table
 
-    ''' RECORDTYPES
-    '''
+    def datatype_flags(self):
+        ''' datatypes where type is 'flag' (the whole elem)
+        '''
+        return Lst(
+            filter(
+                lambda dtype: (dtype.type == 'flag'),
+                self.datatypes
+            )
+        )
+
+    def datatype_bitmasks(self):
+        ''' datatypes where type is 'bitmask' (the whole elem)
+        '''
+        return Lst(
+            filter(
+                lambda dtype: (dtype.type == 'bitmask'),
+                self.datatypes
+            )
+        )
+
+    def is_flag(self, fieldtype):
+        ''' fieldtype is either str or Field object
+        '''
+        if (is_fieldType(fieldtype) is True):
+            fieldtype = fieldtype._type
+        if (fieldtype in self.flagnames()):
+            dtype = self.datatype_byname(fieldtype)
+            return True \
+                if (dtype.type == 'flag') \
+                else False
+        return False
+
+    def is_bitmask(self, fieldtype):
+        ''' fieldtype is either str or Field object
+        '''
+        if (is_fieldType(fieldtype) is True):
+            ''' user may have passed in a field instance, get its type & carry on
+            '''
+            fieldtype = fieldtype._type
+        if (fieldtype in self.bitmasknames()):
+            dtype = self.datatype_byname(fieldtype)
+            return True \
+                if (dtype.type == 'bitmask') \
+                else False
+        return False
+
+    def tablenames(self):
+        (
+            tables,
+            eot
+        ) = \
+            (
+                Lst(),
+                False
+            )
+        qry = (lambda tbl: tbl.name is not None)
+        tablesfilter = filter(qry, self.tables)
+        while eot is False:
+            try:
+                tablename = next(tablesfilter).name
+                tables.append(tablename)
+            except StopIteration:
+                eot = True
+            except Exception as err:
+                bail(err)
+        return tables
+
+    def fix_tablename(self, name):
+        '''
+
+            >>> oSchemaType.fix_tablename('domain')
+           'db.domain'
+        '''
+        name = name.lower()
+        try:
+            if (re.match(r'^db\..*$', name) is None):
+                name = f'db.{name}'
+            if BELONGS(name, (self.tablenames())):
+                return name
+        except Exception as err:
+            bail(err)
+
     def recordtype_names(self):
+        ''' returns a list of all recordtype names
+        '''
+        (
+            recordnames,
+            eod
+        ) = \
+            (
+                set(),
+                False
+            )
         qry = (lambda record: record.name is not None)
-        recordnames = set()
-        eod = False
         records = filter(qry, self.recordtypes)
         while eod is False:
             try:
@@ -57,8 +146,16 @@ class SchemaType(object):
         return Lst(recordnames)
 
     def recordtype_types(self):
-        eod = False
-        recordtypes = set()
+        ''' returns a list of all recordtype types
+        '''
+        (
+            recordtypes,
+            eod
+        ) \
+            = (
+            set(),
+            False
+        )
         qry = (lambda rec: rec.column is not None)
         recordsfilter = filter(qry, self.recordtypes)
         while eod is False:
@@ -77,8 +174,73 @@ class SchemaType(object):
                 eod = True
         return Lst(recordtypes)
 
+    def datatype_names(self):
+        ''' returns a list of all datatype names
+
+            >>> datatype_names()
+            {'Action',
+             'Change',
+             'ChangeStatus',
+             'Counter',
+             'Date',
+             'DepotType',
+             'DescShort',
+             'Digest',
+             'Domain',
+             'DomainOpts',
+             'DomainType',
+             ... }
+        '''
+        (
+            names,
+            eod
+        ) = \
+            (
+                set(),
+                False
+            )
+        qry = (lambda dtype: dtype.name is not None)
+        dtypesfilter = filter(qry, self.datatypes)
+        while eod is False:
+            try:
+                dtypename = next(dtypesfilter)
+                names.add(dtypename.name)
+            except StopIteration:
+                eod = True
+            except Exception as err:
+                bail(err)
+        return Lst(names)
+
+    def datatype_types(self):
+        ''' returns a list of all datatype types (yes, all 4 of them)
+
+            >>> datatype_types()
+            {'bitmask', 'flag', 'integer', 'string'}]
+        '''
+        (
+            types,
+            eod
+        ) = \
+            (
+                set(),
+                False
+            )
+        qry = (lambda dtype: dtype.type is not None)
+        dtypesfilter = filter(qry, self.datatypes)
+        while eod is False:
+            try:
+                dtypetypenamne = next(dtypesfilter)
+                types.add(dtypetypenamne.type)
+            except StopIteration:
+                eod = True
+            except Exception as err:
+                bail(err)
+        return Lst(types)
+
     def recordtype_byname(self, recordtypename):
-        ''' >>> oSchemaType.recordtype_byname('Domain')
+        ''' recordtypename is either str or Table object
+
+        >>> oSchemaType.recordtype_byname('Domain')
         Out[7]:
         [{'name': 'name', 'type': 'Domain', 'desc': 'Domain name'},
          {'name': 'type', 'type': 'DomainType', 'desc': 'Type of domain'},
@@ -111,8 +273,10 @@ class SchemaType(object):
           'type': 'Int',
           'desc': 'Currently unused. Reserved for future use'}]
         '''
-        error = f'{recordtypename} does not belong to this schema version ({self.version}).\n'
-        datatypename = self.validate_recordtype_name(recordtypename)
+        if (is_tableType(recordtypename) is True):
+            recordtypename = recordtypename._type
+        error = f'{recordtypename} does not belong to this schema version ({self.version}) or {recordtypename} is not a valid recordtype name.\n'
+        recordtypename = self.validate_recordtype_name(recordtypename)
         if (recordtypename is not None):
             record = None
             qry = (lambda rec: rec.name == recordtypename)
@@ -129,25 +293,10 @@ class SchemaType(object):
         else:
             bail(error)
 
-    ''' TABLES
-    '''
-    def tablenames(self):
-        eot = False
-        tables = Lst()
-        qry = (lambda tbl: tbl.name is not None)
-        tablesfilter = filter(qry, self.tables)
-        while eot is False:
-            try:
-                tablename = next(tablesfilter).name
-                tables.append(tablename)
-            except StopIteration:
-                eot = True
-            except Exception as err:
-                bail(err)
-        return tables
+    def table_byname(self, tablename):
+        ''' tablename is either str or Table object
 
-    def table_byname(self, name):
-        ''' >>> oSchemaType.get_table_byname('db.domain')
+            >>> oSchemaType.get_table_byname('db.domain')
             {'name': 'db.domain',
              'type': 'Domain',
              'version': '6',
@@ -156,28 +305,36 @@ class SchemaType(object):
              'keying': 'name',
              'desc': 'Domains: depots, clients, labels, branches, streams, and typemap'}
         '''
+        if (is_tableType(tablename) is True):
+            tablename = tablename.tablename
         table = None
-        name = self.fix_tablename(name.lower())
-        if (name is not None):
-            qry = (lambda tbl: tbl.name == name)
+        tablename = self.fix_tablename(tablename.lower())
+        if (tablename is not None):
+            qry = (lambda tbl: tbl.name == tablename)
             try:
                 tablesfilter = filter(qry, self.tables)
                 table = next(tablesfilter)
             except StopIteration:
                 pass
             except Exception as err:
-                bail(f'{name} does not belong to schema version {self.version}')
+                bail(f'{tablename} does not belong to schema version {self.version}')
         return table
 
-    ''' DATATYPES
-    '''
     def datatype_byname(self, datatypename):
-        ''' >>> oSchemaType.get_datatype_byname('Domain')
+        ''' datatypename is either str or Field object or Table object.
+
+            But, ..., Field & Table objects have, necessarily, different types...
+
+            >>> oSchemaType.datatype_byname('Domain')
             {'name': 'Domain',
              'type': 'string',
              'summary': 'A domain name',
              'desc': 'A string representing the name of a depot, label, client,\n\t\tbranch, typemap, or stream.'}
         '''
+        datatypename = self.datatype_namemap(datatypename)
+        if (is_fieldType_or_tableType(datatypename) is True):
+            datatypename = datatypename._type
+
         datatypename = self.validate_datatype_name(datatypename)
         if (datatypename is not None):
             try:
@@ -186,7 +343,8 @@ class SchemaType(object):
                 pass
 
     def datatypes_bytype(self, datatypetype):
-        ''' retrive all datatype records of type `typename`
+        ''' returns a list of all datatype elems of type `datatypename`
+            (* one of ['string', 'integer', 'flag', 'bitmask']
 
             >>> datatypes_bytype('string')
             [{'name': 'Counter',
@@ -201,11 +359,17 @@ class SchemaType(object):
             ...
             }]
         '''
-        error = f'{datatypetype} does not belong to this schema version ({self.version}).\n'
+        error = f'{datatypetype} does not belong to this schema version ({self.version}) or {datatypetype} is not a valid datatype type.\n'
         datatypetype = self.validate_datatype_type(datatypetype)
         if (datatypetype is not None):
-            eod = False
-            datatypes = Lst()
+            (
+                datatypes,
+                eod
+            ) = \
+                (
+                    Lst(),
+                    False
+                )
             qry = (lambda dtype: dtype.type == datatypetype)
             dtypesfilter = filter(qry, self.datatypes)
             while eod is False:
@@ -220,9 +384,31 @@ class SchemaType(object):
         else:
             bail(error)
 
-    def values_bydatatype(self, datatypename):
-        error = f'{datatypename} does not belong to this schema version ({self.version}).\n'
-        datatypename = self.validate_datatype_name(datatypename)
+    def values_bydatatype(self, datatype):
+        ''' Only datatypes of type `flag` or `bitmask` hyave a `values` elem.
+            returns the list of values linked to referenced datatypename's `values` key.
+
+            eg.
+            >>> jnl.rev.action._type
+            'Action'
+
+            >>> oSchemaType.values_bydatatype('Action')
+            [{'value': '0', 'desc': 'add; user adds a file'},
+             {'value': '1', 'desc': 'edit; user edits a file'},
+             {'value': '2', 'desc': 'delete; user deletes a file'},
+             {'value': '3', 'desc': 'branch; add via integration'},
+             {'value': '4', 'desc': 'integ; edit via integration'},
+             {'value': '5', 'desc': 'import; add via remote depot'},
+             {'value': '6', 'desc': 'purge; purged revision, no longer available'},
+             {'value': '7', 'desc': 'movefrom; move from another filename'},
+             {'value': '8', 'desc': 'moveto; move to another filename'},
+             {'value': '9', 'desc': 'archive; stored in archive depot'}]
+
+        '''
+        if (is_fieldType(datatype) is True):
+            datatype = datatype._type
+        error = f'{datatype} does not belong to this schema version ({self.version}) or {datatype} is not a valid datatype name\n'
+        datatypename = self.validate_datatype_name(datatype)
         if (datatypename is not None):
             values = None
             qry = (lambda datatype: datatype.name == datatypename)
@@ -237,8 +423,40 @@ class SchemaType(object):
         else:
             bail(error)
 
-    def values_names_bydatatype(self, datatypename):
-        ''' >>> obj.values_names_bydatatype('DomainType')
+    def valuesnames_bydatatype(self, datatypename):
+        ''' from the list of values (returned by self.values_bydatatype()),
+
+                eg.
+                 {'value': '0', 'desc': 'add; user adds a file'},
+                 {'value': '1', 'desc': 'edit; user edits a file'},
+                 {'value': '2', 'desc': 'delete; user deletes a file'},
+                 {'value': '3', 'desc': 'branch; add via integration'},
+                 {'value': '4', 'desc': 'integ; edit via integration'},
+                 {'value': '5', 'desc': 'import; add via remote depot'},
+                 {'value': '6', 'desc': 'purge; purged revision, no longer available'},
+                 {'value': '7', 'desc': 'movefrom; move from another filename'},
+                 {'value': '8', 'desc': 'moveto; move to another filename'},
+                 {'value': '9', 'desc': 'archive; stored in archive depot'}
+
+            the `value` key represents the value used by p4d (internally). We, as
+            users, will likely not remember all flag and bitmask values associated
+            each to their own fields (at least I certainly can't). Instead, the
+            `name` might be easier to remember.
+
+            Therefore, a SchemaType class reference parses the `desc` key to figure
+            out the user's query is looking for. Once parsed, a list of names is
+            returned.
+
+            eg, consider this query:
+
+                >>> qry = (jnl.rev.action == 2)
+
+            Though, valid, it may be a challenge for us to remember which flag
+            stands for a deleted rev. 'delete' is much more intuitive.
+
+                >>> qry = jnl.rev.action == 'delete'
+
+            >>> obj.values_names_bydatatype('DomainType')
             ['unloaded client',
              'unloaded label',
              'unloaded task stream',
@@ -249,7 +467,7 @@ class SchemaType(object):
              'stream',
              'typemap']
         '''
-        error = f'{datatypename} does not belong to this schema version ({self.version}).\n'
+        error = f'{datatypename} does not belong to this schema version ({self.version}) or {datatypename} is not a valid datatype name.\n'
         datatypename = self.validate_datatype_name(datatypename)
         if (datatypename is not None):
             names = None
@@ -262,64 +480,169 @@ class SchemaType(object):
         else:
             bail(error)
 
-    def values_codes_bydatatype(self, datatypename):
-        ''' codes datatype.values values (codes sounds a little more discriminate)
+    def trimvalue_bydatatype(self, datatype, dtvalue=None):
+        ''' datatype is either str or DLGQuery object.
+
+            If dtvalue is None, returns a list of all trimmed values,
+            otherwise, returns a single trimmed value.
+
+            * A candidate for this method would be a number value
+              followed by its ASCII representation (eg. 'DomainType')
+
         '''
-        error = f'{datatypename} does not belong to this schema version ({self.version}).\n'
-        datatypename = self.validate_datatype_name(datatypename)
+        if (is_queryType(datatype) is True):
+            dtvalue = datatype.right
+            datatype = datatype.left._type
+        error = f'{datatype} does not belong to this schema version ({self.version}) or {datatype} is not a valid datatype name.\n'
+        datatypename = self.validate_datatype_name(datatype)
         if (datatypename is not None):
-            codes = set()
             values = self.values_bydatatype(datatypename)
-            for value in values:
+            if (
+                    (isnum(dtvalue) is False) &
+                    (dtvalue is not None)
+            ):
+                trimmedvalue = None
                 try:
-                    code = value
-                    if (re.search(r'\(ASCII', value['value']) is not None):
-                        code = Lst(re.split('\s', value['value'])).clean()(0)
-                    codes.add(code)
+                    bits = Lst(re.split(dtvalue, '\s')).clean()
+                    row = next(filter(lambda val: val.desc.startswith(dtvalue), values)) \
+                        if (len(bits) == 1) \
+                        else next(filter(lambda val: val.desc.contains(dtvalue), values))
+                    if (re.search(r'\(ASCII', row['value']) is not None):
+                        trimmedvalue = Lst(re.split('\s', row['value'])).clean()(0)
                 except Exception as err:
                     bail(err)
-            return Lst(codes) \
-                if (len(codes) > 0) \
+                return trimmedvalue
+            trimmedvalues = set()
+            for row in values:
+                trimmedvalues = None
+                try:
+                    if (re.search(r'\(ASCII', row['value']) is not None):
+                        trimmedvalue = Lst(re.split('\s', row['value'])).clean()(0)
+                    trimmedvalues.add(trimmedvalue)
+                except Exception as err:
+                    bail(err)
+            return Lst(trimmedvalues) \
+                if (len(trimmedvalues) > 0) \
                 else None
         else:
             bail(error)
 
-    def datatype_flag(self, flag, datatypename):
+    def maskmatch(self, maskname, dtype):
+        ''' match a flag name to its internal number.
+            If matched, return it, otherwise None.
+
+            TODO: list of checks may need to grow...
         '''
+        if (
+                (dtype.name is not None) &
+                (maskname == dtype.name)
+        ):
+            return dtype.name
+        elif (re.match(f'^{maskname}', dtype.desc) is not None):
+            return dtype['value']
+        else:
+            word = Lst(re.split("[:;,/(']", dtype.desc)).clean()(0)
+            if (re.match(maskname, word) is not None):
+                return dtype['value']
 
-            match the flag agaisnt the datatype's value or name
+    def flagmatch(self, flagname, dtype):
+        ''' match a flag name to its internal number.
+            If matched, return it, otherwise None.
 
-            if flag is a number, then do nothing & return initial flag
-            if string, then get the datatype's flag value (the number),
-            then return it
+            TODO: list of checks may need to grow...
+        '''
+        if (
+                (dtype.name is not None) &
+                (flagname == dtype.name)
+        ):
+            return dtype.name
+        elif (re.match(f'^{flagname}', dtype.desc) is not None):
+            return dtype['value']
+        else:
+            word = Lst(re.split("[:;,/(']", dtype.desc)).clean()(0)
+            if (re.match(flagname, word) is not None):
+                return dtype['value']
 
-            I.e.
-            >>> obj.datatype_flag('client')
-            '99'
-            >>> obj.datatype_flag(99)
-            '99'
-            >>> obj.datatype_flag('99')
-            '99'
-
+    def resolve_datatype_flag(self, *args):
+        (args, flag, datatypename) = (Lst(args), None, None)
+        if (len(args) == 1):
+            if (not is_queryType(args(0))):
+                bail('Single field argument MUST be a Field object.')
+            else:
+                flag = args(0).right
+                datatypename = args(0).left.type
+        elif (len(args) == 2):
+            if (isinstance(args(0), (int, str)) is True):
+                flag = args(0)
+            elif (is_fieldType(args(0)) is True):
+                flag = args(0).type
+            if (
+                    (flag is not None) &
+                    (isinstance(args(1), str) is True)
+            ):
+                datatypename = args(1)
+        '''
             Usage:
-                automatically resolves a flag name to its associated flag number in a query.
-            eg.
-            from:
-                >>> qry = (oJnl.domain.type == 'client')
-            to:
-                >>> qry = (oJnl.domain.type == '99')
+                automatically resolves the right side of the query 
+                to its associated flag number (or simply makes sure 
+                that the datatype comes back as a str.
+    
+            Parameters:
+                args[0]: flag name or number 
+                args[1]: the field's p4type
+            
+             or args[0]: a single query as a single parameter.        
+        eg.
+            datatype = jnl.domain.type.type
+            qry1 = (jnl.domain.type == 'client')
+            qry2 = (jnl.domain.type == '99')
+            qry3 = (jnl.domain.type == 99)
+
+            >>> oSchemaType.convert_flag('client', datatype)
+            '99'
+
+            >>> oSchemaType.convert_flagname_to_flagvalue(99, datatype)
+            '99'
+            
+            >>> oSchemaType.convert_flagname_to_flagvalue('99', datatype)
+            '99'
+            
+            >>> oSchemaType.convert_flagname_to_flagvalue(qry1)
+            '99'
+            
+            >>> oSchemaType.convert_flagname_to_flagvalue(qry2)
+            '99'
+            
+            >>> oSchemaType.convert_flag(qry3)
+            '99'
+        
         '''
-        error = f'{datatypename} does not belong to this schema version ({self.version}).\n'
+        error = f'{datatypename} does not belong to this schema version ({self.version}) or {datatypename} is not a valid datatype name.\n'
+        ''' See that the datatypename is valid.
+            If it is, make sure the user has the correct
+            case and correct as needed.
+        '''
         datatypename = self.validate_datatype_name(datatypename)
         if (datatypename is not None):
-            qry = (lambda datatype: datatype.desc == flag)
+            ''' build a query-lke statement to figure out the correct numbered flag.
+            '''
+            dtqry = (lambda datatype: self.flagmatch(flag, datatype))
             if (isnum(flag) is False):
+                ''' get a list of field flags from the schema 
+                '''
                 values = self.values_bydatatype(datatypename)
                 if (values is not None):
-                    flagsfilter = filter(qry, values)
+                    flagsfilter = filter(dtqry, values)
                     try:
-                        flagvalue = next(flagsfilter)['value']
-                        flag = Lst(re.split('["\s]', flagvalue)).clean()(0)
+                        flagvalue = next(flagsfilter)
+                        flagedvalue = flagvalue['value']
+                        if (isnum(flagedvalue) is True):
+                            flag = str(flagedvalue)
+                        else:
+                            ''' strip everything out of the flagvalue's 
+                                description that isn't the number
+                            '''
+                            flag = Lst(re.split('["\s]', flagedvalue)).clean()(0)
                     except StopIteration:
                         pass
                     except Exception as err:
@@ -328,61 +651,10 @@ class SchemaType(object):
                 flag = str(flag)
             return flag
         else:
-            # bail(f'`{flag}` does not belong to datatype {datatypename}.\n')
             bail(error)
 
-    def datatype_types(self):
-        ''' retrieve a list of all datatype types form this schema's version
-            >>> datatype_types()
-            {'bitmask', 'flag', 'integer', 'string'}]
-        '''
-        eod = False
-        types = set()
-        qry = (lambda dtype: dtype.type is not None)
-        dtypesfilter = filter(qry, self.datatypes)
-        while eod is False:
-            try:
-                dtypetypenamne = next(dtypesfilter)
-                types.add(dtypetypenamne.type)
-            except StopIteration:
-                eod = True
-            except Exception as err:
-                bail(err)
-        return Lst(types)
-
-    def datatype_names(self):
-        ''' retrieve a list of all datatype names form this schema's version
-
-            >>> datatype_names()
-            {'Action',
-             'Change',
-             'ChangeStatus',
-             'Counter',
-             'Date',
-             'DepotType',
-             'DescShort',
-             'Digest',
-             'Domain',
-             'DomainOpts',
-             'DomainType',
-             ... }
-        '''
-        eod = False
-        names = set()
-        qry = (lambda dtype: dtype.name is not None)
-        dtypesfilter = filter(qry, self.datatypes)
-        while eod is False:
-            try:
-                dtypename = next(dtypesfilter)
-                names.add(dtypename.name)
-            except StopIteration:
-                eod = True
-            except Exception as err:
-                bail(err)
-        return Lst(names)
-
     def fieldnames_byrecordtype(self, recordtypename):
-        error = f"{recordtypename} does not belong to this schema version's ({self.version}).\n"
+        error = f"{recordtypename} does not belong to this schema version's ({self.version}) or {recordtypename} is not a record tyoe name.\n"
         recordtypename = self.validate_recordtype_name(recordtypename)
         if (recordtypename is not None):
             eof = False
@@ -404,40 +676,37 @@ class SchemaType(object):
                 return fieldnames
         else:
             bail(error)
+
     ''' name & type maps
     '''
-    def recordtype_typemap(self):
-        types = self.recordtype_types()
-        try:
-            return ZDict(zip(ALLLOWER(types), types))
-        except Exception as err:
-            bail(err)
-
-    def recordtype_namemap(self):
+    def recordtype_namemap(self, name=None):
         names = self.recordtype_names()
-        try:
-            return ZDict(zip(ALLLOWER(names), names))
-        except Exception as err:
-            bail(err)
+        namemap = Storage(zip(ALLLOWER(names), names))
+        return namemap(name.lower()) \
+            if (name is not None) \
+            else namemap
 
-    def datatype_namemap(self):
+    def recordtype_typemap(self, typename=None):
+        types = self.recordtype_types()
+        typemap = Storage(zip(ALLLOWER(types), types))
+        return typemap(typename.lower()) \
+            if (typename is not None) \
+            else typemap
+
+    def datatype_namemap(self, name=None):
         names = self.datatype_names()
-        try:
-            return ZDict(zip(ALLLOWER(names), names))
-        except Exception as err:
-            bail(err)
+        namemap = Storage(zip(ALLLOWER(names), names))
+        return namemap(name.lower()) \
+            if (name is not None) \
+            else namemap
 
-    def datatype_typemap(self):
+    def datatype_typemap(self, typename=None):
         types = self.datatype_types()
-        try:
-            return ZDict(zip(ALLLOWER(types), types))
-        except Exception as err:
-            bail(err)
+        typemap = Storage(zip(ALLLOWER(types), types))
+        return typemap(typename.lower()) \
+            if (typename is not None) \
+            else typemap
 
-    ''' name & type validation table name fixing
-        &
-        tries to catch case problems
-    '''
     def validate_datatype_name(self, datatypename):
         namemap = self.datatype_namemap()
         datatypename = datatypename.lower()
@@ -477,76 +746,6 @@ class SchemaType(object):
     def cleanup(self, s):
         return re.sub('[\"\']', '', Lst(re.split('[,;\s]', s))(0))
 
-    def datatypes_flags(self):
-        ''' datatypes where type is 'flag'
-        '''
-        return Lst(
-            filter(
-                lambda dtype: (dtype.type == 'flag'),
-                self.datatypes
-            )
-        )
-
-    def datatypes_bitmasks(self):
-        ''' datatypes where type is 'bitmask'
-        '''
-        return Lst(
-            filter(
-                lambda dtype: (dtype.type == 'bitmask'),
-                self.datatypes
-            )
-        )
-
-    def is_flag(self, fieldtype):
-        if (not isinstance(fieldtype, str)):
-            ''' use may have passed in a field instance, get its type & carry on
-            '''
-            try:
-                fieldtype = fieldtype.type
-            except Exception as err:
-                bail(err)
-        if (fieldtype in self.flagnames()):
-            dtype = self.datatype_byname(fieldtype)
-            return True \
-                if (dtype.type == 'flag') \
-                else False
-        return False
-
-    def is_bitmask(self, fieldtype):
-        if (not isinstance(fieldtype, str)):
-            ''' use may have passed in a field instance, get its type & carry on
-            '''
-            try:
-                fieldtype = fieldtype.type
-            except:
-                bail(f'`{fieldtype}` is not a valid field type')
-        if (fieldtype in self.bitmasknames()):
-
-            dtype = self.datatype_byname(fieldtype)
-            return True \
-                if (dtype.type == 'bitmask') \
-                else False
-        return False
-
-    def fix_tablename(self, name):
-        ''' >>> oSchemaType.fix_tablename('domain')
-           'db.domain'
-        '''
-        name = name.lower()
-        try:
-            if (re.match(r'^db\..*$', name) is None):
-                name = f'db.{name}'
-            if BELONGS(name, (self.tablenames())):
-                return name
-        except Exception as err:
-            bail(err)
-
-    def is_domaintype(self, flagname):
-        dflag = self.datatype_flag(flagname, 'DomainType')
-        return True \
-            if (dflag is not None) \
-            else False
-
     def convert_maskname_to_maskvalue(self, dtype, maskname):
         ''' USAGE:
 
@@ -556,8 +755,8 @@ class SchemaType(object):
         '''
         maskvalues = self.datatype_byname(dtype)('values')
         try:
-             maskvalue = next(filter(lambda maskrec: maskrec('name').lower() == maskname.lower(), maskvalues))
-             return maskvalue('value')
+            maskvalue = next(filter(lambda maskrec: maskrec('name').lower() == maskname.lower(), maskvalues))
+            return maskvalue('value')
         except StopIteration:
             pass
         except Exception as err:
@@ -579,48 +778,6 @@ class SchemaType(object):
         except Exception as err:
             bail(err)
 
-    def convert_flagname_to_flagvalue(self, data_type, flagname):
-        ''' USAGE:
-
-            >>> data_type = jnl.domain.type.type    --> ('DomainType')
-            >>> oSchemaType.convert_flagname_to_flagvalue(data_type, 'client')
-            '99'
-        '''
-        flagvalues = self.datatype_byname(data_type)('values')
-        for flagvalue in flagvalues:
-            initvalue = flagvalue('value')
-            if (re.search('\(ASCII', initvalue) is not None):
-                value = Lst(re.split('\s', initvalue))(0)
-            elif (flagvalue('name') is not None):
-                value = flagvalue('name')
-            if (
-                    (flagvalue('desc') == flagname) |
-                    (re.sub("[:;']", '', Lst(re.split('\s', flagvalue('desc')))(0)) == flagname)
-            ):
-                return value
-
-    def convert_flagvalue_to_flagname(self, data_type, value):
-        ''' USAGE:
-
-            >>> data_type = jnl.domain.type.type    -> (DomainType)
-            >>> oSchemaType.convert_flagvalue_to_flagname(data_type, '99')
-            'client'
-        '''
-        value = str(value)
-        flagvalues = self.datatype_byname(data_type)('values')
-        for flagvalue in flagvalues:
-            initvalue = flagvalue('value')
-            if (
-                    (value == initvalue) |
-                    (value in initvalue)
-            ):
-                flagname = None
-                if (flagvalue('name') is not None):
-                    flagname = flagvalue('name')
-                elif (flagvalue('desc') is not None):
-                    flagname = re.sub("[:;']", '', Lst(re.split('\s', flagvalue('desc')))(0))
-                return flagname
-
     def flagname_byvalue(self, oField, value):
         ''' Eg.
 
@@ -637,7 +794,7 @@ class SchemaType(object):
              {'value': '8', 'desc': 'moveto; move to another filename'},
              {'value': '9', 'desc': 'archive; stored in archive depot'}]
 
-             >>> jnl.oSchemaType.flag_value2name(jnl.rev.action, '8')
+             >>> jnl.oSchemaType.flagname_byvalue(jnl.rev.action, '8')
 
         '''
         value = str(value)
@@ -656,6 +813,7 @@ class SchemaType(object):
         value = next(filter(lambda rec: rec.desc.startswith(flag), values)).value
         return value
 
+
 """
 def get_schema_history(objSchema):
     for item in ('server_versions', 'releases'):
@@ -664,7 +822,7 @@ def get_schema_history(objSchema):
 
 def iter_schema_history(histrecord, local_releases):
     recversion = histrecord.version or histrecord.release_id
-    history_record = ZDict()
+    history_record = Storage()
     if (recversion is not None):
         release = to_releasename(recversion)
         if (release in local_releases):
@@ -707,7 +865,7 @@ def generate_release_history(objSchema=None, version='latest'):
         objSchema = objSchema.p4schema
     except:
         objSchema = schemaxml.p4schema
-    local_releases = schemaxml.listreleases_local()
+    local_releases = schemaxml.list_localreleases()
     history = Lst()
     if (objSchema is not None):
         schema_history = get_schema_history(objSchema)

@@ -128,7 +128,7 @@ def archive_record(qset, fs, archive_table, current_record):
     return False
 
 
-def smart_query(fields, text):
+def szerdlg_query(fields, text):
     from ..objects import Field, Table
 
     if not isinstance(fields, (list, tuple)):

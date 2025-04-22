@@ -1,6 +1,6 @@
 import re
 
-from libdlg.dlgStore import Lst, ZDict, objectify
+from libdlg.dlgStore import Lst, Storage, objectify
 from libdlg.dlgUtilities import serializable
 
 __all__ = [
@@ -9,8 +9,9 @@ __all__ = [
     'is_recordType',
     'is_dictType',
     'is_sqlObjectType',
+    'is_fieldType_or_queryType',
     'is_fieldType_or_expressionType',
-    'is_field_tableType',
+    'is_fieldType_or_tableType',
     'is_tableType',
     'is_list_of_fields',
     'is_fieldType',
@@ -113,6 +114,33 @@ def is_strType(left, right=None):
             else False
     return ret
 
+def is_fieldType_or_queryType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (
+                        (is_queryType(left) is True) |
+                        (is_fieldType(left) is True)
+                    ) &
+                    (
+                        (is_queryType(right) is True) |
+                        (is_fieldType(right) is True)
+                    )
+                ) \
+            else False
+    else:
+        ret = True \
+            if (
+                    (is_queryType(left) is True) |
+                    (is_fieldType(left) is True)
+                ) \
+            else False
+    return ret
 
 def is_qType_or_field(left, right=None):
     if (
@@ -378,7 +406,7 @@ def is_tableType(left, right=None):
     return ret
 
 
-def is_field_tableType(left, right=None):
+def is_fieldType_or_tableType(left, right=None):
     def istype(ttype):
         return True \
             if (
@@ -462,12 +490,12 @@ fieldtypes = SQLType.fields
 
 
 def is_Py4Exception(*args, **kwargs):
-    (args, record) = (Lst(args), ZDict(kwargs))
+    (args, record) = (Lst(args), Storage(kwargs))
     if (
             (len(record) == 0)
             & (isinstance(args(0), list) is True)
     ):
-        record = ZDict(args(0))
+        record = Storage(args(0))
 
     exceptkeys = ['code', 'data', 'generic', 'severity']
     intersect = record.getkeys().intersect(exceptkeys)

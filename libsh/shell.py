@@ -89,10 +89,10 @@ __all__ = [
 ]
 mdata = """
         --[$File: //dev/p4dlg/libsh/shell.py $]
-        --[$Change: 680 $] 
-        --[$Revision: #22 $]
-        --[$DateTime: 2025/04/07 07:06:36 $]
-        --[$Author: zerdlg $]
+        --[$Change: 693 $] 
+        --[$Revision: #27 $]
+        --[$DateTime: 2025/04/22 07:22:55 $]
+        --[$Author: mart $]
         """
 
 (
@@ -136,12 +136,12 @@ class DLGShell(object):
 
     def __init__(self, *args, **kwargs):
         self.clsVars = clsVars
-        self.shFuncs = ZDict()
-        self.shClasses = ZDict()
-        self.locals_cfg = ZDict()
+        self.shFuncs = Storage()
+        self.shClasses = Storage()
+        self.locals_cfg = Storage()
         self.schemaMemo = {}
-        self.varsdata = objectify(varsdata)
         self.ignoredvars = []
+        self.varsdata = varsdata
         (
             self.var_projectdir,
             self.var_journaldir,
@@ -193,7 +193,7 @@ class DLGShell(object):
         )
         self.prefixes = [self.varsdata[pkey].prefix for pkey in self.varsdata.getkeys()] \
                       + [self.shellcmds[skey].prefix for skey in self.shellcmds.getkeys()]
-        ''' vars for dbconnection
+        ''' vars for db connection
         '''
         self.db_dbroot = f'{projectdir}/dbstorage'
         self.db_dbdir = ''
@@ -296,7 +296,7 @@ class DLGShell(object):
         self.clsVars(self, configname).set(*args, **kwargs)
 
     def validatevars(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         allinstvars = self.shFuncs.getkeys() \
                     + self.shClasses.getkeys() \
                     + self.locals_cfg.getkeys()
@@ -327,49 +327,28 @@ class DLGShell(object):
             except Exception as err:
                 print(f"{configname} name conflict: {err}")
 
-
     def cmd_configvars(self, *args, **kwargs):
-        return self.funcVars(
-            'configvars',
-            *args,
-            **kwargs
-        )
+        return self.funcVars('configvars', *args, **kwargs)
     def cmd_p4vars(self, *args, **kwargs):
-        return self.funcVars(
-            'p4vars',
-            *args,
-            **kwargs
-        )
+        return self.funcVars('p4vars', *args, **kwargs)
     def cmd_p4dbvars(self, *args, **kwargs):
-        return self.funcVars(
-            'p4dbvars',
-            *args,
-            **kwargs
-        )
+        return self.funcVars('p4dbvars', *args, **kwargs)
     def cmd_qtvars(self, *args, **kwargs):
-        return self.funcVars(
-            'qtvars',
-            *args,
-            **kwargs
-        )
+        return self.funcVars('qtvars', *args, **kwargs)
     def cmd_jnlvars(self, *args, **kwargs):
-        return self.funcVars(
-            'jnlvars',
-            *args,
-            **kwargs
-        )
+        return self.funcVars('jnlvars', *args, **kwargs)
     def cmd_novars(self, *args, **kwargs):
-        return self.funcVars(
-            'novars',
-            *args,
-            **kwargs
-        )
+        return self.funcVars('novars', *args, **kwargs)
     def cmd_dbvars(self, *args, **kwargs):
-        return self.funcVars(
-            'dbvars',
-            *args,
-            **kwargs
-        )
+        return self.funcVars('dbvars', *args, **kwargs)
+    def cmd_p4recordvars(self, *args, **kwargs):
+        return self.funcVars('p4recordvars', *args, **kwargs)
+    def cmd_jnlrecordvars(self, *args, **kwargs):
+        return self.funcVars('jnlrecordvars', *args, **kwargs)
+
+    #def __getattr__(self, key):
+    #    if (key in varsdata.getkeys()):
+    #        setattr(self, f'cmd_{key}', self.funcVars)
 
     def is_prefix(self, cname, pref=None):
         prefixes = [pref] or self.prefixes
@@ -380,7 +359,7 @@ class DLGShell(object):
         return False
 
     def instlocals(self):
-        self.locals_cfg = ZDict()
+        self.locals_cfg = Storage()
         keys = '\n'.join([key for key in self.__dict__.keys() \
                           if (not key.startswith('__'))])
         for varskey in self.varsdata:
@@ -393,7 +372,7 @@ class DLGShell(object):
                 localvars = {pfx: self.__dict__[pfx] for pfx in prefix_vars}
                 initvars = self.varsdata[varskey].objvars.init_vars(**localvars)
                 self.varsdata[varskey].Vars.merge(initvars)
-                setattr(self.locals_cfg, varskey, ZDict())
+                setattr(self.locals_cfg, varskey, Storage())
                 if (varskey not in self.ignoredvars):
                     for (keyname, vdata) in self.varsdata[varskey].Vars.items():
                         castedvalue = casttype(
@@ -655,7 +634,7 @@ class DLGShell(object):
         self.kernel_manager.start_kernel()
         self.kernel = self.kernel_manager.kernel
         self.kernel.gui = 'qt'
-        inits = ZDict(self.initialize())
+        inits = Storage(self.initialize())
         self.kernel.shell.push(inits)
         self.kernel_client = self.kernel_manager.client()
         self.kernel_client.start_channels()
@@ -735,7 +714,7 @@ def _query(**opts):
             'version': 'r15.2',
             'groupby': ''}
     '''
-    ZDict(opts).delete('which')
+    Storage(opts).delete('which')
     # RunQuery is in the shop!
     #RunQuery(**opts).__call__()
 
@@ -758,7 +737,7 @@ if (__name__ == '__main__'):
         '''  arg options from cmd line
              ** ignore arg where values are set to `None, False or unset`
         '''
-        opts = ZDict(
+        opts = Storage(
             {
                 k: v for (k, v) in dict(
                 vars(ArgsParser()().parse_args())).items() if (v not in (None, False, 'unset'))

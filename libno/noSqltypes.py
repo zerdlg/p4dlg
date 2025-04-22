@@ -2,7 +2,7 @@ import re
 import datetime
 
 from libdlg.dlgStore import (
-    ZDict,
+    Storage,
     objectify,
     Lst,
 )
@@ -15,9 +15,9 @@ from libdlg.dlgUtilities import (
     bail
 )
 
-'''  [$File: //dev/p4dlg/libno/noSqltypes.py $] [$Change: 609 $] [$Revision: #8 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libno/noSqltypes.py $] [$Change: 683 $] [$Revision: #9 $]
+     [$DateTime: 2025/04/07 18:39:56 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['NOTable', 'NOField']
@@ -36,7 +36,7 @@ class NOTable(object):
             **tabledata
     ):
         (records, tabledata) = \
-            (Lst(records), ZDict(tabledata))
+            (Lst(records), Storage(tabledata))
         self.objp4 = objp4
         self.tablename = tablename
         (
@@ -48,8 +48,8 @@ class NOTable(object):
             (
                 records or Lst(),
                 tabledata.fieldnames or Lst(),
-                tabledata.fieldsmap or ZDict(),
-                tabledata.fieldtypesmap or ZDict()
+                tabledata.fieldsmap or Storage(),
+                tabledata.fieldtypesmap or Storage()
             )
 
         ''' logger
@@ -130,7 +130,7 @@ class NOTable(object):
 
 
     def insert(self, *args, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         records = self.iterQuery(*args, **kwargs)
         records = Records(records=records, cols=self.oQuery.cols, objp4=self.objp4)
         records = self.modify_records(records, **kwargs)
@@ -138,15 +138,15 @@ class NOTable(object):
         return records
 
     def update_record(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         ''' TODO: Implement '''
 
     def delete_record(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         ''' TODO: Implement '''
 
     def update(self, *args, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
         records = Records(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
@@ -154,7 +154,7 @@ class NOTable(object):
         return records
 
     def delete(self, *args, **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         records = self.oQuery.iterQuery(*args, **kwargs)
         records = Records(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
@@ -162,7 +162,7 @@ class NOTable(object):
         return records
 
     def insert(self, *args, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         records = self.oQuery.iterQuery(*args, **kwargs)
         records = Records(records=records, cols=self.oQuery.cols, objP4=self.objP4)
         records = self.filter_records(records, **kwargs)
@@ -170,7 +170,7 @@ class NOTable(object):
         return records
 
     def fetch(self, *fields, **kwargs):
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         fields = self.define_fields(*fields, **kwargs)
         record = self.oQuery.fetch(*fields, **kwargs)
         self.oQuery.query = Lst()
@@ -200,7 +200,7 @@ class NOField(DLGExpression):
     def __init__(self,
                  fieldname,
                  tablename='notable',
-                 objp4=ZDict(),
+                 objp4=Storage(),
                  required=False,
                  writable=True,
                  readable=True,
@@ -265,7 +265,7 @@ class NOField(DLGExpression):
             else:
                 return None
 
-        fielddict = ZDict()
+        fielddict = Storage()
         if not (sanitize and not (self.readable or self.writable)):
             for attr in attrs:
                 if (flat is True):

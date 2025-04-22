@@ -161,7 +161,7 @@ from .helpers.methods import (
     auto_represent,
     auto_validators,
     hide_password,
-    smart_query,
+    szerdlg_query,
     uuidstr,
 )
 from .helpers.regex import REGEX_DBNAME, REGEX_PYTHON_KEYWORDS
@@ -799,8 +799,8 @@ class DAL(with_metaclass(MetaDAL, Serializable, BasicStorage)):
         else:
             return '<DAL db_uid="%s">' % self._db_uid
 
-    def smart_query(self, fields, text):
-        return Set(self, smart_query(fields, text))
+    def szerdlg_query(self, fields, text):
+        return Set(self, szerdlg_query(fields, text))
 
     def __call__(self, query=None, ignore_common_filters=None):
         return self.where(query, ignore_common_filters)

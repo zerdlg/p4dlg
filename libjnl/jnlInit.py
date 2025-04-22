@@ -1,5 +1,5 @@
 import os
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 from libfs.fsFileIO import loadpickle, dumppickle
 from libsql.sqlSchema import SchemaXML
 from libdlg.dlgUtilities import remove
@@ -9,9 +9,9 @@ import schemaxml
 schemadir = dirname(schemaxml.__file__)
 default_xmlschema_version = 'r16.2'
 
-'''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 609 $] [$Revision: #8 $]
-     [$DateTime: 2025/02/21 03:36:09 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 689 $] [$Revision: #10 $]
+     [$DateTime: 2025/04/15 05:30:50 $]
+     [$Author: mart $]
 '''
 
 ___all__ = ['JnlInitialize']
@@ -41,15 +41,15 @@ class JnlInitialize(object):
         self.modelfilespath = os.path.join(self.picklespath, 'modelfiles')
         self.p4tablesdatapath = os.path.join(self.picklespath, 'tablesdata')
         self.p4tablesdatafile = os.path.join(self.p4tablesdatapath, 'tablesdata')
-        self.versionFiles = self.oSchema.listxmlfiles_local()
+        self.versionFiles = self.oSchema.list_localxmlfiles()
         self.releases = [filename.lstrip('schema_').rstrip('.xml') \
                             for filename in self.versionFiles]
         self.makepaths()
         self.cleanupdstores()
         self.objFiles = Lst(objFile for objFile in os.listdir(self.objfilespath))
         self.modelFiles = Lst(modelFile for modelFile in os.listdir(self.modelfilespath))
-        self.objects = ZDict()
-        self.models = ZDict()
+        self.objects = Storage()
+        self.models = Storage()
         self.ALLTABLES = set()
         self.records = Lst()
 
@@ -134,7 +134,7 @@ class JnlInitialize(object):
                 modelXml = self.models[model]
                 modelTables = modelXml.keys()
                 idx += 1
-                tblrecord = ZDict(
+                tblrecord = Storage(
                     {
                         'id': idx,
                         'table': table,

@@ -1,5 +1,5 @@
 from libsql.sqlControl import DLGSql
-from libdlg.dlgStore import Lst, ZDict, StorageIndex
+from libdlg.dlgStore import Lst, Storage, StorageIndex
 from libdlg.dlgUtilities import (
     bail,
     noneempty,
@@ -18,7 +18,7 @@ class Count(DLGSql):
             close_session=True,
             **kwargs
     ):
-        (fieldnames, kwargs) = (Lst(fieldnames), ZDict(kwargs))
+        (fieldnames, kwargs) = (Lst(fieldnames), Storage(kwargs))
         cols = self.cols or Lst()
         records = self.records
         query = self.query

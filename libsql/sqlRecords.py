@@ -4,7 +4,7 @@ from libsql.sqlRecord import (
     Record)
 from libdlg.dlgStore import (
     Lst,
-    ZDict
+    Storage
 )
 from libdlg.dlgSearch import Search
 from libdlg.dlgUtilities import (
@@ -16,16 +16,19 @@ from libsql.sqlValidate import *
 from libdlg.dlgTables import *
 # from libdlg.p4qLogger import LogHandler
 from libdlg.dlgError import *
+from libsh import varsdata
+from libsh.shVars import clsVars
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 680 $] [$Revision: #17 $]
-     [$DateTime: 2025/04/07 07:06:36 $]
-     [$Author: zerdlg $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 693 $] [$Revision: #21 $]
+     [$DateTime: 2025/04/22 07:22:55 $]
+     [$Author: mart $]
 '''
 
 __all__ = ['Records']
 
 # TODO: add compounds like: split, apply (agregate), combine (merge)
 class Records(object):
+    __commitstate__ = lambda self: Records()
     __repr__ = lambda self: f'<Records ({len(self)})>'
     __str__ = __repr__
     __bool__ = lambda self: True \
@@ -136,20 +139,20 @@ class Records(object):
 #                None,
 #                None,
 #                None,
-#                ZDict(),
-#                ZDict(),
-#                ZDict(),
-#                ZDict(),
-#                ZDict()
+#                Storage(),
+#                Storage(),
+#                Storage(),
+#                Storage(),
+#                Storage()
             )
 
-        self.objp4 = objp4 or ZDict()
+        self.objp4 = objp4 or Storage()
         self.records = Lst(Record(record) for record in records) \
             if (records is not None) \
             else Lst()
         ''' thinking specifically for Py4 & Search
         '''
-        self.tabledata = ZDict(tabledata)
+        self.tabledata = Storage(tabledata)
         ''' p4 cmd specific tables are of no use if objp4 is P4Jnl - 
             let's get rid of them so as to not bring about confusion.  
         '''
@@ -165,7 +168,11 @@ class Records(object):
                     delattr(self, item)
                 except: pass
         #self.as_groups = False
+        self.varsdata = varsdata
+        self.p4recordsvars = clsVars(self, 'p4recordvars')
+        self.jnlrecordsvars = clsVars(self, 'jnlrecordvars')
 
+        self.commitstate = Lst()
     def __call__(
             self,
             idx,
@@ -281,17 +288,44 @@ Our record fields: {cols}\nYour record fields: {othercols}'
     def append(self, record):
         self.records.append(Record(record))
 
-    def insert(self, idx, record):
-        self.records.insert(idx, Record(record))
+    def insert(self, *args):
+        (
+            idx,
+            record,
+            args
+        ) = \
+            (
+                -1,
+                None,
+                Lst(args)
+            )
+        if (len(args) == 1):
+            record = args(0)
+        elif (len(args) == 2):
+            (idx, record) = args
+        if (isinstance(record, dict) is True):
+            record = Record(record)
+        if (is_recordType(record) is True):
+            self.records.insert(idx, record)
+        else:
+            bail(f"You Can only insert records of type `Recor`, got `{type(record)}`.")
+        return self
 
-    def bulkinsert(self, *records):
+    def bulk_insert(self, *records):
+        recordsvars = self.p4recordsvars \
+            if (is_Py4(self.objp4) is True) \
+            else self.jnlrecordsvars
+        tablename = self.tabledata.tablename
+        if (recordsvars(tablename) is None):
+            recordsvars(tablename, Records())
         [
-            self.records.insert(idx, Record(record) \
-                if (type(record) is not Record) \
-                else record) for (idx, record) in records
+            self.insert(-1, Record(record) \
+                if (is_recordType(record) is False) \
+                else record) for record in records
         ]
+        [recordsvars(tablename, record) for record in records]
 
-    def delete(self, func):
+    def delete(self, func=None):
         '''  not yet implemented
 
             >>> for record in records.delete(lambda record: record.fieldname.startswith('M'))
@@ -299,35 +333,44 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         records = self
         if (len(records) == 0):
             return Records(Lst(), self.cols, self.objp4)
+        tablename = self.tabledata.tablename
+        #recordsvars = self.p4recordsvars \
+        #    if (is_Py4(self.objp4) is True) \
+        #    else self.jnlrecordsvars
+        #if (recordsvars(tablename) is None):
+        #    recordsvars(tablename, Records())
         i = 0
         while (i < len(self)):
-            if (func(self[i]) is True):
-                del self.records[i]
+            record = self.records[i]
+            if (func is not None):
+                if (func(self[i]) is True):
+                    del record
             else:
-                i += 1
+                del record
+            #if (recordsvars(tablename) is None):
+            #    recordsvars(tablename, Records())
+            #recordsvars(tablename).insert(-1, record)
+            i += 1
 
-    def remove(self, func):
-        self.delete(func)
-
-    def update_old(self, func, **update_fields):
+    def update(self, func=None, **update_fields):
         records = self
         if (len(records) == 0):
             return Records(Lst(), self.cols, self.objp4)
-
-        i = 0
-        while (i < len(self)):
-            if (func(self[i]) is True):
-                self.records[i].update(**update_fields)
-            else:
-                i += 1
-
-    def update(self, **update_fields):
-        records = self
-        if (len(records) == 0):
-            return Records(Lst(), self.cols, self.objp4)
+        tablename = self.tabledata.tablename
+        recordsvars = self.p4recordsvars \
+            if (is_Py4(self.objp4) is True) \
+            else self.jnlrecordsvars
+        if (recordsvars(tablename) is None):
+            recordsvars(tablename, Records())
         i = 0
         while (i < len(records)):
-            self.records[i].update(**update_fields)
+            record = self.records[i]
+            if (func is not None):
+                if (func(self[i]) is True):
+                    record.update(**update_fields)
+            else:
+                record.update(**update_fields)
+            recordsvars(tablename).insert(-1, record)
             i += 1
 
     def limitby(self, args, records=None):
@@ -633,7 +676,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                         self.cols = table1.getkeys().union(table2.getkeys())
                     else:
                         self.cols = records(0).getkeys()
-        records_by_group = ZDict()
+        records_by_group = Storage()
         recordslen = len(records)
 
         def group(record, num):
@@ -737,7 +780,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         '''
         if (as_groups is True):
             ''' Expose instance's `count` & `as_groups` methods so as 
-                to easily access these values when return value is type ZDict.
+                to easily access these values when return value is type Storage.
             '''
             #[setattr(records_by_group, att, getattr(self, att)) for att in ('count', 'as_groups')]
             return records_by_group
@@ -785,7 +828,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         ''' do something to validate user input & apply to sdearch as well!
         '''
         optionsmap = self.objp4.memoizetable(tablename).tableoptions.optionsmap
-        for (key, value) in ZDict(kwargs).items():
+        for (key, value) in Storage(kwargs).items():
             key = re.sub('\-', '', key).lower()
             if (key in optionsmap.keys()):
                 optkey = f'--{key}'
@@ -805,7 +848,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
                 table/cmcd option defaults on a file/revision:
                 '''
-        fileoptions = ZDict(
+        fileoptions = Storage(
             {
                 'unload': False,            # (-U) enables access to unloaded objects.
                 'quiet': False,             # (-q) suppresses normal information output.
@@ -846,7 +889,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         if (is_P4Jnl(self.objp4) is True):
             bail('`sync` attribute is of no use here... dropping.')
 
-        kwargs = ZDict(kwargs)
+        kwargs = Storage(kwargs)
         records = self
         (start, end) = limitby \
             if (noneempty(limitby) is False) \
@@ -920,7 +963,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             """
             ''' do something to validate user input & apply to sdearch as well!
             '''
-            for (key, value) in ZDict(kwargs.copy()).items():
+            for (key, value) in Storage(kwargs.copy()).items():
                 if (key.lower() in self.objp4.tablememo['sync'].cmdref.fieldsmap.getkeys()):
                     optkey = f'--{key}'
                     if (noneempty(value) is False):
@@ -995,7 +1038,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             <Record {'action': 'add',
                         'change': '480',
                         'code': 'stat',
-                        'context': '... [$Author: zerdlg $]',
+                        'context': '... [$Author: mart $]',
                         'depotFile': '//dev/p4dlg/libconnect/__init__.py',
                         'fileSize': '311',
                         'linenumber': 8,
@@ -1084,7 +1127,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                             for result in results:
                                 #context = re.sub('^\s*', '... ', result.context).rstrip('\n')
                                 context = result.context.rstrip('\n')
-                                searchdata = ZDict(
+                                searchdata = Storage(
                                     {
                                         'score': str(result.score),
                                         'search_terms': result.terms,

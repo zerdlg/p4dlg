@@ -4,6 +4,7 @@ from libdlg.dlgStore import *
 from libsql.sqlRecord import Record
 from libdlg.dlgUtilities import Flatten, bail
 from libpy4.py4Mapping import P4Mapping
+from libsql.sqlValidate import *
 
 class SpecIO(object):
     def __init__(self, objp4):
@@ -19,12 +20,14 @@ class SpecIO(object):
             *cmdargs,
             **specinput
     ):
-        (cmdargs, specinput) = (Lst(cmdargs), ZDict(specinput))
+        (cmdargs, specinput) = (Lst(cmdargs), Storage(specinput))
         tabledata = self.objp4.memoizetable(tablename)
         fieldsmap = tabledata.fieldsmap
         outputargs = Lst(self.objp4.p4globals + cmdargs.copy())
         inputargs = Lst(self.objp4.p4globals + cmdargs.copy())
-
+        if (lastarg in inputargs):
+            iarg = inputargs.index(lastarg)
+            inputargs.pop(iarg)
         ''' what do we have? --output, --input or --delete?
         '''
         (
@@ -112,9 +115,11 @@ class SpecIO(object):
                 but, rule out that tablename is 'spec', otherwise handle it. 
             '''
             if (tablename == 'spec'):
-                if (outputargs(-1) != tablename):
-                    if (outputargs(-1) in self.objp4.p4spec):
-                        outputargs.insert(-1, '--output')
+                if (
+                        (outputargs(-1) != tablename) &
+                        (outputargs(-1) in self.objp4.p4spec)
+                ):
+                    outputargs.insert(-1, '--output')
             elif (lastarg == tablename):
                 if (outputargs.count(tablename) > 1):
                     outputargs.insert(-1, '--output')
@@ -138,14 +143,14 @@ class SpecIO(object):
         try:
             out = self.objp4.p4OutPut(tablename, *outputargs)
             outrecord = Lst(out)(0)
-            if (type(outrecord) is Lst):
-                outrecord = outrecord(0) or ZDict()
+            if (isinstance(outrecord, list)):
+                outrecord = outrecord(0) or Storage()
             if (outrecord not in (Lst(), None)):
                 err_record_keys = Lst('data', 'severity').intersect(outrecord.keys())
                 if (len(err_record_keys) > 0):
                     return (outrecord)
-            if (type(outrecord).__name__ == 'Record'):
-                outrecord = outrecord.as_dict()
+            #if (is_recordType(outrecord) is True):
+            #    outrecord = outrecord.as_dict()
             '''     we will likely need to flatten a record's fields when using -G. I.e.:
 
                     convert
@@ -177,7 +182,7 @@ class SpecIO(object):
         if (lastarg is not None):
             if (cmdargs(-1) == lastarg):
                 cmdargs.pop(-1)
-        specinputcopy = ZDict(specinput.copy())
+        specinputcopy = Storage(specinput.copy())
         ''' - cleanup p4d-generated & managed field values
             - remove read-only fields from input spec                    
             - add the --input flag to inputargs
