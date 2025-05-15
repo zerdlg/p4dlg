@@ -5,9 +5,9 @@ from libdlg.dlgUtilities import decode_bytes, ALLLOWER
 from libpy4.py4SpecIO import SpecIO
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 693 $] [$Revision: #31 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 707 $] [$Revision: #34 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 ''' Usage example:
@@ -78,11 +78,12 @@ class Py4Run(object):
             )
         )
         lastarg = cmdkwargs.lastarg
-        if (
-                (lastarg is None) &
-                (not tablename in noargs_cmds)
-        ):
-            (lastarg, cmdargs, noqry) = self.objp4.define_lastarg(tablename, *cmdargs) #0
+        if (is_spec is True):
+            if (
+                    (lastarg is None) &
+                    (not tablename in noargs_cmds)
+            ):
+                (lastarg, cmdargs, noqry) = self.objp4.define_lastarg(tablename, *cmdargs) #0
 
         self.objp4.p4globals += self.objp4.supglobals
         ''' tablename must be cmdargs' 1st argument. so either insert 
@@ -114,16 +115,6 @@ class Py4Run(object):
                             }
                         )
                 '''
-                # BUG: if (lastarg is None AND cmdargs is empty):
-                #          specname should not equal tablename!
-                #   i.e.: p4.client()
-                #
-                #   implemented in py4IO at line 906
-                #
-                #   should also unmangle the specname spectype vs
-                #   tablename fiasco. even though the results are
-                #   good (it's just too messy!)
-                #
                 (specname, specinput, altarg) = (
                     self.objp4.parseInputKeys(
                         self.tabledata,

@@ -41,9 +41,9 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 693 $] [$Revision: #53 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 717 $] [$Revision: #60 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
 '''
 
 '''     a perforce client program.
@@ -97,10 +97,6 @@ schemadir = dirname(schemaxml.__file__)
           which is also equivalent to:
           
             >>> files = p4().select(qry)
-    
-            
-            
-    
 '''
 
 __all__ = ['Py4', 'p4connector']
@@ -183,7 +179,7 @@ class Py4(object):
             )
         self.usage_items = []
         self.user_defined_globals = Lst()
-        [kwargs.delete(kw) for kw in self.define_p4globals(**kwargs)]
+        kwargs.delete(*[(kw) for kw in self.define_p4globals(**kwargs)])
         self.tablenames = self.commands = Lst()
         self.p4args = Lst()
         (
@@ -378,8 +374,6 @@ class Py4(object):
         self.usage_items = self.usagelist()
         self.commands = self.tables = self.tablenames = self.get_allcmds()
         self.valid_globals = self.get_validglobals()
-        self.recordchunks = kwargs.recordchunks or 1500
-        self.maxrows = kwargs.maxrows or 0
         configpairs = self.p4configs()
         for configkey in configpairs.keys():
             attname = f'_{configkey}' \
@@ -399,6 +393,7 @@ class Py4(object):
 
     def __call__(self, query=None, *options, **kwargs):
         (options, kwargs) = (Lst(options), Storage(kwargs))
+
         (
             tablename,
             lastarg,
@@ -412,19 +407,19 @@ class Py4(object):
             None,
         )
 
+        maxrows = kwargs.maxrows or 0
+        recordchunks = kwargs.recordchunks or 15000
+        compute = kwargs.compute or Lst()
+        kwargs.delete('compute', 'maxrows', 'recordchuncks')
+
+        inversion = False
+
         if (tablename is None):
             try:
                 tablename = self.tablename
             except: pass
 
-        (
-            p4Queries,
-            qries
-        ) = \
-            (
-                Lst(),
-                Lst()
-            )
+        p4Queries = Lst()
 
         ''' If query is a Py4Table, DLGQuery or DLGExpression, 
             define tablename and tabledata. Otherwise, make
@@ -448,18 +443,18 @@ class Py4(object):
                     tabledata = tabledata.merge(query.__dict__).delete('objp4')
                 else:
                     if (is_query_or_expressionType(query) is True):
-                        qries = Lst([query])
+                        p4Queries = Lst([query])
                     elif (isinstance(query, str)):
-                        qries = objectify(Lst(queryStringToStorage(q) for q in query.split()).clean())
+                        p4Queries = objectify(Lst(queryStringToStorage(q) for q in query.split()).clean())
                     elif (
                             (isinstance(query, dict)) |
                             (type(query) is LambdaType)
                     ):
-                        qries = objectify(Lst([query]))
+                        p4Queries = objectify(Lst([query]))
             else:
-                qries = objectify(Lst(query))
+                p4Queries = objectify(Lst(query))
 
-            for qry in qries:
+            for qry in p4Queries:
                 if (qry.inversion is None):
                     qry.inversion = False
                 if (isinstance(qry, dict) is True):
@@ -492,12 +487,9 @@ class Py4(object):
                         tabledata           # useful data about this table
                     ) \
                         = self.breakdown_query(qry, *options, **tabledata)
-                p4Queries.append(qry)
+                    break
 
-        if (
-                (noneempty(tabledata) is True) &
-                (tablename is not None)
-        ):
+        if (tablename is not None):
             tabledata = self.memoizetable(tablename)
         (
             options,
@@ -556,7 +548,7 @@ class Py4(object):
             if (lastarg in self.p4args):
                 self.p4args.pop(self.p4args.index(lastarg))
                 self.p4args.append(lastarg)
-            elif (lastarg not in self.p4args):
+            else:
                 self.p4args.append(lastarg)
         ''' these keywords are unrelated to cmd fields, get them out of the way!
         '''
@@ -590,32 +582,12 @@ class Py4(object):
                            to the key.  
         '''
 
-        ''' user defined configs to apply on p4Queries (piggyback on tabledata):       
-
-            compute                 --> new columns 
-                                        |-> single `;` separated string. eg. colname=value
-                                        |-> or a list of strings. ['colname1=value1, 'colname2=value2,] 
-            maxrows                 --> max # of records to process (default is 1000) 
-        '''
         tabledata.merge(
             {
-                'compute': kwargs.compute or '',
-                'maxrows': self.maxrows,
                 'tabletype': Py4,   # set apart from the JNLFile type, given that Py4 has no schema to guide it
                 'tablename': tablename,
             }
         )
-        delkwargs = (
-            'compute',
-            'maxrows'
-        )
-        kwargs.delete(*delkwargs)
-        ''' Py4IO's callable returns a set of records (Recordset).
-        '''
-        [
-            setattr(self, item, kwargs[item]) for item in
-            ('maxrows', 'compute') if (kwargs[item] is not None)
-        ]
         ''' Define a RecordSet based on the result of running 
             a p4 cmd (Py4Run), or an empty RecordSet if tablename
             happens to be None (in which case, we will rely on the
@@ -630,6 +602,9 @@ class Py4(object):
                 *cmdoptions,
                 **tabledata
             ),
+            maxrows=maxrows,
+            recordchunks=recordchunks,
+            compute=compute,
             **tabledata
         )
         ''' depending on the values we have so far for query, 
@@ -695,7 +670,8 @@ class Py4(object):
                     not key in [
                         'oSchema',
                         'p4droot',
-                        'release'
+                        'release',
+                        'maxrows'
                     ]
             ):
                 for item in ('-', 'p4'):
@@ -747,6 +723,7 @@ class Py4(object):
                     f"-{key}" \
                         if (len(key) == 1) \
                         else f"--{key}", value]
+                res.add(key)
         return res
 
     def pluralize_specs(self, exclude=[]):
@@ -849,6 +826,7 @@ class Py4(object):
         tabledata = self.memoizetable(tablename)
         usage = tabledata.tableoptions.usage
         lastarg = None
+        clientFile = f'//{self._client}/...'
         query = kwargs.query
         ''' return (None, []) if any of the following conditions are True:
                 1- tablename is a `nocommand` or
@@ -887,7 +865,6 @@ class Py4(object):
                         (isanyfile(fileitem) is True)
                 ):
                     lastarg = cmdargs.pop(-1)
-
             elif (query is not None):
                 qry = queryStringToStorage(query) \
                     if (isinstance(query, str) is True) \
@@ -895,37 +872,51 @@ class Py4(object):
                 ''' priority 3
                 '''
                 if (isinstance(qry.right, (str, int)) is True):
-                    if (qry.op in regex_ops):
-                        lastarg = None
-                        requires_filearg = False
+                    ''' a regex or method don't require lastargs
+                    '''
+                    #if (qry.op in regex_ops + method_ops):
+                    #    lastarg = None
+                    #    requires_filearg = False
+                    if (
+                            (not qry.left.fieldname.lower() in (
+                                    'depotFile',
+                                    'clientFile',
+                                    'path'
+                            )
+                            ) &
+                            (isanyfile(qry.right) is False)
+                    ):
+                        lastarg = f'//{self._client}/...'
                     elif (qry.op in equal_ops):
-                        if (
-                                (
-                                        (isanyfile(str(qry.right)) is True) &
-                                        (qry.left.fieldname.lower() in (
-                                                'depotfile',
-                                                'clientfile',
-                                                'path'
-                                        )
-                                        )
-                                )
-                        ):
-                            ''' Strip out rev/change specifier (if any).
-                            '''
-                            filename = Lst(re.split(r'[@#]', qry.right))(0)
-                            p4args = self.p4globals + ['where', filename]
-                            out = self.p4OutPut(tablename, *p4args)(0)
-                            lastarg = out.depotFile
-                            if (lastarg != filename):
-                                if (
-                                        (isdepotfile(lastarg) is True) &
-                                        (isdepotfile(filename) is True)
-                                ):
-                                    qry.right = filename = lastarg
-                    else:
+                        if (isnum(qry.right) is False):
+                            if (
+                                    (
+                                            (isanyfile(str(qry.right)) is True) |
+                                            (qry.left.fieldname.lower() in (
+                                                    'depotfile',
+                                                    'clientfile',
+                                                    'path'
+                                            )
+                                            )
+                                    )
+                            ):
+                                ''' Strip out rev/change specifier (if any).
+                                '''
+                                filename = Lst(re.split(r'[@#]', str(qry.right)))(0)
+                                p4args = self.p4globals + ['where', filename]
+                                out = self.p4OutPut(tablename, *p4args)(0)
+                                lastarg = out.depotFile
+                                if (lastarg != filename):
+                                    if (
+                                            (isdepotfile(lastarg) is True) &
+                                            (isdepotfile(filename) is True)
+                                    ):
+                                        qry.right = filename = lastarg
+
+                    elif (isnum(qry.right) is False):
                         ''' assume qry.right is the lastarg.
                         '''
-                        lastarg = qry.right
+                        lastarg = str(qry.right)
                     """
                     elif (isinstance(qry.right, re.Pattern) is True):
                         ''' or, lastly, is it a compiled regex (still a TODO: though)
@@ -934,7 +925,7 @@ class Py4(object):
             if (noneempty(lastarg) is True):
                 ''' If all else fails, just use the clientFile
                 '''
-                lastarg = f'//{self._client}/...'
+                lastarg = clientFile
             ''' whatever the case, is the query's fieldname a revision 
                 or changelist specifier, or time specifier (relative or 
                 not), or revision action specifier? If yes, then pass that 
@@ -945,11 +936,16 @@ class Py4(object):
                 TODO: add support for in_range operators eg '@>n1,<n2'
                 
             '''
+            fieldname = None
             if (
                     (requires_filearg is True) &
-                    (query is not None)
+                    (query is not None) &
+                    (lastarg != clientFile)
             ):
-                fieldname = query.left.fieldname
+                if (is_fieldType(query.left) is True):
+                    fieldname = query.left.fieldname
+                elif (is_queryType(query.left)):
+                    fieldname = query.left.left.fieldname
                 if (fieldname in (
                         'rev',
                         'change',
@@ -958,30 +954,30 @@ class Py4(object):
                     )
                 ):
                     specifier = ''
-                    opname = qry.op.__name__ \
-                        if (callable(qry.op) is True) \
+                    opname = query.op.__name__ \
+                        if (callable(query.op) is True) \
                         else qry.op
                     if (isanyfile(lastarg) is True):
                         if (fieldname == 'rev'):
                             if (opname in relative_operators.keys()):
-                                specifier = f"{relative_revision_operators[opname]}{qry.right}"
+                                specifier = f"{relative_revision_operators[opname]}{query.right}"
                             else:
                                 specifier = f"#{query.right}"
                         elif (fieldname == 'change'):
                             if (opname in relative_operators.keys()):
-                                specifier = f"{relative_change_operators[opname]}{qry.right}"
+                                specifier = f"{relative_change_operators[opname]}{query.right}"
                             else:
                                 specifier = f"@{query.right}"
                         elif (fieldname == 'time'):
-                            dt2epoch = re.sub('\.\d+', '', str(DLGDateTime().to_epoch(qry.right)))
+                            dt2epoch = re.sub('\.\d+', '', str(DLGDateTime().to_epoch(query.right)))
                             p4dt = round(int(DLGDateTime().to_epoch(dt2epoch)))
                             if (opname in relative_operators.keys()):
                                 specifier = f"{relative_change_operators[opname]}{p4dt}"
                             else:
                                 specifier = f"@{p4dt}"
                         elif (fieldname == 'action'):
-                            if (isinstance(qry.right, str) is True):
-                                specifier = revision_actions[qry.right]
+                            if (isinstance(query.right, str) is True):
+                                specifier = revision_actions[query.right]
                         if (
                                 (noneempty(specifier) is False) &
                                 (isinstance(specifier, str) is True)
@@ -1293,11 +1289,9 @@ class Py4(object):
                 ) = (
                     self.get_tablename_fieldname_from_qry(qry)
                 )
+
         if (isinstance(right, str)):
-            if (
-                    (isdepotfile(right) is True) &
-                    (tablename is not None)
-            ):
+            if (tablename is not None):
                 (lastarg, options, qry) = self.define_lastarg(tablename, *options, query=qry) #1
         if (tablename is None):
             tablename = qry.tablename

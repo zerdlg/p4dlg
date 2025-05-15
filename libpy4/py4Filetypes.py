@@ -1,9 +1,9 @@
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgControl import DLGControl
 
-'''  [$File: //dev/p4dlg/libpy4/py4Filetypes.py $] [$Change: 683 $] [$Revision: #6 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4Filetypes.py $] [$Change: 707 $] [$Revision: #7 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Filetypes']

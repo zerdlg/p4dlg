@@ -1,11 +1,14 @@
+from itertools import product
+
 from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 from libsql.sqlRecord import Record
 from libdlg.dlgUtilities import isnum, bail
+from libdlg.dlgStore import Storage
 
-'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 682 $] [$Revision: #11 $]
-     [$DateTime: 2025/04/07 17:18:46 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 707 $] [$Revision: #17 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Join']
@@ -31,30 +34,30 @@ class Join(object):
 
             >>> recs.first()
             <Record {'action': '8',
-                        'change': '142',
-                        'client': 'zerdlg.pycharm',
-                        'date': '2021/11/25',
-                        'db_action': 'pv',
-                        'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
-                        'depotRev': '1',
-                        'descKey': '142',
-                        'description': 'renaming for case consistency',
-                        'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
-                        'identify': '',
-                        'idx': 1,
-                        'importer': '',
-                        'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
-                        'lbrIsLazy': '1',
-                        'lbrRev': '1.121',
-                        'lbrType': '0',
-                        'modTime': '1630482775',
-                        'root': '//depot/pycharmprojects/sQuery/lib/*',
-                        'size': '18420',
-                        'table_name': 'db.rev',
-                        'table_revision': '9',
-                        'traitLot': '0',
-                        'type': '0',
-                        'user': 'zerdlg'}>
+                    'change': '142',
+                    'client': 'zerdlg.pycharm',
+                    'date': '2021/11/25',
+                    'db_action': 'pv',
+                    'depotFile': '//depot/pycharmprojects/sQuery/lib/sqFileIO.py',
+                    'depotRev': '1',
+                    'descKey': '142',
+                    'description': 'renaming for case consistency',
+                    'digest': '45C82D6A13E755DEBDE0BD32EA4B7961',
+                    'identify': '',
+                    'idx': 1,
+                    'importer': '',
+                    'lbrFile': '//depot/pycharmprojects/sQuery/lib/sqfileUtils.py',
+                    'lbrIsLazy': '1',
+                    'lbrRev': '1.121',
+                    'lbrType': '0',
+                    'modTime': '1630482775',
+                    'root': '//depot/pycharmprojects/sQuery/lib/*',
+                    'size': '18420',
+                    'table_name': 'db.rev',
+                    'table_revision': '9',
+                    'traitLot': '0',
+                    'type': '0',
+                    'user': 'zerdlg'}>
 
         join (inner):
             A merging of 2 records into one. however, the tablename must be included in the syntax (I.e.:
@@ -113,6 +116,10 @@ class Join(object):
 
             eg.
             >>> recs = jnl(jnl.rev).select(left=jnl.change.on(reference))
+
+        braid (merge tables based on a reference/query):
+            eg.
+            >>> recs = jnl(p4.<table1>).select(mergetable=p4.<table2>.on(QRY))
     '''
 
     def __init__(
@@ -143,8 +150,9 @@ class Join(object):
         self.cGroupRecords = None
         self.cMemo = {}
 
-    def __call__(self, records=None, as_groups=False):
-        self.as_groups = as_groups
+    def __call__(self, records=Records([])):
+        if (len(records) == 0):
+            bail('Cannot join empty records')
         self.left_records = records
         cRecordset = self.define_recordset()
         self.cGroupRecords = self.select_and_group_records(cRecordset)
@@ -165,11 +173,11 @@ class Join(object):
         cTabledata = self.objp4.memoizetable(cTablename)
         [
             cTabledata.update(**{kitem: self.objp4[kitem]}) for kitem in (
-            'recordchunks',
+            #'recordchunks',
             'schemadir',
             'oSchemaType',
             'logger',
-            'maxrows'
+            #'maxrows'
         )
         ]
         cTabledata.update(
@@ -186,12 +194,15 @@ class Join(object):
         cRecordset = self.objp4(cQuery)
         return cRecordset
 
-    def select_and_group_records(self, recset):
+    def select_and_group_records(self, recset, orderby=None):
+        if orderby is None:
+            cfield = self.cField
+            orderby = self.cField or 'idx'
         cRecords = recset.select()
         cGroupRecords = cRecords.groupby(
             self.cField,
-            orderby='idx',
-            as_groups=True
+            orderby=orderby,
+            #as_groups=True
         )
         return cGroupRecords
 
@@ -202,46 +213,139 @@ class Join(object):
             else False
 
     def join_record(self, jointype=None, flat=False):
-        # cKeys = self.cMemo.keys()
-        mRecords = Records(records=[], cols=[], objp4=self.objp4)
-        records = self.left_records
+        outrecords = Records(
+            records=[],
+            cols=[],
+            is_flat=flat,
+            is_join=True,
+            objp4=self.objp4
+        )
+
         (
             lefttable,
-            righttable
+            righttable,
         ) = \
             (
                 self.reference.left._table,
-                self.reference.right._table
+                self.reference.right._table,
             )
-        for record in records:
-            try:
-                fieldvalue = str(record[self.cField.fieldname])
-                crecord_right = self.cGroupRecords[fieldvalue]
-                if (crecord_right is not None):
-                    if (is_recordsType(crecord_right) is True):
-                        crecord_right = crecord_right.last()
-                    crecord_right.delete(*self.exclude_fieldnames)
-                    # crecord_right = self.memoize_records(str(fieldvalue))
+        (
+            leftrecords,
+            rightrecords
+        ) = \
+            (
+                self.cGroupRecords,
+                self.left_records
+            ) \
+                if (
+                    len(self.cGroupRecords) < len(self.left_records)
+            ) \
+                else (
+                self.left_records,
+                self.cGroupRecords
+            )
+
+        reffield = self.cField.fieldname \
+            if (is_fieldType(self.cField) is True) \
+            else self.cField
+
+        refkeys = set(recitem[reffield] for recitem in filter(lambda rec: rec[reffield], leftrecords))
+        for refkey in refkeys:
+            ''' `exclude` will retrieve the target records while 
+                removing them from the original Records.
+            '''
+            left_records = leftrecords.exclude(lambda rec: (rec[reffield] == refkey))
+            right_records = rightrecords.exclude(lambda rec: (rec[reffield] == refkey))
+            for leftrecord in left_records:
+                for rightrecord in right_records:
                     if (flat is True):
-                        record.merge(crecord_right)
+                        updt_record = Record(leftrecord.merge(**rightrecord))
                     else:
-                        record = Record(
+                        updt_record = Record(
                             {
-                                lefttable.tablename: record,
-                                righttable.tablename: crecord_right
+                                lefttable.tablename: leftrecord,
+                                righttable.tablename: rightrecord
                             }
                         )
-                    if (jointype == 'inner'):
-                        mRecords.append(record)
-                if (jointype == 'outer'):
-                    mRecords.append(record)
-            except Exception as err:
-                bail(err)
-        return mRecords
+                    outrecords.insert(updt_record)
+        if (len(outrecords.cols) == 0):
+            outrecords.cols = outrecords(0).getkeys()
+        return outrecords
+
+    def braid(self, flat=True):
+        ''' TODO: this - modify code below to fit brading requirements.
+
+            * should we re-define keying fields for arbitrary
+              mix and match to force a relationship?
+        '''
+        utrecords = Records(
+            records=[],
+            cols=[],
+            is_flat=flat,
+            is_join=True,
+            objp4=self.objp4
+        )
+
+        (
+            lefttable,
+            righttable,
+        ) = \
+            (
+                self.reference.left._table,
+                self.reference.right._table,
+            )
+        (
+            leftrecords,
+            rightrecords
+        ) = \
+            (
+                self.cGroupRecords,
+                self.left_records
+            ) \
+                if (
+                    len(self.cGroupRecords) < len(self.left_records)
+            ) \
+                else (
+                self.left_records,
+                self.cGroupRecords
+            )
+
+        reffield = self.cField.fieldname \
+            if (is_fieldType(self.cField) is True) \
+            else self.cField
+
+        refkeys = set(recitem[reffield] for recitem in filter(lambda rec: rec[reffield], leftrecords))
+        for refkey in refkeys:
+            ''' `exclude` will retrieve the target records while 
+                removing them from the original Records.
+            '''
+            left_records = leftrecords.exclude(lambda rec: (rec[reffield] == refkey))
+            right_records = rightrecords.exclude(lambda rec: (rec[reffield] == refkey))
+            for leftrecord in left_records:
+                for rightrecord in right_records:
+                    if (flat is True):
+                        updt_record = Record(leftrecord.merge(**rightrecord))
+                    else:
+                        updt_record = Record(
+                            {
+                                lefttable.tablename: leftrecord,
+                                righttable.tablename: rightrecord
+                            }
+                        )
+                    outrecords.insert(updt_record)
+        if (len(outrecords.cols) == 0):
+            outrecords.cols = outrecords(0).getkeys()
+        return outrecords
+
 
     def merge_records(self, flat=True):
         return self.join_record(
             jointype='inner',
+            flat=flat
+        )
+
+    def braid(self, flat=True):
+        return self.braid(
             flat=flat
         )
 

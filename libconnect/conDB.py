@@ -5,9 +5,9 @@ from libdlg.contrib.pydal.pydal import DAL
 from libfs.fsFileIO import is_writable, make_writable
 from libdlg.dlgUtilities import set_localport
 
-'''  [$File: //dev/p4dlg/libconnect/conDB.py $] [$Change: 683 $] [$Revision: #10 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libconnect/conDB.py $] [$Change: 707 $] [$Revision: #11 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['ObjDB']

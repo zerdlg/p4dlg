@@ -6,9 +6,9 @@ from libdlg.dlgUtilities import bail
 from libdlg.dlgStore import Lst, Storage
 from libdlg.dlgLogger import LogHandler
 
-'''  [$File: //dev/p4dlg/libdlg/dlgControl.py $] [$Change: 683 $] [$Revision: #7 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libdlg/dlgControl.py $] [$Change: 707 $] [$Revision: #8 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['DLGControl']

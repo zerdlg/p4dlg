@@ -11,10 +11,11 @@ from libdlg.dlgUtilities import (
 )
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.dlgTables import DataTable
+from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecord.py $] [$Change: 691 $] [$Revision: #5 $]
-     [$DateTime: 2025/04/19 01:29:22 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecord.py $] [$Change: 707 $] [$Revision: #10 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Record']
@@ -24,20 +25,24 @@ from pprint import pformat
 class Record(Storage):
     __str__ = __repr__ = lambda self: f'<Record {pformat(self.as_dict())}>'
 
-    def _fieldnames(self):
+    def fieldnames(self):
         return self.getkeys()
 
-    def _fieldsmap(self):
-        return Storage(zip(ALLLOWER(self._fieldnames()), self._fieldnames()))
+    def fieldsmap(self):
+        return Storage(zip(ALLLOWER(self.fieldnames()), self.fieldnames()))
 
     def __setattr__(self, item, value):
-        if (str(item).lower() in self._fieldsmap()):
-            item = self._fieldsmap()[str(item).lower()]
+        if (str(item).lower() in self.fieldsmap()):
+            item = self.fieldsmap()[str(item).lower()]
         self[item] = value
 
     def __getitem__(self, item, other=None):
-        if (str(item).lower() in self._fieldsmap()):
-            item = self._fieldsmap()[str(item).lower()]
+        if (is_expressionType(item) is True):
+            return item.op(item, self)
+            return item
+
+        elif (str(item).lower() in self.fieldsmap()):
+            item = self.fieldsmap()[str(item).lower()]
         record = self.as_dict()
         if (
                 (isinstance(item, dict))
@@ -78,7 +83,6 @@ class Record(Storage):
     has_key = has_field = lambda self, key: key in self.__dict__
     __nonzero__ = lambda self: len(self.__dict__) > 0
     __copy__ = lambda self: Record(self)
-    fieldnames = lambda self: self._fieldnames()
 
     def as_dict(self, datetime_tostr=False):
         oDate = DLGDateTime()
@@ -141,8 +145,8 @@ class Record(Storage):
             field = field.fieldname \
                 if (type(field) in ('JNLField', 'Py4Field')) \
                 else str(field)
-            if (str(field).lower() in self._fieldsmap()):
-                field = self._fieldsmap()[str(field).lower()]
+            if (str(field).lower() in self.fieldsmap()):
+                field = self.fieldsmap()[str(field).lower()]
             if (field in self.getkeys()):
                 try:
                     self.__delitem__(field)
@@ -153,8 +157,8 @@ class Record(Storage):
         kwargkeys = kwargs.copy().keys()
         for key in kwargkeys:
             nkey = key
-            if (str(key).lower() in self._fieldsmap()):
-                nkey = self._fieldsmap()[str(key).lower()]
+            if (str(key).lower() in self.fieldsmap()):
+                nkey = self.fieldsmap()[str(key).lower()]
             if (key != nkey):
                 kwargs = self.rename(key, nkey, kwargs)
         super(Record, self).update(*args, **kwargs)

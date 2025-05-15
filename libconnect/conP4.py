@@ -14,9 +14,9 @@ from libdlg import bail
 
 __all__ = ['ObjP4']
 
-'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 689 $] [$Revision: #21 $]
-     [$DateTime: 2025/04/15 05:30:50 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libconnect/conP4.py $] [$Change: 707 $] [$Revision: #23 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 class ObjP4(object):
@@ -175,18 +175,24 @@ class ObjP4(object):
         if (self.varsdef(name) is None):
             print(f'UpdateError:\nNo such key "{name}"')
         kwargs = Storage(self.fixkeys(**kwargs))
-        if (kwargs.port is not None):
+        if (kwargs.port in ('localhost', '127.0.0.1')):
             kwargs.port = set_localport(kwargs.p4droot)
         try:
             p4kwargs = self.varsdef(name).merge(kwargs)
+            ''' this deletes any p4kwargs keys with a value of None
+            '''
+            dkeys = list(filter(lambda kw: (p4kwargs[kw] is None), p4kwargs))
+            p4kwargs.delete(*dkeys)
+            ''' save it back to p4vars()
+            '''
             self.varsdef(name, p4kwargs)
-            print(f'Reference ({name}) updated')
             objp4 = self.load(name)
+            print(f'Reference ({name}) updated')
             self.shellObj.kernel.shell.push({name: p4kwargs})
             self.setstored()
             return objp4
         except TypeError as err:
-            print('TypeError:\n{}'.format(err))
+            print(f'TypeError:\n{err}')
         except Exception as err:
             print(err)
 

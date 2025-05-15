@@ -1,9 +1,9 @@
 """
         --[$File: //dev/p4dlg/libsh/__init__.py $]
-        --[$Change: 693 $] 
-        --[$Revision: #7 $]
-        --[$DateTime: 2025/04/22 07:22:55 $]
-        --[$Author: mart $]
+        --[$Change: 707 $] 
+        --[$Revision: #8 $]
+        --[$DateTime: 2025/05/14 13:55:49 $]
+        --[$Author: zerdlg $]
 """
 ''' absolute path to schemaxml directory
 '''

@@ -91,9 +91,9 @@ maketrans = str.maketrans
 ClassType = type
 openurl = urlopen
 
-'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 683 $] [$Revision: #40 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libdlg/dlgUtilities.py $] [$Change: 707 $] [$Revision: #43 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [
@@ -117,7 +117,7 @@ __all__ = [
            'reg_ipython_builtin', 'reg_envvariable', 'reg_changelist', 'reg_spec_usage',
            'reg_p4map', 'reg_default', 'reg_objdict', 'reg_job', 'reg_depotpath',
     #
-           'now', 'cacheprop', 'casttype', 'noneempty', 'IsMatch',
+           'now', 'casttype', 'noneempty', 'IsMatch',
            'storageIndexToList', 'Casttype', 'is_int_hex_or_str', 'itemgrouper_filler',
            'itemgrouper', 'containschars', 'sqOperators', 'getTableOpKeyValue', 'getOpKeyValue',
            'remove', 'annoying_ipython_attributes', 'queryStringToStorage', 'bail', 'raiseException',
@@ -573,19 +573,6 @@ def sanitizename(name):
         bail(f'invalid table or field name: {name}')
     return name
 
-class cacheprop(object):
-    #: a read-only @property that is only evaluated once.
-    def __init__(self, fget, doc=None):
-        self.fget = fget
-        self.__doc__ = doc or fget.__doc__
-        self.__name__ = fget.__name__
-
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self
-        obj.__dict__[self.__name__] = result = self.fget(obj)
-        return result
-
 def is_iterable(obj):
         try:
             if (isinstance(obj, str) is False):
@@ -884,21 +871,13 @@ def versionname_to_releasename(ver):
         if (reg_releaseversion.match(ver) is not None) \
         else ver
 
-#def is_marshal(obj):
-#    if (isinstance(obj, str)):
-#        return True if (b'\x00' in obj) else False
-#    return False
-
 def is_marshal(obj):
-    if (isinstance(obj, str)):
-        return True \
-            if ('\x00' in obj) \
-            else False
-    elif (type(obj) is bytes):
-        return True \
-            if (b'\x00' in obj) \
-            else False
-    return False
+    char = b'\x00' \
+        if (type(obj) is bytes) \
+        else '\x00'
+    return True \
+        if (char in obj) \
+        else False
 
 def isnum(i):
     try:

@@ -13,6 +13,12 @@ from libsql.sqlValidate import *
 __all__ = [
     'SchemaType'
 ]
+'''  [$File: //dev/p4dlg/libsql/sqlSchemaTypes.py $] 
+     [$Change: 717 $] 
+     [$Revision: #11 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
+'''
 
 class SchemaType(object):
     flagnames = lambda self: Lst(dtype.name for dtype in self.datatype_flags())

@@ -9,9 +9,9 @@ import schemaxml
 schemadir = dirname(schemaxml.__file__)
 default_xmlschema_version = 'r16.2'
 
-'''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 689 $] [$Revision: #10 $]
-     [$DateTime: 2025/04/15 05:30:50 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libjnl/jnlInit.py $] [$Change: 707 $] [$Revision: #11 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 ___all__ = ['JnlInitialize']

@@ -1,9 +1,9 @@
 from libdlg.dlgStore import Storage, Lst
 from libfs.fsFileIO import is_writable, make_writable
 
-'''  [$File: //dev/p4dlg/libconnect/conNO.py $] [$Change: 683 $] [$Revision: #8 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libconnect/conNO.py $] [$Change: 707 $] [$Revision: #9 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['ObjNO']

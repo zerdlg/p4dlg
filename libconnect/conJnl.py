@@ -4,9 +4,9 @@ from libdlg.dlgStore import Storage, Lst
 from libfs.fsFileIO import is_writable, make_writable
 from libsql.sqlSchema import get_schemaObject
 
-'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 689 $] [$Revision: #22 $]
-     [$DateTime: 2025/04/15 05:30:50 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 707 $] [$Revision: #24 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['ObjJnl']
@@ -144,16 +144,21 @@ Manage connections to journals and checkpoints.
             print('Missing reference to class SchemaXML and/or version, bailing... ')
 
     def update(self, name, **kwargs):
+        if (self.varsdef(name) is None):
+            print(f'UpdateError:\nNo such key "{name}"')
         if (len(kwargs) > 0):
-            self.unload(name)
-            old_value = self.varsdef(name)
             kwargs = Storage(kwargs)
-            journal = kwargs.journal or old_value.journal
-            oSchema = kwargs.oSchema or old_value.oSchema
-            new_value = Storage({'journal': journal, 'oSchema': oSchema})
-            self.varsdef(name, new_value)
+            self.unload(name)
+            jnlkwargs = self.varsdef(name).merge(kwargs)
+            ''' this deletes any kwargs keys with a value of None
+            '''
+            dkeys = list(filter(lambda kw: (jnlkwargs[kw] is None), jnlkwargs))
+            jnlkwargs.delete(*dkeys)
+            ''' save it back to p4vars()
+            '''
+            self.varsdef(name, jnlkwargs)
             print(f'Reference ({name}) updated')
-            ojnl = P4Jnl(journal, oSchema, loglevel=self.loglevel)
+            ojnl = self.load(name)
             self.shellObj.kernel.shell.push({name: ojnl})
             self.setstored()
             return ojnl

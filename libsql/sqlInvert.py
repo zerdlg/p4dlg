@@ -4,6 +4,12 @@ from libsql.sqlValidate import *
 
 __all__ = ['invert']
 
+'''  [$File: //dev/p4dlg/libsql/sqlInvert.py $] 
+     [$Change: 717 $] 
+     [$Revision: #6 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
+'''
 
 def invert(qry, inversion=False):
     ''' do we need to invert?

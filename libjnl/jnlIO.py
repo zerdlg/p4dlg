@@ -28,9 +28,9 @@ import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
 
-'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 689 $] [$Revision: #45 $]
-     [$DateTime: 2025/04/15 05:30:50 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 707 $] [$Revision: #48 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 '''     Journals (and checkpoints) are the textual representation of the metadata stored in a p4 DB. 
@@ -243,15 +243,6 @@ class P4Jnl(object):
                        if (not tblname in self.excludetables))
         self.tablenames = self.tables
         self.reader = kwargs.reader or 'csv'
-        self.recordchunks = kwargs.recordchunks or 15000
-        self.maxrows = kwargs.maxrows or 0
-        self.compute = Lst()
-        self.recCounter = Storage(
-            {
-                'threshhold': self.recordchunks,
-                'recordcounter': 0
-            }
-        )
         self.tablepath = kwargs.tablepath or os.path.abspath('../../../storage')
         self.serialtables = os.path.join(self.tablepath, 'serialtables')
         self.oSchemaType = SchemaType(self)
@@ -678,6 +669,16 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 Lst()
             )
 
+        maxrows = kwargs.maxrows or 0
+        recordchunks = kwargs.recordchunks or 15000
+        compute = kwargs.compute or Lst()
+        #self.recCounter = Storage(
+        #    {
+        #        'threshhold': self.recordchunks,
+        #        'recordcounter': 0
+        #    }
+        #)
+        kwargs.delete('maxrows', 'recordchunks', 'compute')
         ''' If query is a JNLTable, DLGQuery or DLGExpression, 
             define tablename and tabledata. Otherwise, make
             sure it is typed correctly (it should be list)
@@ -758,7 +759,6 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
             tabledata.merge(kwargs)
             for item in \
                     [
-                        'recordchunks',
                         'schemadir',
                         'oSchemaType',
                         'logger'
@@ -766,19 +766,27 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                 tabledata.merge({item: getattr(self, item)})
             tabledata.merge(
                                 {
-                                    'maxrows': self.maxrows,
-                                    'compute': kwargs.compute or '',
                                     'tablename': tablename,
                                     'tabletype': P4Jnl
                                 }
             )
 
         oJNLFile = JNLFile(self.journal, reader=self.reader)
-        oRecordSet = RecordSet(self, Records(), **tabledata) \
+        oRecordSet = RecordSet(
+            self,
+            Records(),
+            maxrows=maxrows,
+            recordchunks=recordchunks,
+            compute=compute,
+            **tabledata
+        ) \
             if (tablename is None) \
             else RecordSet(
             self,
             oJNLFile,
+            maxrows=maxrows,
+            recordchunks=recordchunks,
+            compute=compute,
             **tabledata
         )
 

@@ -4,7 +4,8 @@ from libsql.sqlRecord import (
     Record)
 from libdlg.dlgStore import (
     Lst,
-    Storage
+    Storage,
+    objectify,
 )
 from libdlg.dlgSearch import Search
 from libdlg.dlgUtilities import (
@@ -19,15 +20,15 @@ from libdlg.dlgError import *
 from libsh import varsdata
 from libsh.shVars import clsVars
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 693 $] [$Revision: #21 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 707 $] [$Revision: #28 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Records']
 
 # TODO: add compounds like: split, apply (agregate), combine (merge)
-class Records(object):
+class Records(Lst):
     __commitstate__ = lambda self: Records()
     __repr__ = lambda self: f'<Records ({len(self)})>'
     __str__ = __repr__
@@ -70,13 +71,12 @@ class Records(object):
         return self(-1)
 
     def copy(self):
-        return Records(self[:])
+        return Records(self[:], is_flat=self.is_flat, is_join=self.is_join)
 
     def empty_records(self):
         return Records(Lst(), Lst(), self.objp4)
 
-    def __count(self, distinct=False, groupname=None):
-
+    def count(self, distinct=False, groupname=None):
         if (groupname is None):
             if (distinct is True):
                 distinctvalues = set()
@@ -89,61 +89,24 @@ class Records(object):
             return len(self)
         return self.counts(groupname)
 
-    """
-    def avg_(self, exp):
-        ''
-
-    def min_(self, exp):
-        ''
-
-    def max_(self, exp):
-        ''
-
-    def sum_(self, exp):
-        ''
-    """
-
     def __init__(
             self,
             records=Lst(),
             cols=Lst(),
             objp4=None,
+            is_join=False,
+            is_flat=False,
+            is_distinct=False,
             **tabledata
     ):
 
         (
             self.cols,
             self.grid,
-            #####################################################################################
-            # expression value placeholders (defaults to None)                                  #
-            #####################################################################################
-#            self.count,         # total count of records
-#            self.avg,           # average of a given field in all records
-#            self.sum,           # sum of a given field in all records
-#            self.min,           # average of a given field in all records
-#            self.max,           # average of a given field in all records
-            ####################################################################################
-            # expose expression values of each group when called on (otherwise defaults to {}) #
-            ####################################################################################
-#            self.counts,        # group count of records
-#            self.avgs,          # group average of a given field from each record in group
-#            self.sums,          # group sum of a given field in each record of the group
-#            self.mins,          # group min of a given field in each record of the group
-#            self.maxs,          # group max of a given field in each record of the group
         ) = \
             (
                 cols,
                 None,
-#                None,
-#                None,
-#                None,
-#                None,
-#                None,
-#                Storage(),
-#                Storage(),
-#                Storage(),
-#                Storage(),
-#                Storage()
             )
 
         self.objp4 = objp4 or Storage()
@@ -153,6 +116,9 @@ class Records(object):
         ''' thinking specifically for Py4 & Search
         '''
         self.tabledata = Storage(tabledata)
+        self.tablename = self.tabledata.tablename \
+            if (noneempty(self.tabledata) is False) \
+            else None
         ''' p4 cmd specific tables are of no use if objp4 is P4Jnl - 
             let's get rid of them so as to not bring about confusion.  
         '''
@@ -167,12 +133,25 @@ class Records(object):
                 try:
                     delattr(self, item)
                 except: pass
-        #self.as_groups = False
+
+        (
+            self.is_join,
+            self.is_flat,
+            self.is_distinct,
+            self.is_grouped
+        ) = \
+            (
+                is_join,
+                is_flat,
+                is_distinct,
+                False
+            )
+
         self.varsdata = varsdata
         self.p4recordsvars = clsVars(self, 'p4recordvars')
         self.jnlrecordsvars = clsVars(self, 'jnlrecordvars')
-
         self.commitstate = Lst()
+
     def __call__(
             self,
             idx,
@@ -308,7 +287,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         if (is_recordType(record) is True):
             self.records.insert(idx, record)
         else:
-            bail(f"You Can only insert records of type `Recor`, got `{type(record)}`.")
+            bail(f"You Can only insert records of type `Record`, got `{type(record)}`.")
         return self
 
     def bulk_insert(self, *records):
@@ -399,9 +378,21 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 Lst(),
                 0
             )
-
         if (records is None):
             records = self
+
+        ''' we should incorporate `orderby` to make sure we consistently return
+            records using their initial order in which they were passed in.
+            
+            Records() doesn't keep track of this things asnd, we will need 
+            fieldnames to base the order.
+            
+            TODO: Come back to this when time permits.
+        '''
+        #if (self.tablename is not None):
+        #    keying = self.tabledata.keying or []
+        #    records = self.orderby(*keying, records)
+
         for rec in records:
             if (start <= idx):
                 outrecords.append(rec)
@@ -494,39 +485,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             | 7   | pv        | 6              | db.domain  | pycharmclient   | 99   | gareth.local | /Users/gc/PycharmProjects |        |        | gc    | 2021/06/17 | 2021/08/05 | 2       | Created by gc. |        |          | 0         |
             +-----+-----------+----------------+------------+-----------------+------+--------------+-----------------------------+--------+--------+-------+------------+------------+---------+------------------+--------+----------+-----------+
         '''
-        if (records is None):
-            records = self
-        if (len(records) == 0):
-            return records
-        if (limitby is not None):
-            if (isinstance(limitby, tuple) is True):
-                records = records.limitby(limitby)
-            else:
-                bail('limitby must be of type `tuple`')
-        fieldname = field.fieldname \
-            if (is_fieldType(field) is True) \
-            else field
-        outrecords = Lst(
-            sorted(
-                records,
-                key=lambda k: k[fieldname],
-                reverse=reverse
-            )
-        )
-        return Records(outrecords, self.cols, self.objp4)
-
-    def orderby(
-            self,
-            *fields,
-            limitby=None,
-            reverse=False,
-            records=None
-    ):
-        ''' returns a new set of P4Records / does not modify the original.
-            >>> out = records.orderby(*[oJnl.domain.name, oJnl.domain.accessDate],)
-            >>> out.as_grid()
-        '''
-
         records = self \
             if (records is None) \
             else Records(records, self.cols, self.objp4) \
@@ -536,31 +494,87 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         if (len(records) == 0):
             return records
 
-        for field in fields:
-            if (not field in self.cols):
-                bail(
-                    f"Invalid column {field}. Try again."
-                )
         if (limitby is not None):
             if (isinstance(limitby, tuple) is True):
                 records = records.limitby(limitby)
             else:
                 bail('limitby must be of type `tuple`')
 
-        for field in fields:
-            fieldname = field.fieldname \
-                if (is_fieldType(field) is True) \
-                else field
-            recordfields = records.records(0).getkeys()
-            if fieldname not in recordfields:
-                raise FieldNotInRecord(fieldname, recordfields)
-            records = sorted(
+        fieldname = field.fieldname \
+            if (is_fieldType(field) is True) \
+            else field
+        #recordfields = records.records(0).getkeys()
+        #if fieldname not in recordfields:
+        #    raise FieldNotInRecord(fieldname, recordfields)
+        outrecords = Records(
+            sorted(
                 records,
                 key=lambda k: k[fieldname],
                 reverse=reverse
-            )
+            ),
+            self.cols,
+            self.objp4
+        )
+        return outrecords
 
-        return Records(records, self.cols, self.objp4)
+    def orderby(
+            self,
+            *fields,
+            func=None,
+            limitby=None,
+            reverse=False,
+            records=None
+    ):
+        ''' returns a new set of P4Records / does not modify the original.
+            >>> out = records.orderby(*[oJnl.domain.name, oJnl.domain.accessDate],)
+            >>> out.as_grid()
+        '''
+        records = self \
+            if (records is None) \
+            else Records(records, self.cols, self.objp4) \
+            if (is_recordsType(records) is False) \
+            else records
+
+        ''' 
+        '''
+        orderedlist = Lst()
+        if (func is not None):
+            i = 0
+            while (i < len(self)):
+                record = records[i]
+                if func(record):
+                    orderedlist.append(record)
+                    del self.records[i]
+                else:
+                    i += 1
+            records = Records(orderedlist, self.cols, self.objp4)
+
+        if (len(records) == 0):
+            return records
+
+        if (limitby is not None):
+            if (isinstance(limitby, tuple) is True):
+                records = records.limitby(limitby)
+            else:
+                bail('limitby must be of type `tuple`')
+
+        if (len(fields) > 0):
+            records = self.sortby(*fields, reverse=reverse, records=records)
+        #for field in fields:
+        #    fieldname = field.fieldname \
+        #        if (is_fieldType(field) is True) \
+        #        else field
+        #    recordfields = records.records(0).getkeys()
+        #    if fieldname not in recordfields:
+        #        raise FieldNotInRecord(fieldname, recordfields)
+        #    records = sorted(
+        #        records,
+        #        key=lambda k: k[fieldname],
+        #        reverse=reverse
+        #    )
+        if (is_recordsType(records) is False):
+            records = Records(records, self.cols, self.objp4)
+        return records
 
     def groupby(
             self,
@@ -570,7 +584,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             sortby=None,
             reverse=False,
             as_groups=False,
-            records=None
+            records=None,
+            **kwargs
     ):
         '''     groupby
 
@@ -653,7 +668,20 @@ Our record fields: {cols}\nYour record fields: {othercols}'
 
         res = filter(lambda rec: min <= rec.idx <= max, changes)
         '''
-        #self.as_groups = as_groups
+        (fields, kwargs) = (Lst(fields), Storage(kwargs))
+        ''' If request comes form sqlJoin, groupby will 
+            need access to its tablename and fieldname.
+        '''
+        [setattr(
+            kwargs.joiner,
+            'tablename',
+            getattr(fields(0), joinitem)
+        ) for joinitem in (
+            'tablename',
+            'fieldname'
+        ) if (kwargs.joiner is not None)]
+        joiner = kwargs.joiner
+
         if (records is None):
             records = self
         if (len(records) == 0):
@@ -665,27 +693,30 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             if (as_groups is False):
                 self.cols = records(0).getkeys()
             elif (as_groups is True):
-                if (is_recordType(self.records(0)) is True):
-                    keys = self.records(0).getkeys()
-                    table1 = self.records(0)[keys(0)]
-                    if (
-                            (is_recordType(table1) is True) |
-                            (is_dictType(table1) is True)
-                    ):
-                        table2 = self.records(0)[keys(1)]
-                        self.cols = table1.getkeys().union(table2.getkeys())
-                    else:
-                        self.cols = records(0).getkeys()
+                if (is_recordType(records(0)) is True):
+                    reckeys = records(0).getkeys()
+                    if (len (reckeys) == 2):
+                        if (isinstance(records(0)[reckeys(0)], dict) is True):
+                            self.cols = records(0)[reckeys(0)].getkeys().union(records(0)[reckeys(1)].getkeys())
+
         records_by_group = Storage()
         recordslen = len(records)
 
         def group(record, num):
             if (num <= (len(fields) - 1)):
+                name = None
                 try:
                     rec = group(record, (num + 1)) or Lst([record])
-                    name = str(record[fields[num].fieldname]) \
-                        if (is_fieldType(fields[num]) is True) \
-                        else str(record[fields[num]])
+                    if (joiner is None):
+                        name = str(record[fields[num].fieldname]) \
+                            if (is_fieldType(fields[num]) is True) \
+                            else str(record[fields[num]])
+                    else:
+                        name = str(record[joiner.tablename][joiner.fieldname])
+                        try:
+                            joiner.cGroupRecords[name].insert(record)
+                        except Exception as err:
+                            print(err)
                     if (
                             (isinstance(rec, dict) is True) |
                             (is_recordType(rec) is True)
@@ -699,7 +730,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                         records_by_group[name] += rec
                     else:
                         records_by_group[name] = rec
-                except Exception as err:
+
+                except Exception:
                     records_by_group[name] = rec
 
         '''  start with limitby 
@@ -715,81 +747,113 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             group(rec, 0)
             recordslen -= 1
 
-        ''' orderby & reverse, as instructed
-        '''
-        groupnames = records_by_group.getkeys()
-        for groupname in groupnames:
-            records_by_group[groupname] = Records(records_by_group[groupname])
-            #self.counts.update(**{groupname: len(records_by_group[groupname])})
-            if (orderby is not None):
-                recordgroup = self.orderby(
-                    orderby,
-                    reverse=reverse,
-                    records=records_by_group[groupname]
-                )
-                records_by_group.update(
-                    **{
-                        groupname: Records(
-                            recordgroup,
-                            self.cols,
-                            self.objp4
-                        )
-                    }
-                )
-            if (sortby is not None):
-                recordgroup = self.sortby(
-                    sortby,
-                    limitby=limitby,
-                    reverse=reverse,
-                    records=records_by_group[groupname]
-                )
-                records_by_group.update(
-                    **{
-                        groupname: Records(
-                            recordgroup,
-                            self.cols,
-                            self.objp4
-                        )
-                    }
-                )
-
-        ''' return grouped records as a dict , eg.
-                {
-                    group_name: <Records(
-                                        <{Record}>
-                                        <{Record}>,
-                                        <{Record}>,
-                                        <{Record}>
-                                        )>,
-                   ,group_name2: <Records(
-                                        <{Record}>,
-                                        <{Record}>
-                                        )>
-                }
-            
-            or return as a single list of grouped records
-                <Records(
-                        <{Record}>
-                        <{Record}>,
-                        <{Record}>,
-                        <{Record}>,
-                        <{Record}>,
-                        <{Record}>
-                        )>
-                        
-        '''
-        if (as_groups is True):
-            ''' Expose instance's `count` & `as_groups` methods so as 
-                to easily access these values when return value is type Storage.
+        if (joiner  is None):
+            ''' orderby & reverse, as instructed
             '''
-            #[setattr(records_by_group, att, getattr(self, att)) for att in ('count', 'as_groups')]
-            return records_by_group
+            groupnames = records_by_group.getkeys()
+            for groupname in groupnames:
+                records_by_group[groupname] = Records(records_by_group[groupname])
+                if (orderby is not None):
+                    recordgroup = self.orderby(
+                        orderby,
+                        reverse=reverse,
+                        records=records_by_group[groupname]
+                    )
+                    records_by_group.update(
+                        **{
+                            groupname: Records(
+                                recordgroup,
+                                self.cols,
+                                self.objp4
+                            )
+                        }
+                    )
+                if (sortby is not None):
+                    recordgroup = self.sortby(
+                        sortby,
+                        limitby=limitby,
+                        reverse=reverse,
+                        records=records_by_group[groupname]
+                    )
+                    records_by_group.update(
+                        **{
+                            groupname: Records(
+                                recordgroup,
+                                self.cols,
+                                self.objp4
+                            )
+                        }
+                    )
 
-        outrecords = Lst()
-        for rgroup in records_by_group.getkeys():
-            outrecords += records_by_group[rgroup]
+            ''' return grouped records as a dict , eg.
+                    {
+                        group_name: <Records(
+                                            <{Record}>
+                                            <{Record}>,
+                                            <{Record}>,
+                                            <{Record}>
+                                            )>,
+                       ,group_name2: <Records(
+                                            <{Record}>,
+                                            <{Record}>
+                                            )>
+                    }
+                
+                or return as a single list of grouped records
+                    <Records(
+                            <{Record}>
+                            <{Record}>,
+                            <{Record}>,
+                            <{Record}>,
+                            <{Record}>,
+                            <{Record}>
+                            )>
+            '''
+            if (as_groups is True):
+                if (
+                        (self.is_join is True) &
+                        (self.is_flat is False)
+                ):
+                    bail("Can not implement `as_groups` attribute on non-flatten records.")
+                self.is_grouped = True
+                return records_by_group
 
-        return Records(outrecords, self.cols, self.objp4)
+            outrecords = Lst()
+            for rgroup in records_by_group.getkeys():
+                outrecords += records_by_group[rgroup]
+            return Records(outrecords, self.cols, self.objp4, is_flat=self.is_flat, is_join=self.is_join)
+
+    """  
+    def unflatten(self, records=None):
+        records = self.copy() if (records is None) else records.copy()
+        if (records.is_flat is False):
+            bail('Records are already expanded.')
+        if (self.is_join is True):
+            for record in records:
+                reckeys = record.getkeys()
+                recidx= records.index(record)
+                prec = self.pop(recidx)
+                nrec = prec[reckeys(0)].merge(prec[reckeys(1)])
+                self.insert(recidx, nrec)
+            self.is_flat = False
+        return self
+
+    def flatten(self, records=None):
+        if (records is None):
+            records = self.copy()
+        if (records.is_flat is True):
+            bail('Records are already flatten.')
+        if (self.is_join is True):
+            for record in records:
+                reckeys = record.getkeys()
+                #recidx= records.index(record)
+                rec1 = self.pop(record[reckeys(0)])
+                rec2 = self.pop(record[reckeys(1)])
+                nrec = rec1.merge(rec2)
+                self.appendleft(recidx, nrec)
+            self.is_flat = True
+        return self
+    """
 
     ''' extending P4QRecordSets/filters for p4 specific records (actions on files, changes/revs, spec/specs, ...
 
@@ -820,7 +884,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                     perhaps attributes to compliment actions on changes/revs
 
                     as well, actions on specs & particularly on spec IO
-
                 '''
 
     def get_tableoptions(self, tablename, *args, **kwargs):
@@ -1038,7 +1101,7 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             <Record {'action': 'add',
                         'change': '480',
                         'code': 'stat',
-                        'context': '... [$Author: mart $]',
+                        'context': '... [$Author: zerdlg $]',
                         'depotFile': '//dev/p4dlg/libconnect/__init__.py',
                         'fileSize': '311',
                         'linenumber': 8,

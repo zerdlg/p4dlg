@@ -3,6 +3,13 @@ import re
 from libdlg.dlgStore import Lst, Storage, objectify
 from libdlg.dlgUtilities import serializable
 
+'''  [$File: //dev/p4dlg/libsql/sqlValidate.py $] 
+     [$Change: 717 $] 
+     [$Revision: #14 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
+'''
+
 __all__ = [
     'is_expressionType',
     'is_strType',

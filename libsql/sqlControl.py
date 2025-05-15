@@ -6,7 +6,7 @@ from libdlg.dlgDateTime import DLGDateTime
 from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 from libdlg.dlgControl import DLGControl
-from libdlg.dlgStore import Storage, Lst
+from libdlg.dlgStore import Storage, Lst, objectify
 from libdlg.dlgUtilities import (
     isnum,
     bail,
@@ -19,16 +19,14 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 693 $] [$Revision: #14 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 708 $] [$Revision: #24 $]
+     [$DateTime: 2025/05/15 10:59:26 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['DLGSql', 'fields2ints']
 
-
 def fields2ints(record):
-    # crecord = Record(record.copy())
     crecord = Storage(record.copy())
     for fkey in crecord.getkeys():
         if (isnum(record[fkey]) is True):
@@ -39,7 +37,6 @@ def fields2ints(record):
             except Exception as err:
                 print(err)
     return record
-
 
 class DLGSql(DLGControl):
     ''' `commitlist` are records yet to be committed to the target `DB system`
@@ -109,21 +106,6 @@ class DLGSql(DLGControl):
             I.e.: `db.domain` --> `domain`, `dbdomain` or `db_domain` 
         '''
         self.oTableFix = fix_name('remove')
-        ''' compute new columns, if any.
-        '''
-        compute = self.objp4.compute \
-            if (hasattr(self.objp4, 'compute')) \
-            else self.tabledata['compute'] \
-            if ('compute' in self.tabledata.keys()) \
-            else []
-        if (isinstance(compute, str)):
-            self.compute = Lst(
-                item.strip().split('=') for item in Lst(
-                    compute.split(';')
-                ).clean()
-            ).clean()
-        self.compute = compute or Lst()
-        self.maxrows = self.objp4.maxrows
         self.cols = cols
         self.records = records
         self.oDateTime = DLGDateTime()
@@ -178,10 +160,6 @@ class DLGSql(DLGControl):
             )
         except Exception as err:
             bail(err)
-
-    #def __iter__(self):
-        #for col in self.cols:
-        #    yield self[col]
 
     def __iter__(self):
         for fieldname in self.objp4[self.tablename].fieldnames:
@@ -563,52 +541,6 @@ class DLGSql(DLGControl):
             skip_record = True
         return (record, skip_record)
 
-    def parse__(self, qry, record=None, opfunc=None):
-        out = None
-        if (type(qry) is LambdaType):
-            out = ((qry(record) & 1) | 0)
-        elif (
-                (isinstance(qry, (str, list))) |
-                (type(qry).__name__ in (
-                        'Storage',
-                        'DLGQuery',
-                        'DLGExpression'
-                )
-                )
-        ):
-            if (opfunc is None):
-                receval = self.evaluate(qry, record=record)
-            else:
-                value = qry.left.op(qry.left, record) \
-                    if (is_query_or_expressionType(qry.left) is True) \
-                    else record[qry.left.fieldname]
-                try:
-                    value = int(value)
-                    ''' cast numeric fields to int so that
-                        the record's field value and the qry's
-                        right side are both living on the same 
-                        planet (int <--> int)
-                    '''
-                    qry.right = int(qry.right)
-                    ''' TODO: revisit this - I don't remember why
-                        evaluating left against right in one case
-                        and evaluating right against left in the
-                        other... '
-                    '''
-                    receval = opfunc(value, qry.right) \
-                        if (is_query_or_expressionType(qry) is True) \
-                        else opfunc(qry.right, value)
-                    if (is_expressionType(qry) is True):
-                        return receval
-                except Exception as err:
-                    bail(err)
-            if (isinstance(receval, bool) is True):
-                receval = int(receval)
-            out = ((receval & 1) | 0)
-        else:
-            out = ((qry & 1) | 0)
-        return out
-
     def parse_exp(self, op, left, right, record, exp=None):
         out = ((left(record) & 1) | 0) if (type(left) is LambdaType) else None
         if (out is not None):
@@ -677,7 +609,6 @@ class DLGSql(DLGControl):
                'right': 64, 
                'inversion': False}>
     '''
-
     def build_results(self, qry, record):
         if (isinstance(qry, bool) is True):
             return qry
@@ -719,9 +650,8 @@ class DLGSql(DLGControl):
                 expression_table(opname),
                 optable(opname)
             )
-
-        ''' queries can be wrapped in AND/OR/XOR/NOT expressions...
-            start with these
+        ''' Queries can be wrapped with AND/OR/XOR/NOT operators...
+            Start with that.
         '''
         AOXN = (andops + orops + xorops + notops)
         if (opname in AOXN):
@@ -733,14 +663,7 @@ class DLGSql(DLGControl):
                     self.build_results(left, record),
                     None
                 )
-
             if (right is not None):
-                # This should likely cause an exception,
-                # the value of right should be a qry (
-                # with its own 'op', 'left', 'right'
-                # attributes. At any rate...
-                #
-                # TODO: fix likely exception
                 buildright = self.build_results(right, record)
                 if (isinstance(buildright, (int, bool)) is False):
                     if (buildright.right is not None):
@@ -769,9 +692,17 @@ class DLGSql(DLGControl):
             elif (
                     opname in notops
             ):
-                # not sure... needs testing
                 if (left is not None):
-                    built = self.parse_qry(buildleft.op, buildleft.left, buildleft.right, record)
+                    ''' This looks like a dumb idea... 
+                        But I have no clue what I was thinking...
+                        Come back and check it out.
+                    '''
+                    built = self.parse_qry(
+                        buildleft.op,
+                        buildleft.left,
+                        buildleft.right,
+                        record
+                    )
                 elif not (left or right):
                     built = DLGExpression(self.objp4, op)
 
@@ -841,7 +772,6 @@ class DLGSql(DLGControl):
         elif (isinstance(qry, bool)):
             built = qry
         elif not (left or right):
-            # doh! if (op is qry) ???
             built = DLGExpression(self.objp4, op)
         else:
             bail(
@@ -849,59 +779,205 @@ class DLGSql(DLGControl):
             )
         return built
 
-    def aggregate(self, records, **kwargs):
+    def sql_aggregates_expressions_and_other_stuff(self, records, **kwargs):
         kwargs = Storage(kwargs)
-        (orderby,
-         limitby,
-         groupby,
-         sortby,
-         find,
-         filter,
-         exclude,
-         search,
-         count,
-         dlgsum,
-         dlgavg,
-         dlgmin,
-         dlgmax,
-         dlglen,
-         as_groups,
-         distinct,
-         add,
-         sub,
-         mul,
-         mod,
-         substr,
-         ) = (
-            kwargs.orderby,
-            kwargs.limitby,
-            kwargs.groupby,
-            kwargs.sortby,
-            kwargs.find,
-            kwargs.filter,
-            kwargs('exclude'),
-            kwargs.search,
-            kwargs.count,
-            kwargs.sum,
-            kwargs.avg,
-            kwargs.min,
-            kwargs.max,
-            kwargs.len,
-            kwargs.as_groups or False,
-            kwargs.distinct,
-            kwargs.add,
-            kwargs.sub,
-            kwargs.mul,
-            kwargs.mod,
-            kwargs.substr
-        )
+        (
+            orderby,
+            limitby,
+             groupby,
+             sortby,
+             find,
+             filter,
+             exclude,
+             search,
+             count,
+             dlgsum,        # not to confuse with builtin sum
+             dlgavg,        # not to confuse with builtin avg
+             dlgmin,        # not to confuse with builtin max
+             dlgmax,        # not to confuse with builtin len
+             dlglen,        # not to confuse with builtin len
+             as_groups,
+             distinct,
+             add,
+             sub,
+             mul,
+             mod,
+             substr,
+             lower,
+             upper,
+             replace,
+             year,
+             month,
+             day,
+             hour,
+             minute,
+             second,
+             epoch,
+             coalesce,
+             coalesce_zero,
+            diff
+             ) = (
+                kwargs.orderby,
+                kwargs.limitby,
+                kwargs.groupby,
+                kwargs.sortby,
+                kwargs.find,
+                kwargs.filter,
+                kwargs('exclude'),
+                kwargs.search,
+                kwargs.count,
+                kwargs.sum,
+                kwargs.avg,
+                kwargs.min,
+                kwargs.max,
+                kwargs.len,
+                kwargs.as_groups or False,
+                kwargs.distinct,
+                kwargs.add,
+                kwargs.sub,
+                kwargs.mul,
+                kwargs.mod,
+                kwargs.substr,
+                kwargs('lower'),
+                kwargs('upper'),
+                kwargs('replace'),
+                kwargs.year,
+                kwargs.month,
+                kwargs.day,
+                kwargs.hour,
+                kwargs.minute,
+                kwargs.second,
+                kwargs.epoch,
+                kwargs.coalesce,
+                kwargs.coalesce_zero,
+                kwargs.diff,
+            )
 
         if (noneempty(records) is True):
             return records
-        if (orderby is not None):
-            '''  orderby         -->     and/or limitby
+        if (count is not None):
+            if (is_fieldType(count) is True):
+                count = getattr(count, 'count')()
+            kwargs.delete('count')
+            return count.op(count, records, **kwargs)
+        if (dlgsum is not None):
+            kwargs.delete('sum')
+            if (is_fieldType(dlgsum) is True):
+                dlgsum = getattr(dlgsum, 'sum')()
+            res = dlgsum.op(dlgsum, records, **kwargs)
+            return res
+        if (dlgavg is not None):
+            if (is_fieldType(dlgavg) is True):
+                dlgavg = getattr(dlgavg, 'avg')()
+            kwargs.delete('avg')
+            return dlgavg.op(dlgavg, records, **kwargs)
+        if (dlgmin is not None):
+            if (is_fieldType(dlgmin) is True):
+                dlgmin = getattr(dlgmin, 'min')()
+            kwargs.delete('min')
+            return dlgmin.op(dlgmin, records, **kwargs)
+        if (dlgmax is not None):
+            if (is_fieldType(max) is True):
+                dlgmax = getattr(dlgmax, 'max')()
+            kwargs.delete('max')
+            return dlgmax.op(dlgmax, records, **kwargs)
+        if (dlglen is not None):
+            kwargs.delete('len')
+            if (is_fieldType(dlglen) is True):
+                dlglen = getattr(dlglen, 'len')()
+            return dlglen.op(dlglen, records, **kwargs)
+        if (lower is not None):
+            if (is_fieldType(lower) is True):
+                lower = getattr(lower, 'lower')()
+            kwargs.delete('lower')
+            return lower.op(lower, records, **kwargs)
+        if (upper is not None):
+            if (is_fieldType(upper) is True):
+                upper = getattr(upper, 'upper')()
+            kwargs.delete('upper')
+            return upper.op(upper, records, **kwargs)
+        if (replace is not None):
+            if (is_fieldType(replace) is True):
+                replace = getattr(replace, 'replace')()
+            kwargs.delete('replace')
+            return replace.op(replace, records, **kwargs)
+        if (year is not None):
+            if (is_fieldType(year) is True):
+                year = getattr(year, 'year')()
+            kwargs.delete('year')
+            return year.op(year, records, **kwargs)
+        if (month is not None):
+            if (is_fieldType(month) is True):
+                month = getattr(month, 'month')()
+            kwargs.delete('month')
+            return month.op(month, records, **kwargs)
+        if (day is not None):
+            if (is_fieldType(day) is True):
+                day = getattr(day, 'day')()
+            kwargs.delete('day')
+            return day.op(day, records, **kwargs)
+        if (hour is not None):
+            if (is_fieldType(hour) is True):
+                hour = getattr(hour, 'hour')()
+            kwargs.delete('hour')
+            return hour.op(hour, records, **kwargs)
+        if (minute is not None):
+            if (is_fieldType(minute) is True):
+                minute = getattr(minute, 'minute')()
+            kwargs.delete('minute')
+            return minute.op(minute, records, **kwargs)
+        if (second is not None):
+            if (is_fieldType(second) is True):
+                second = getattr(second, 'second')()
+            kwargs.delete('second')
+            return second.op(second, records, **kwargs)
+        if (epoch is not None):
+            if (is_fieldType(epoch) is True):
+                epoch = getattr(epoch, 'epoch')()
+            kwargs.delete('epoch')
+            return epoch.op(epoch, records, **kwargs)
+        if (coalesce is not None):
+            if (is_fieldType(coalesce) is True):
+                coalesce = getattr(coalesce, 'coalesce')()
+            kwargs.delete('coalesce')
+            return coalesce.op(coalesce, records, **kwargs)
+        if (coalesce_zero is not None):
+            if (is_fieldType(coalesce_zero) is True):
+                coalesce_zero = getattr(coalesce_zero, 'coalesce_zero')()
+            kwargs.delete('coalesce_zero')
+            return coalesce_zero.op(coalesce_zero, records, **kwargs)
+        if (search is not None):
+            ''' thinking of in-file vector searches...
+                consider this as not yet implemented. 
             '''
-            kwargs.delete('orderby')
+            if (is_fieldType(search) is True):
+                search = getattr(search, 'search')()
+            kwargs.delete('search')
+            for record in records:
+                if (record.depotFile is not None):
+                    fcontent = ''
+        if (add is not None):
+            if (is_fieldType(add) is True):
+                add = getattr(add, 'add')()
+            kwargs.delete('add')
+            return add.op(add, records, **kwargs)
+        if (sub is not None):
+            if (is_fieldType(sub) is True):
+                sub = getattr(sub, 'sub')()
+            kwargs.delete('sub')
+            return sub.op(sub, records, **kwargs)
+        if (mul is not None):
+            if (is_fieldType(mul) is True):
+                mul = getattr(mul, 'mul')()
+            kwargs.delete('mul')
+            return mul.op(mul, records, **kwargs)
+        if (mod is not None):
+            if (is_fieldType(mod) is True):
+                mod = getattr(mod, 'mod')()
+            kwargs.delete('mod')
+            return mod.op(mod, records, **kwargs)
+        if (orderby is not None):
+            kwargs.delete('orderby')            
             if (isinstance(orderby, str)):
                 orderby = [item for item in orderby.split(',')] \
                     if (',' in orderby) \
@@ -911,150 +987,75 @@ class DLGSql(DLGControl):
             records = records.orderby(*orderby) \
                 if (limitby is None) \
                 else records.orderby(*orderby, limitby=limitby)
-        if (limitby is not None):
-            '''  limitby         -->     and nothing else...
-            '''
-            kwargs.delete('limitby')
-            records = records.limitby(limitby, **kwargs)
         if (groupby is not None):
-            '''  groupby
-            '''
+            if (is_fieldType(groupby) is True):
+                groupby = getattr(groupby, 'groupby')()
             kwargs.delete('groupby')
             records = records.groupby(groupby, **kwargs)  # as_groups=as_groups, **kwargs)
         if (exclude is not None):
-            '''  exclude
-
-                 >>> for record in records.exclude(lambda rec: rec.type=='99'):
+            '''  >>> for record in records.exclude(lambda rec: rec.type=='99'):
                  >>>     print record.client
                  my_client
             '''
+            if (is_fieldType(exclude) is True):
+                exclude = getattr(exclude, 'exclude')()
+            kwargs.delete('exclude')
             records = records.exclude(exclude, **kwargs)
         if (filter is not None):
-            '''  filter
-            '''
+            if (is_fieldType(filter) is True):
+                filter = getattr(filter, 'filter')()
             kwargs.delete('filter')
             records = records.filter(filter, **kwargs)
         if (find is not None):
-            '''  find
-            '''
+            if (is_fieldType(find) is True):
+                find = getattr(find, 'find')()
             kwargs.delete('find')
             records = records.find(find, **kwargs)
         if (sortby is not None):
-            '''  sort
+            ''' >>> records = oJnl(oJnl.rev).select()
+                >>> Qry=(lambda rec: 'depot' in rec.depotFile)
+                >>> records = records.find(Qry).sort( lambda rec: rec.depotFile)
+                >>> for rec in records:
+                >>>     print rec.depotFile
+                //depot/aFolder/aFile
+                //depot/anotherFolder/anotherFile
 
-                        >>> records = oJnl(oJnl.rev).select()
-                        >>> Qry=(lambda rec: 'depot' in rec.depotFile)
-                        >>> records = records.find(Qry).sort( lambda rec: rec.depotFile)
-                        >>> for rec in records:
-                        >>>     print rec.depotFile
-                        //depot/aFolder/aFile
-                        //depot/anotherFolder/anotherFile
-
-                        >>> for record in records.sort(lambda rec: rec.mount):
-                        >>>     print rec.client
-                        zerdlg_client
-                        Charotte_client
-        '''
+                >>> for record in records.sort(lambda rec: rec.mount):
+                >>>     print rec.client
+                zerdlg_client
+                Charotte_client
+            '''
+            if (is_fieldType(sortby) is True):
+                sortby = getattr(sortby, 'sortby')()
             kwargs.delete('sortby')
-            # records = records.sort(sortby)
             records = records.sortby(sortby, **kwargs)
-        if (count is not None):
-            ''' count
-            '''
-            if (is_fieldType(count) is True):
-                count = getattr(count, 'count')()
-            kwargs.delete('count')
-            return count.op(count, records, **kwargs)
-        if (dlgsum is not None):
-            ''' sum
-            '''
-            if (is_fieldType(dlgsum) is True):
-                dlgsum = getattr(dlgavg, 'sum')()
-            kwargs.delete('sum')
-            return dlgsum.op(dlgsum, records, **kwargs)
-        if (dlgavg is not None):
-            ''' avg
-            '''
-            if (is_fieldType(dlgavg) is True):
-                dlgavg = getattr(dlgavg, 'avg')()
-            kwargs.delete('avg')
-            return dlgavg.op(dlgavg, records, **kwargs)
-        if (dlgmin is not None):
-            ''' max
-            '''
-            if (is_fieldType(dlgmin) is True):
-                dlgmin = getattr(dlgmin, 'min')()
-            kwargs.delete('min')
-            return dlgmin.op(dlgmin, records, **kwargs)
-        if (dlgmax is not None):
-            ''' max
-            '''
-            if (is_fieldType(max) is True):
-                dlgmax = getattr(dlgmax, 'max')()
-            kwargs.delete('max')
-            return dlgmax.op(dlgmax, records, **kwargs)
-        if (dlglen is not None):
-            ''' len
-            '''
-            if (is_fieldType(dlglen) is True):
-                dlglen = getattr(dlglen, 'len')()
-            kwargs.delete('len')
-            return dlglen.op(dlglen, records, **kwargs)
-        if (search is not None):
-            ''' search
-            '''
-            if (is_fieldType(search) is True):
-                search = getattr(search, 'search')()
-            kwargs.delete('search')
-            for record in records:
-                if (record.depotFile is not None):
-                    fcontent = ''
-        if (add is not None):
-            ''' add
-            '''
-            if (is_fieldType(add) is True):
-                add = getattr(add, 'add')()
-            kwargs.delete('add')
-            return add.op(add, records, **kwargs)
-        if (sub is not None):
-            ''' sub
-            '''
-            if (is_fieldType(sub) is True):
-                sub = getattr(sub, 'sub')()
-            kwargs.delete('sub')
-            return sub.op(sub, records, **kwargs)
-        if (mul is not None):
-            ''' mul
-            '''
-            if (is_fieldType(mul) is True):
-                mul = getattr(mul, 'mul')()
-            kwargs.delete('mul')
-            return mul.op(mul, records, **kwargs)
-        if (mod is not None):
-            ''' mod
-            '''
-            if (is_fieldType(mod) is True):
-                mod = getattr(mod, 'mod')()
-            kwargs.delete('mod')
-            return mod.op(mod, records, **kwargs)
         if (distinct is not None):
-            ''' distinct
-            '''
             if (is_fieldType(distinct) is True):
                 distinct = getattr(distinct, 'distinct')()
-            #elif (type(distinct) is slice):
-            #    distinct = distinct.op(distinct)
-            kwargs.delete('distinct')
-            return distinct.op(distinct, records, **kwargs)
-        if (substr is not None):
-            ''' substring
+            ''' needs testing.
             '''
+            if (is_sliceType(distinct) is True):
+                distinct = distinct.op(distinct)
+            kwargs.delete('distinct')
+            records = distinct.op(distinct, records, **kwargs)
+        if (substr is not None):
+            if (is_fieldType(substr) is True):
+                substr = getattr(substr, 'substr')()
             kwargs.delete('substr')
-            return substr.op(substr, records, **kwargs)
+            records = substr.op(substr, records, **kwargs)
+        if (limitby is not None):
+            if (is_fieldType(limitby) is True):
+                limitby = getattr(limitby, 'limitby')()
+            kwargs.delete('limitby')
+            records = records.limitby(limitby, **kwargs)
+        if (diff is not None):
+            if (is_fieldType(diff) is True):
+                diff = getattr(diff, 'diff')()
+            kwargs.delete('diff')
+            records = diff.op(diff, records, **kwargs)
         ''' That's it - return all records.
         '''
         return records
-
 
     def get_recordsIterator(self, records, tables=[]):
         if (self.is_jnlobject is True):
@@ -1062,9 +1063,8 @@ class DLGSql(DLGControl):
             try:
                 return enumerate([
                     rec[1] for (idx, rec) in enumerate(records)
-                    if (rec[1][2] in tablenames)  # if (reg.match(rec[1][2]))
+                    if (rec[1][2] in tablenames)
                 ], start=1)
-                # return filter(lambda rec: (rec[1][2] in tablenames), records)
             except Exception as err:
                 bail(err)
         if (
@@ -1089,9 +1089,6 @@ class DLGSql(DLGControl):
                 None,
                 None
             )
-        grecords = None
-        # if (is_expressionType(query) is True):
-        #    if (reg_dbtablename.match(tablename) is not None):
         tablename = self.oTableFix.normalizeTableName(tablename)
         (
             left,
@@ -1122,27 +1119,65 @@ class DLGSql(DLGControl):
     def get_record_components(
             self,
             *fieldnames,
+            distinct=None,
             query=None,
             cols=None,
             records=None,
             **kwargs
     ):
-        kwargs = Storage(kwargs)
-        fieldnames = Lst(fieldnames)
-        ''' query
-        
-        if (query is None):
-            if (isinstance(self.query, list) is True):
-                self.query.append(query)
-            else:
-                query = self.query or []
-        elif (isinstance(query, list) is True):
-            query = Lst([query])
+        (
+            kwargs,
+            fieldnames,
+            fieldname,
+            expression,
+        ) = (
+            Storage(kwargs),
+            Lst(fieldnames),
+            None,
+            None,
+        )
+        ''' distinct
+        '''
+        if (
+                (distinct is None) &
+                (kwargs.distinct is not None)
+        ):
+            distinct = kwargs.pop('distinct')
+        ''' query            
         '''
         if (query is None):
-            query = self.query or []
+            query = self.query or Lst()
         if (isinstance(query, list) is False):
             query = Lst([query])
+        ''' check each field name & determine its type
+        
+            * this remains incomplete, think about completing it!
+        '''
+        cfieldnames = Lst(fieldnames.copy()).storageindex(reversed=True)
+        for fidx in cfieldnames.getkeys():
+            if (is_expressionType(cfieldnames[fidx]) is True):
+                expression = fieldnames.pop(fidx)
+                if (expression is not None):
+                    if (is_substrType(expression) is False):
+                        opname = expression.op.__name__.lower() \
+                            if (callable(expression.op) is True) \
+                            else expression.op.lower()
+                        fieldname = expression.fieldname
+                        kwargs.update(**{opname: expression})
+                    else:
+                        fieldname = expression.fieldname
+                elif (is_expressionType(distinct) is True):
+                    expression = distinct
+                    if (is_substrType(distinct) is True):
+                        fieldname = expression.fieldname
+                        distinct = True
+            elif (is_queryType(cfieldnames[fidx]) is True):
+                fquery = fieldnames.pop(fidx)
+                query.append(fquery)
+            elif (is_tableType(cfieldnames[fidx]) is True):
+                ''' this is not a in valid argument. It will force the sql operation to bail.
+                '''
+                bail("there doesn't seem to be any valid reason to pass in a table object as a parameter when selecting records.")
         ''' cols
         '''
         if (noneempty(cols) is True):
@@ -1159,7 +1194,6 @@ class DLGSql(DLGControl):
                 cols.pop(cols.index('code'))
             except Exception as err:
                 self.objp4.logwarning(err)
-
         ''' tablename & records
         '''
         tablename = self.tablename or self.tabledata.tablename
@@ -1171,7 +1205,6 @@ class DLGSql(DLGControl):
             except:
                 if (self.reference is not None):
                     tablename = self.reference.left.tablename
-
         ''' It could happen - that tablename might still be None
         '''
         if (tablename is None):
@@ -1179,9 +1212,12 @@ class DLGSql(DLGControl):
                 for key in kwargs.keys():
                     if (is_expressionType(kwargs[key]) is True):
                         tablename = kwargs[key].tablename
+                        break
             elif (is_expressionType(fieldnames(0)) is True):
                 tablename = fieldnames(0).tablename
-        ''' records is not enumerator or it is None, let's start grasping.
+            elif (is_fieldType(fieldnames(0)) is True):
+                tablename = fieldnames(0).tablename
+        ''' records is not enumerator or it may even be None, let's start guessing.
         '''
         if (
                 (records is None) |
@@ -1194,16 +1230,19 @@ class DLGSql(DLGControl):
                         records = self.records
                 elif (type(self.records) == enumerate):
                     records = self.records
-            if (tablename is not None):
-                if (type(records) != enumerate):
-                    if (len(records) == 0):
-                        records = self.objp4(self.objp4[tablename]).records
+            elif (
+                    (tablename is not None) &
+                    (type(records) != enumerate) &
+                    (hasattr(records, 'len)'))
+            ):
+                if (len(records) == 0):
+                    records = self.objp4(self.objp4[tablename]).records
             else:
                 recset = None
                 if (len(query) > 0):
                     if (isinstance(query, str) is True):
                         ''' TODO:
-                            comeback here & support str queries
+                            comeback & support str queries
                         '''
                     elif (is_queryType(query) is True):
                         recset = self.objp4(query)
@@ -1212,10 +1251,26 @@ class DLGSql(DLGControl):
                         if (is_fieldType_or_expressionType(fieldnames(0)) is True) \
                         else self.objp4(self.objp4[tablename])
                 records = recset.records
-
-        fieldsmap = self.fieldsmap or self.tabledata.fieldsmap
-        fieldnames = Lst(fieldnames).storageindex(reversed=True)
-        return (tablename, fieldnames, fieldsmap, query, cols, records)
+        (
+            fieldsmap,
+            fieldnames
+        ) = \
+            (
+                self.fieldsmap or self.tabledata.fieldsmap,
+                Lst(fieldnames).storageindex(reversed=True)
+            )
+        return (
+            tablename,
+            fieldnames,
+            fieldsmap,
+            expression,
+            query,
+            cols,
+            records,
+            fieldname,
+            distinct,
+            kwargs
+        )
 
     def computecolumns(self, record):
         try:
@@ -1231,12 +1286,3 @@ class DLGSql(DLGControl):
             return record
         except Exception as err:
             bail(err)
-
-    def fiels2ints(self, record):
-        return fields2ints(record)
-    # def fields2ints(self, record):
-    #    crecord = Record(record.copy())
-    #    for fkey in crecord.getkeys():
-    #        if (isnum(record[fkey]) is True):
-    #            record[fkey] = int(record[fkey])
-    #    return record

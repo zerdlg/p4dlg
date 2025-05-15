@@ -20,9 +20,9 @@ from libfs.fsFileIO import (
 )
 from libdlg.dlgDateTime import DLGDateTime
 
-'''  [$File: //dev/p4dlg/libsql/sqlSchema.py $] [$Change: 689 $] [$Revision: #7 $]
-     [$DateTime: 2025/04/15 05:30:50 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlSchema.py $] [$Change: 707 $] [$Revision: #8 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [

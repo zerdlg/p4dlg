@@ -4,9 +4,9 @@ import logging
 from libdlg.dlgStore import Storage
 from libdlg.dlgUtilities import bail
 
-'''  [$File: //dev/p4dlg/libdlg/dlgLogger.py $] [$Change: 683 $] [$Revision: #5 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libdlg/dlgLogger.py $] [$Change: 707 $] [$Revision: #6 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['LogHandler']

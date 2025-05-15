@@ -20,9 +20,9 @@ from libdlg.dlgUtilities import (
     spec_lastarg_pairs
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 693 $] [$Revision: #25 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4Options.py $] [$Change: 707 $] [$Revision: #26 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Options']

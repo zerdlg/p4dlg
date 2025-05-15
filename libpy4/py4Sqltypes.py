@@ -20,9 +20,9 @@ from libsql.sqlValidate import *
 from libsh import varsdata
 from libsh.shVars import clsVars
 
-'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 693 $] [$Revision: #37 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libpy4/py4Sqltypes.py $] [$Change: 707 $] [$Revision: #39 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Py4Table', 'Py4Field']
@@ -461,7 +461,18 @@ class Py4Table(object):
 
 class Py4Field(DLGExpression):
 
-    __str__ = __repr__ = lambda self: f"<Py4Field {self.fieldname}>"
+    #__str__ = __repr__ =  lambda self: f"<Py4Field {self.fieldname}>"
+
+    def __str__(self):
+        if (self._table is not None):
+            return f"<Py4Field {self.tablename}.{self.fieldname}>"
+        return f"<no-Py4Field {self.fieldname}>"
+
+    #def __str__(self):
+    #    if self._table:
+    #        return "%s.%s" % (self.tablename, self.name)
+    #    return "<no table>.%s" % self.name
+
 
     def __len__(self):
         res = lambda i: len(self.__dict__[i])
@@ -496,6 +507,7 @@ class Py4Field(DLGExpression):
         self.name = fieldname
         self._table = _table or objp4[tablename]
         self.table = table
+        self.tablename = self._table.tablename
 
         self.__dict__ = objectify(self.__dict__)
 
@@ -528,7 +540,6 @@ class Py4Field(DLGExpression):
         ]
 
         self.oSchema = oSchema or objp4.oSchema
-        self.tablename = tablename
         self.op = None
         self.left = None
         self.right = None
@@ -575,9 +586,6 @@ class Py4Field(DLGExpression):
             self.logwarning(err)
 
     keys = lambda self: Storage(self.__dict__).getkeys()
-
-    #def __getitem__(self, key):
-    #    return str(key)
 
     __get__ = lambda self: self.__getitem__
 

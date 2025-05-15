@@ -28,9 +28,9 @@ from libdlg.dlgStore import Storage, objectify, Lst
                                    "If you mess up, try try again!"},                           
 '''
 
-'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 683 $] [$Revision: #6 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 707 $] [$Revision: #7 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['ArgsParser', ]

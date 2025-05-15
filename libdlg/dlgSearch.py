@@ -9,9 +9,9 @@ from libdlg.dlgUtilities import bail
 from libdlg.dlgControl import DLGControl
 from libdlg.contrib.prettytable.prettytable import PrettyTable
 
-'''  [$File: //dev/p4dlg/libdlg/dlgSearch.py $] [$Change: 683 $] [$Revision: #11 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libdlg/dlgSearch.py $] [$Change: 707 $] [$Revision: #12 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['Search']

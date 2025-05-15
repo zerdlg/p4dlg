@@ -6,6 +6,13 @@ from libdlg.dlgUtilities import Flatten, bail
 from libpy4.py4Mapping import P4Mapping
 from libsql.sqlValidate import *
 
+'''  [$File: //dev/p4dlg/libpy4/py4SpecIO.py $] 
+     [$Change: 717 $] 
+     [$Revision: #20 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
+'''
+
 class SpecIO(object):
     def __init__(self, objp4):
         self.objp4 = objp4

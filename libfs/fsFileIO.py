@@ -32,8 +32,8 @@ except ImportError:
 from libdlg.dlgStore import Storage, Lst
 from libdlg.dlgError import LockingError
 
-'''  [$File: //dev/p4dlg/libdlg/fsFileIO.py $] [$Change: 467 $] [$Revision: #10 $]
-     [$DateTime: 2024/08/24 08:15:42 $]
+'''  [$File: //dev/p4dlg/libfs/fsFileIO.py $] [$Change: 716 $] [$Revision: #4 $]
+     [$DateTime: 2025/05/15 11:19:42 $]
      [$Author: zerdlg $]
 '''
 

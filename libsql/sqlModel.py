@@ -9,8 +9,8 @@ from libdlg.dlgUtilities  import fix_name, bail
 
 __all__ = ['Py4Model']
 
-'''  [$File: //dev/p4dlg/libdlg/sqlModel.py $] [$Change: 467 $] [$Revision: #12 $]
-     [$DateTime: 2024/08/24 08:15:42 $]
+'''  [$File: //dev/p4dlg/libsql/sqlModel.py $] [$Change: 716 $] [$Revision: #4 $]
+     [$DateTime: 2025/05/15 11:19:42 $]
      [$Author: zerdlg $]
 '''
 
@@ -25,8 +25,7 @@ class Py4Model(object):
         self.fixname = fix_name(tableformat)
         self.modelized_tablefields = Storage()
         self.common_table_attributes = OrderedDict()
-        #self.schema = objectify(schema)
-        self.p4schema = objectify(schema)#self.schema
+        self.p4schema = objectify(schema)
         self.version = self.p4schema.version
         self.upgrades = self.p4schema.numUpgrades
         ''' get a list of recordTypes  
@@ -36,7 +35,6 @@ class Py4Model(object):
                 row.name: row for row in self.p4schema.recordtypes.record
             }
         )
-
         ''' get a list of tables 
         '''
         self.p4tables = Storage(

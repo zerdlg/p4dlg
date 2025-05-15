@@ -23,9 +23,9 @@ from libsh.shVars import clsVars
 
 __all__ = ['JNLTable', 'JNLField']
 
-'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 693 $] [$Revision: #42 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libjnl/jnlSqltypes.py $] [$Change: 707 $] [$Revision: #44 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 class JNLTable(object):
@@ -320,7 +320,7 @@ class JNLTable(object):
 class JNLField(DLGExpression):
     __str__ = __repr__ = lambda self: f"<JNLField {self.fieldname}>"
     __hash__ = lambda self: hash((frozenset(self), frozenset(self.objp4)))
-    def __len__(self): return lambda i: len(self.__dict__[i])
+    __len__ = lambda self: len(self.__dict__)
 
     def containschars(self):
         return self.__contains__(self)

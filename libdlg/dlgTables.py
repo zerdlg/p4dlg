@@ -9,9 +9,9 @@ from libdlg.dlgStore import Storage, objectify, Lst, StorageIndex
 from libdlg.dlgDateTime import DLGDateTime
 from libdlg.contrib.prettytable.prettytable import PrettyTable as PT
 
-''' [$File: //dev/p4dlg/libdlg/dlgTables.py $] [$Change: 683 $] [$Revision: #17 $]
-    [$DateTime: 2025/04/07 18:39:56 $]
-    [$Author: mart $]
+''' [$File: //dev/p4dlg/libdlg/dlgTables.py $] [$Change: 707 $] [$Revision: #18 $]
+    [$DateTime: 2025/05/14 13:55:49 $]
+    [$Author: zerdlg $]
 '''
 
 __all__ = [

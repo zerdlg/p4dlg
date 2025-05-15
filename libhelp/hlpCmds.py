@@ -5,6 +5,13 @@ from libdlg.dlgUtilities import bail
 
 __all__ = ['DLGHelp']
 
+'''  [$File: //dev/p4dlg/libhelp/hlpCmds.py $] 
+     [$Change: 717 $] 
+     [$Revision: #7 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
+'''
+
 class DLGHelp(object):
     def __init__(self, objp4):
         self.objp4 = objp4

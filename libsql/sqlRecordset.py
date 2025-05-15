@@ -21,18 +21,12 @@ from libsh.shVars import clsVars
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 693 $] [$Revision: #27 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 717 $] [$Revision: #35 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
 '''
 
 class RecordSet(object):
-    #__hash__ = lambda self: hash(
-    #    (frozenset(self),
-    #     frozenset(self.recordset))
-    #     #frozenset(Storage(self.__dict__).getvalues()))
-    #)
-
     __iter__ = lambda self: self.__dict__.__iter__()
 
     __hash__ = object.__hash__
@@ -46,12 +40,6 @@ class RecordSet(object):
         '''
         print(f"Invalid query '({left} {op} {right})'\nError: {err}")
         return False
-
-    def case(self, true=1, false=0):
-        try:
-            return CASE(true, false)
-        except Exception as err:
-            ''' NOT YET IMPLEMENTED'''
 
     def __xor__(self, left, right):
         try:
@@ -163,6 +151,9 @@ class RecordSet(object):
             objp4=None,
             records=Lst(),
             query=None,
+            maxrows=0,
+            recordchunks=15000,
+            compute=Lst(),
             *args,
             **tabledata
     ):
@@ -172,6 +163,9 @@ class RecordSet(object):
         self.varsdata = varsdata
         self.p4recordvars = clsVars(self, 'p4recordvars')
         self.jnlrecordsvars = clsVars(self, 'jnlrecordvars')
+        self.recordchunks = recordchunks
+        self.maxrows = maxrows
+        self.compute = compute
         ''' logging
         '''
         [
@@ -191,13 +185,11 @@ class RecordSet(object):
             'critical'
         )
         ]
-
         ''' set as attributes whatever is left in kwargs
         '''
         [
             setattr(self, tdata, tabledata[tdata]) for tdata in tabledata
         ]
-
         self.oSchema = self.objp4.oSchema or Storage()
         self.cols = self.fieldnames if (hasattr(self, 'fieldnames')) else Lst()
         ''' recordset is the reference to jnlFile.JNLFile
@@ -206,8 +198,7 @@ class RecordSet(object):
         self.recordset = records
         ''' records
         '''
-        lastarg = tabledata.pop('lastarg') if (tabledata.lastarg is not None) else None
-        self.records = self.defineRecords(records)#, **{'lastarg': lastarg})
+        self.records = self.defineRecords(records)
         ''' queries
         '''
         self.query = query
@@ -216,7 +207,6 @@ class RecordSet(object):
         self.oSchemaType = self.objp4.oSchemaType \
             if (hasattr(self.objp4, 'oSchemaType') is True) \
             else None
-
         compute = tabledata.compute or []
         self.compute = Lst(item.strip().split('=') for item \
                 in Lst(compute.split(';')).clean()).clean() \
@@ -326,62 +316,49 @@ class RecordSet(object):
             bail(err)
 
     def defineRecords(self, records, **kwargs):
-            if (hasattr(records, 'loads')):
-                records = loadspickle(records)
-                if (len(self.cols) == 0):
-                    self.cols = records.first().tostorage().getkeys()
-                return enumerate(records, start=1)
-            if (isinstance(records, str)):
-                records = objectify(loadspickle(records))
-                if (len(self.cols) == 0):
-                    self.cols = records.first().getkeys()
-                return enumerate(records, start=1)
-            if (isinstance(records, Records) is True):
-                if (len(records) > 0):
-                    record = records.first()
-                    if (
-                            (record is not None) &
-                            (len(self.cols) == 0)
-                    ):
-                        self.cols = records.cols or record.getkeys()
-                    return enumerate(records)
-                elif (is_P4Jnl(self.objp4) is True):
-                    oJNLFile = JNLFile(self.objp4.journal, reader=self.objp4.reader)
-                    return enumerate(oJNLFile.reader(), start=1)
-                #elif (is_Py4(self.objp4) is True):
-                #    self.objp4
-                return records
-
-            ''' Nothing so far?
-            
-                Define cols in the same way for any 
-                of the following record types. 
-            '''
+        if (hasattr(records, 'loads')):
+            records = loadspickle(records)
             if (len(self.cols) == 0):
-                self.cols = Lst()#self.defineCols(records)
-
-            ''' alright, what do we have?
-            '''
-            if (type(records) is enumerate):
-                return records
-            elif (type(records) is GeneratorType):
-                return enumerate(records, start=1)
-            elif (isinstance(records, (Lst, list)) is True):
-                return enumerate(records, start=1)
-            elif (hasattr(records, 'readlines')):
-                return enumerate(records.readlines(), start=1)
-            elif (isinstance(records, JNLFile) is True):
-                return enumerate(records.reader(), start=1)
-            elif (ispath(records)):
-                ''' NOT YET IMPLEMENTED
-                    TODO: this. 
+                self.cols = records.first().tostorage().getkeys()
+        elif (isinstance(records, JNLFile) is True):
+            records = records.reader()
+        elif (isinstance(records, str) is True):
+            records = JNLFile(records).reader() \
+                if (ispath(records) is True) \
+                else objectify(loadspickle(records))
+            if (len(self.cols) == 0):
+                self.cols = records.first().getkeys()
+        elif (
+                (isinstance(records, list) is True) |
+                (type(records).__name__ == 'Records')
+        ):
+            if (len(records) > 0):
+                record = records.first()
+                if (
+                        (record is not None) &
+                        (len(self.cols) == 0)
+                ):
+                    self.cols = records.cols or record.getkeys()
+            elif (is_P4Jnl(self.objp4) is True):
+                oJNLFile = JNLFile(
+                    self.objp4.journal,
+                    reader=self.objp4.reader
+                )
+                records = oJNLFile.reader()
+        elif (hasattr(records, 'readlines')):
+            records = records.readlines()
+        elif (type(records).__name__ == 'Py4Run'):
+            records = getattr(records, '__call__')(*records.options, **kwargs)
+            if (is_recordType(records) is True):
+                ''' records is a single record, wrap it up 
+                    as a set of records and move on. 
                 '''
-            elif (type(records).__name__ == 'Py4Run'):
-                if (hasattr(records, 'options')):
-                    records = getattr(records, '__call__')(*records.options, **kwargs)
-                return records \
-                    if (isinstance(records, dict)) \
-                    else enumerate(records, start=1)
+                records = Records([records])
+        if (noneempty(self.cols) is True):
+            self.cols = Lst()
+        if (type(records) in (enumerate, GeneratorType)):
+            return records
+        return enumerate(records, start=1)
 
     def memoizefield(self, value):
         try:
@@ -956,6 +933,10 @@ class RecordSet(object):
                 query=None,
                 records=None,
                 cols=None,
+                limitby=None,
+                maxrows=0,
+                recordchunks=15000,
+                compute=Lst(),
                 close_session=True,
                 **kwargs
     ):
@@ -985,7 +966,7 @@ class RecordSet(object):
             if (hasattr(self, 'objp4')) \
             else self
 
-        tabledata = self.objp4.memoizetable(tablename)
+        tabledata = self.tabledata = self.objp4.memoizetable(tablename)
 
         if (
                 (noneempty(tabledata) is False) &
@@ -993,7 +974,7 @@ class RecordSet(object):
         ):
             cols = self.cols = tabledata.fieldnames
 
-        if (query is None):
+        if (noneempty(query) is True):
             query = self.query \
                 if (noneempty(self.query) is False) \
                 else fieldnames.pop(0) \
@@ -1022,6 +1003,10 @@ class RecordSet(object):
 
         outrecords = oSelect.select(
             *fieldnames,
+            maxrows=maxrows,
+            recordchunks=recordchunks,
+            compute=compute,
+            limitby=limitby,
             close_session=close_session,
             **kwargs
         )
@@ -1043,6 +1028,9 @@ class RecordSet(object):
             None,
             None
         )
+
+        tabledata = getattr(self, 'tabledata')
+        tablename = getattr(self, 'tablename')
 
         if (len(fieldnames) > 0):
             for fld in fieldnames:
@@ -1072,17 +1060,18 @@ class RecordSet(object):
             qry = query(0) \
                 if (isinstance(query, list) is True) \
                 else query
-            tablename = qry.left.tablename
-            fieldname = qry.left.fieldname
-            if (self.tabledata is None):
-                self.tabledata = self.objp4.memoizetable(tablename)
+            if (qry is not None):
+                tablename = qry.left.tablename
+                fieldname = qry.left.fieldname
+                if (self.tabledata is None):
+                    self.tabledata = self.objp4.memoizetable(tablename)
         if (kwargs[name] is None):
-            expname = self.objp4[tablename][fieldname].count() \
+            exp = self.objp4[tablename][fieldname].count() \
                 if (fieldname is not None) \
                 else self.objp4[tablename].count()
             if (kwargs.distinct is None):
                 kwargs.distinct = False
-            kwargs[name] = expname
+            kwargs[name] = exp
         return (fieldnames, kwargs)
 
     def count(
@@ -1108,7 +1097,7 @@ class RecordSet(object):
             close_session=close_session,
             **kwexp
         )
-        return outrecords
+        return len(outrecords)
 
     def sum(
             self,

@@ -13,9 +13,9 @@ from libconnect.conP4 import ObjP4
 
 __all__ = ['ObjP4db']
 
-'''  [$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 683 $] [$Revision: #8 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 707 $] [$Revision: #9 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 
@@ -243,7 +243,7 @@ p4dbcon.create('testdb', **{'port': 'anastasia:1777',
                     print(err)
             local_dbdata = f"{dbdir}/.dbdata"
             if (os.path.isfile(local_dbdata) is False):
-                inittxt = '''[$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 683 $] [$Revision: #8 $]\n[$DateTime: 2025/04/07 18:39:56 $]\n[$Author: mart $]\n'''
+                inittxt = '''[$File: //dev/p4dlg/libconnect/conP4db.py $] [$Change: 707 $] [$Revision: #9 $]\n[$DateTime: 2025/05/14 13:55:49 $]\n[$Author: zerdlg $]\n'''
                 oFile = open(local_dbdata, 'w')
                 try:
                     oFile.write(inittxt)

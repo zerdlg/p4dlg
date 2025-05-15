@@ -82,6 +82,16 @@ from libsh import (
 '''
 # from resc.p4_braider import *
 
+'''
+def test():
+    t1 = timeit.default_timer()
+    recs = p4(p4.files.change == p4.changes.change).select(flat=False)
+    t2 = timeit.default_timer()
+    print(t2 - t1)
+
+'''
+
+
 __all__ = [
             'Serve', 
             'ServeLib',
@@ -89,10 +99,10 @@ __all__ = [
 ]
 mdata = """
         --[$File: //dev/p4dlg/libsh/shell.py $]
-        --[$Change: 693 $] 
-        --[$Revision: #27 $]
-        --[$DateTime: 2025/04/22 07:22:55 $]
-        --[$Author: mart $]
+        --[$Change: 707 $] 
+        --[$Revision: #29 $]
+        --[$DateTime: 2025/05/14 13:55:49 $]
+        --[$Author: zerdlg $]
         """
 
 (

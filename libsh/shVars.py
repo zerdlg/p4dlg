@@ -24,9 +24,9 @@ from libfs.fsFileIO import loadpickle, dumppickle
 objdict_regex = re.compile('^(\w+)\.([^.]+)$')
 now = datetime.now
 
-'''  [$File: //dev/p4dlg/libsh/shVars.py $] [$Change: 691 $] [$Revision: #11 $]
-     [$DateTime: 2025/04/19 01:29:22 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libsh/shVars.py $] [$Change: 707 $] [$Revision: #12 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ('VARSObject', 'clsVars')

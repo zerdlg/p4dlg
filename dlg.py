@@ -1,11 +1,11 @@
 import os, sys
 from pprint import pformat
-from libdlg.dlgStore import ZDict
+from libdlg.dlgStore import Storage
 from libdlg.dlgOptions import ArgsParser
 from libsh import shell
 
-'''  [$File: //dev/p4dlg/p4dlg.py $] [$Change: 476 $] [$Revision: #15 $]
-     [$DateTime: 2024/09/13 01:55:06 $]
+'''  [$File: //dev/p4dlg/dlg.py $] [$Change: 707 $] [$Revision: #7 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
      [$Author: zerdlg $]
 '''
 
@@ -18,7 +18,7 @@ from libsh import shell
 '''
 
 def initprog(**opts):
-    opts = ZDict(opts)
+    opts = Storage(opts)
     print(f'Processing subparser `{opts.which}` with the following cmd ine options:\n{pformat(opts)}')
     if (len(opts) > 0):
         subparser = opts.pop('which')
@@ -33,7 +33,7 @@ if (__name__ == '__main__'):
     '''  cmd line options
     '''
     root_path = os.path.abspath('.')
-    opts = ZDict({'root_path': root_path})
+    opts = Storage({'root_path': root_path})
     args = []
     oParser = ArgsParser()
     domainargs = oParser().parse_args(args if (len(sys.argv) == 1) else None)

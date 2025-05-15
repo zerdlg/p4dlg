@@ -1,9 +1,9 @@
 from types import *
 from pprint import pformat
 
-'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 693 $] [$Revision: #21 $]
-     [$DateTime: 2025/04/22 07:22:55 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libdlg/dlgStore.py $] [$Change: 707 $] [$Revision: #23 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = [
@@ -544,7 +544,88 @@ class Storage(dict):
                                         if (extend_listvalues is True):
                                             a.port=a.port+b.port
                                             a.port=['avalue','bvalue','a','b','c']
+                                            
+                                            
+                                            
+                                            
     '''
+    def merge_new(self, *args, **kwargs):
+        (args, kwargs) = (Lst(args), Storage(kwargs))
+        constrainsts = Storage(
+            {
+                'overwrite': True,
+                'add_missing': True,
+                'allow_nonevalue': True,
+                'allow_value_askey': True,
+                'extend_listvalues': True
+            }
+        )
+        [
+            setattr(constrainsts, ckey, kwargs.pop(ckey)) for ckey in [
+            key for (key, value) in kwargs.items() if key in constrainsts
+            ]
+        ]
+
+        any = args.storageindex(reversed=True) \
+            if (len(args) > 0) \
+            else Lst([kwargs]).storageindex(reversed=True) \
+            if (len(kwargs) > 0) \
+            else Lst().storageindex(reversed=True)
+
+        def mergedict(anydict):
+            def updater(key, value):
+                gkeys = self.getkeys()
+                if (key in gkeys):
+                    if (
+                            (value is None) and
+                            (constrainsts.allow_nonevalue is False)
+                    ):
+                        self.delete(key)
+                    elif (self[key] is not None):
+                        if (constrainsts.overwrite is True):
+                            if (value is None):
+                                if (constrainsts.allow_nonevalue is True):
+                                    self[key] = value
+                                else:
+                                    self.delete(key)
+                            else:
+                                self[key] = value
+                    elif (self[key] is None):
+                        if (constrainsts.add_missing is True):
+                            if (value is None):
+                                if (constrainsts.allow_nonevalue is True):
+                                    self[key] = value
+                            else:
+                                self[key] = value
+
+            for (key, value) in anydict.items():
+                #value = anydict[key]
+                if (isinstance(value, dict)):
+                    value = Storage(value)
+                    if (len(value) > 0):
+                        if (
+                                (value.getkeys().first() == self[key]) \
+                                and (constrainsts.allow_value_askey is True)
+                        ):
+                            key = value.getkeys().first()
+                elif (isinstance(value, list)):
+                    if (
+                            (isinstance(self[key], list)) \
+                            and (constrainsts.extend_listvalues is True)
+                    ):
+                        value = Lst(value + self[key])
+                if (
+                        (value is not None) or
+                        (constrainsts.allow_nonevalue is False)
+                ):
+                    updater(key, value)
+
+        for anyitem in any:
+            mergedict(self.objectify(any[anyitem]) \
+                    if (isinstance(any[anyitem], (Storage, StorageIndex)) is False) \
+                    else any[anyitem])
+        return self
+
     def merge(self, *args, **kwargs):
         (args, kwargs) = (Lst(args), Storage(kwargs))
         constrainsts = Storage(

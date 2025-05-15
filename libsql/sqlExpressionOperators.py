@@ -10,6 +10,13 @@ __all__ = [
     'Count', 'Sum', 'Avg', 'Min', 'Max'
 ]
 
+'''  [$File: //dev/p4dlg/libsql/sqlExpressionOperators.py $] 
+     [$Change: 717 $] 
+     [$Revision: #9 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Author: zerdlg $]
+'''
+
 class Count(DLGSql):
     def count(
             self,
