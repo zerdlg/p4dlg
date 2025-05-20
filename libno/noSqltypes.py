@@ -15,9 +15,9 @@ from libdlg.dlgUtilities import (
     bail
 )
 
-'''  [$File: //dev/p4dlg/libno/noSqltypes.py $] [$Change: 683 $] [$Revision: #9 $]
-     [$DateTime: 2025/04/07 18:39:56 $]
-     [$Author: mart $]
+'''  [$File: //dev/p4dlg/libno/noSqltypes.py $] [$Change: 707 $] [$Revision: #10 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
+     [$Author: zerdlg $]
 '''
 
 __all__ = ['NOTable', 'NOField']

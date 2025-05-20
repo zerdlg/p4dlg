@@ -2,12 +2,6 @@ import re
 from types import *
 from pprint import pformat
 import timeit
-
-#from libsql.sqlExpressionOperators import (
-#    Count,
-#    Sum,
-#)
-#from libsql.sqlQuery import DLGQuery, DLGExpression
 from libsql.sqlSelect import Select
 from libsql.sqlRecords import Records
 from libdlg.dlgStore import Storage, Lst, objectify
@@ -21,8 +15,8 @@ from libsh.shVars import clsVars
 
 __all__ = ['RecordSet']
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 717 $] [$Revision: #35 $]
-     [$DateTime: 2025/05/15 11:21:30 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecordset.py $] [$Change: 724 $] [$Revision: #36 $]
+     [$DateTime: 2025/05/19 20:19:42 $]
      [$Author: zerdlg $]
 '''
 
@@ -330,15 +324,18 @@ class RecordSet(object):
                 self.cols = records.first().getkeys()
         elif (
                 (isinstance(records, list) is True) |
-                (type(records).__name__ == 'Records')
+                (is_recordsType(records) is True)
         ):
             if (len(records) > 0):
                 record = records.first()
-                if (
-                        (record is not None) &
-                        (len(self.cols) == 0)
-                ):
-                    self.cols = records.cols or record.getkeys()
+                if (record is not None):
+                    if (
+                            (record.code == 'error') &
+                            (record.severity is not None)
+                    ):
+                        bail(record)
+                    if (len(self.cols) == 0):
+                        self.cols = records.cols or record.getkeys()
             elif (is_P4Jnl(self.objp4) is True):
                 oJNLFile = JNLFile(
                     self.objp4.journal,
@@ -753,18 +750,7 @@ class RecordSet(object):
                 Storage(kwargs)
             )
         ''' 
-            TODO: include this. 
-            
-    * figure this out!
-    
-    return getattr(self.objp4, self.tablename)(**update_fields)
-    Records(records, cols, self.objp4)
-            
-    def commit(self):
-        #self.delete('')
-        res = getattr(self.objp4, self.tablename)(**self.updateargs)
-        self.updateargs = Storage()
-        return res    
+            TODO: Include this  
         '''
 
     def update(self, **updateargs):

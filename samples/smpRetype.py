@@ -2,17 +2,17 @@ import re
 from pprint import pprint
 from libsql.sqlQuery import AND
 from libpy4.py4IO import Py4
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 
-'''  [$File: //dev/p4dlg/samples/smpRetype.py $] [$Change: 678 $] [$Revision: #11 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/samples/smpRetype.py $] [$Change: 717 $] [$Revision: #17 $]
+     [$DateTime: 2025/05/15 11:21:30 $]
      [$Author: zerdlg $]
 '''
 
 __all__ = ['retype']
 
 def retype(**kwargs):
-    kwargs = ZDict(kwargs)
+    kwargs = Storage(kwargs)
     preview = kwargs.pop('preview')
     oP4 = Py4(**kwargs)
 
@@ -50,12 +50,12 @@ def retype(**kwargs):
         print(err)
 
 if (__name__ == '__main__'):
-    p4args = ZDict(
+    p4args = Storage(
         {
         'user': 'zerdlg',
         'port': 'anastasia.local:1777',
         'client': 'computer_p4dlg',
-        'preview': True
+        'preview': False
         }
     )
     (
@@ -67,9 +67,14 @@ if (__name__ == '__main__'):
         retype(**p4args)
     )
     if (p4args.preview is False):
-        pprint(change_record.as_dict())
-        pprint(edit_records.as_dict())
-        pprint(submit_record.as_dict())
+        print('\nchange record:')
+        pprint(change_record)
+        print('\nedit records:')
+        pprint(edit_records.records)
+        print('\nsubmit records:')
+        pprint(submit_record.records)
     else:
+        print('\npreview:')
         print(change_record, '\n', edit_records, submit_record)
+    print('\naffected files:')
     pprint(targetfiles)

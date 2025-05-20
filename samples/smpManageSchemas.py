@@ -16,25 +16,25 @@ def testmisc(schemaObj):
 
     ''' remote p4 schemas & locally stored schemas
     '''
-    remote_releases = schemaObj.listreleases_remote()
+    remote_releases = schemaObj.list_remotereleases()
     pprint(remote_releases)
-    latestlocalversion = schemaObj.latestrelease_local()
+    latestlocalversion = schemaObj.local_latestrelease()
     print(f'\nlatest local release version: {latestlocalversion}\n')
-    local_versions = schemaObj.listreleases_local()
+    local_versions = schemaObj.list_localreleases()
     pprint(local_versions)
-    latest_local = schemaObj.latestrelease_local()
+    latest_local = schemaObj.local_latestrelease()
 
-    local_xmlfiles = schemaObj.listxmlfiles_local()
+    local_xmlfiles = schemaObj.list_localxmlfiles()
 
     ''' xmlfile readers
     '''
-    localcontent = schemaObj.readxmlfile_local(version)
-    remotecontent = schemaObj.readxmlfile_remote(version)
+    localcontent = schemaObj.read_localxmlfile(version)
+    remotecontent = schemaObj.read_remotexmlfile(version)
 
     ''' figure out xmlfile names (for storing on this local system)
     '''
-    xmlfilename = schemaObj.xmlfilename_local(version)
-    loadedschema = schemaObj.loadxmlschema_local(version)
+    xmlfilename = schemaObj.local_xmlfile(version)
+    loadedschema = schemaObj.load_localxmlschema(version)
 
 
 
@@ -46,7 +46,7 @@ def testmisc(schemaObj):
     for name in ('r15.2', '2015.2'):
         ver = to_releasename(name)
         versionnames.add(ver)
-        filename = version_to_xmlfilename(ver)
+        filename = versionname_to_xmlfilename(ver)
         filenames.add(filename)
     if (len(versionnames) == 1):
         print(f'PASSED version names: {versionnames}')

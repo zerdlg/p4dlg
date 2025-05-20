@@ -99,9 +99,9 @@ __all__ = [
 ]
 mdata = """
         --[$File: //dev/p4dlg/libsh/shell.py $]
-        --[$Change: 707 $] 
-        --[$Revision: #29 $]
-        --[$DateTime: 2025/05/14 13:55:49 $]
+        --[$Change: 724 $] 
+        --[$Revision: #30 $]
+        --[$DateTime: 2025/05/19 20:19:42 $]
         --[$Author: zerdlg $]
         """
 
@@ -710,7 +710,7 @@ class Serve(DLGShell):
 def _query(**opts):
     '''     BROKEN :(   TODO: fix this.
 
-            #>>> python dlg.py query -j ./journals/journal2 -q domain.type=99 -v r16.2
+            #>>> python dlg_old.py query -j ./journals/journal2 -q domain.type=99 -v r16.2
 
            {'orderby': '',
             'dialect': 'journal',

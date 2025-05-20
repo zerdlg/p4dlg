@@ -1,15 +1,15 @@
 import os
-from libsql.sqlSchema import getObjSchema
+from libsql.sqlSchema import get_schemaObject
 from libjnl.jnlIO import P4Jnl
 
 def jnlconnect(jnlfile, oSchema=None, version=None):
-    ''' making use of getObjSchema...
+    ''' making use of get_schemaObject...
 
             The goal is to create a reference to class P4Jnl so as to parse/query a perforce journal file,
             and/or to update/delete records. That said, to do so we need a jnl file (the path) and a schema
             to help us navigate the file.
 
-            the getObjSchema helper takes in a journal as first param, and, optionally, the schema object as
+            the get_schemaObject helper takes in a journal as first param, and, optionally, the schema object as
             the 2nd param (if we have it) and the version as the 3rd param (if we have it).
 
         Guessing the schema's release version...
@@ -23,12 +23,12 @@ def jnlconnect(jnlfile, oSchema=None, version=None):
             will need to provide jnlconnect with either the SchemaXML object or perforce release that created
             the journal.
 
-            getObjSchema() will always return a tuple with a length of 2 (oSchema, version). It is also
+            get_schemaObject() will always return a tuple with a length of 2 (oSchema, version). It is also
             possible that getObjChema() can figure it out, in which case (None, None) is returned.
 
 
     '''
-    (oSchema, version) = getObjSchema(jnlfile, oSchema=oSchema, version=version)
+    (oSchema, version) = get_schemaObject(jnlfile, oSchema=oSchema, version=version)
     ''' oJnl is the SchemaXML cal reference - we're ready to go!
     '''
     oJnl = P4Jnl(jnlfile, oSchema, version)

@@ -4,11 +4,11 @@ from libsql.sqlQuery import AND
 from libjnl.jnlIO import P4Jnl
 from libsql.sqlRecord import Record
 from libsql.sqlSchema import SchemaXML, to_releasename
-from libdlg.dlgStore import ZDict, Lst
+from libdlg.dlgStore import Storage, Lst
 import resc.journals as journals
 
-'''  [$File: //dev/p4dlg/samples/smpMergeRecords.py $] [$Change: 678 $] [$Revision: #6 $]
-     [$DateTime: 2025/04/01 04:47:46 $]
+'''  [$File: //dev/p4dlg/samples/smpMergeRecords.py $] [$Change: 707 $] [$Revision: #11 $]
+     [$DateTime: 2025/05/14 13:55:49 $]
      [$Author: zerdlg $]
 '''
 
@@ -28,7 +28,7 @@ class  Merge(object):
     '''
 
     def __init__(self, *args, version="r16.2", **kwargs):
-        (args, kwargs) = (Lst(args), ZDict(kwargs))
+        (args, kwargs) = (Lst(args), Storage(kwargs))
         schemaversion = to_releasename(version)
         oSchema = SchemaXML(schemaversion)
         journal = args(0)

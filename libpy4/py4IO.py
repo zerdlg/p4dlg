@@ -41,8 +41,8 @@ schemadir = dirname(schemaxml.__file__)
         dumps
 )
 
-'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 717 $] [$Revision: #60 $]
-     [$DateTime: 2025/05/15 11:21:30 $]
+'''  [$File: //dev/p4dlg/libpy4/py4IO.py $] [$Change: 725 $] [$Revision: #62 $]
+     [$DateTime: 2025/05/20 05:51:05 $]
      [$Author: zerdlg $]
 '''
 
@@ -242,7 +242,6 @@ class Py4(object):
         self.p4specs = self.pluralize_specs(
             exclude=self.spec_takes_no_lastarg
         )
-
         self.specfield_headers = [
             'code',
             'name',
@@ -319,7 +318,6 @@ class Py4(object):
                 (
                     {}, {}, {}
                 )
-
         ''' we may need the server version and, definitively, the schema
         '''
         (
@@ -367,7 +365,6 @@ class Py4(object):
                 oSchema,
                 version
             )
-
         ''' help info
         '''
         self.oHelp = DLGHelp(self)
@@ -381,7 +378,6 @@ class Py4(object):
                 else configkey
             if (not configkey in self.p4globals):
                 setattr(self, attname, configpairs[configkey])
-
         self.recCounter = Storage(
                                     {
                                         'threshhold': self.recordchunks,
@@ -411,16 +407,12 @@ class Py4(object):
         recordchunks = kwargs.recordchunks or 15000
         compute = kwargs.compute or Lst()
         kwargs.delete('compute', 'maxrows', 'recordchuncks')
-
         inversion = False
-
         if (tablename is None):
             try:
                 tablename = self.tablename
             except: pass
-
         p4Queries = Lst()
-
         ''' If query is a Py4Table, DLGQuery or DLGExpression, 
             define tablename and tabledata. Otherwise, make
             sure it is typed correctly (it should be list)
@@ -453,7 +445,6 @@ class Py4(object):
                         p4Queries = objectify(Lst([query]))
             else:
                 p4Queries = objectify(Lst(query))
-
             for qry in p4Queries:
                 if (qry.inversion is None):
                     qry.inversion = False
@@ -524,16 +515,6 @@ class Py4(object):
                     if (kwargs[item] is not None):
                         lastarg = kwargs[item]
                         break
-            #if (
-            #        #(tabledata.is_spec is False) &
-            #        (isinstance(lastarg, str) is True) &
-            #        (not lastarg in options)
-            #):
-            #    options.append(lastarg)
-
-        #if (lastarg is not None):
-        #    tabledata.update(**{'lastarg': lastarg})
-
         ''' add any global options to supglobals for temporary use
         '''
         self.supglobals += globaloptions
@@ -581,7 +562,6 @@ class Py4(object):
                            '--preview' or '-n') can be set by providing a boolean value 
                            to the key.  
         '''
-
         tabledata.merge(
             {
                 'tabletype': Py4,   # set apart from the JNLFile type, given that Py4 has no schema to guide it
@@ -846,7 +826,6 @@ class Py4(object):
         lastarg_is_optional = True \
             if (tablename in self.spec_args_are_optional) \
             else False
-
         ''' filename argument
         '''
         requires_filearg = (reg_filename.search(usage) is not None)
@@ -872,21 +851,17 @@ class Py4(object):
                 ''' priority 3
                 '''
                 if (isinstance(qry.right, (str, int)) is True):
-                    ''' a regex or method don't require lastargs
-                    '''
-                    #if (qry.op in regex_ops + method_ops):
-                    #    lastarg = None
-                    #    requires_filearg = False
-                    if (
-                            (not qry.left.fieldname.lower() in (
-                                    'depotFile',
-                                    'clientFile',
-                                    'path'
-                            )
-                            ) &
-                            (isanyfile(qry.right) is False)
-                    ):
-                        lastarg = f'//{self._client}/...'
+                    if (isnum(qry.right) is False):
+                        if (
+                                (not qry.left.fieldname.lower() in (
+                                        'depotFile',
+                                        'clientFile',
+                                        'path'
+                                )
+                                ) &
+                                (isanyfile(qry.right) is False)
+                        ):
+                            lastarg = f'//{self._client}/...'
                     elif (qry.op in equal_ops):
                         if (isnum(qry.right) is False):
                             if (
@@ -1292,7 +1267,8 @@ class Py4(object):
 
         if (isinstance(right, str)):
             if (tablename is not None):
-                (lastarg, options, qry) = self.define_lastarg(tablename, *options, query=qry) #1
+                if (not tablename in (self.spec_takes_no_lastarg + self.p4specs)):
+                    (lastarg, options, qry) = self.define_lastarg(tablename, *options, query=qry)
         if (tablename is None):
             tablename = qry.tablename
         if (noneempty(tabledata) is True):
@@ -1307,7 +1283,8 @@ class Py4(object):
             qkwargs = {}
             if (qry is not None):
                 qkwargs = {'query': qry}
-            (lastarg, options, qry) = self.define_lastarg(tablename, *options, **qkwargs) #2
+            if (tablename not in (self.spec_takes_no_lastarg + self.p4specs)):
+                (lastarg, options, qry) = self.define_lastarg(tablename, *options, **qkwargs)
         ''' is a rev | changelist specified in qry.right?
         '''
         if (
@@ -1374,7 +1351,6 @@ class Py4(object):
                 False,
                 False
         )
-
         (
             self.supglobals,
             self.p4globals,
@@ -1415,7 +1391,6 @@ class Py4(object):
                             speckey = tabledata.fieldsmap[key.lower()]
                             if (key != speckey):
                                 specinput.rename(key, speckey)
-
             if (
                     (altarg is not None) &
                     (specname is None)
@@ -1441,7 +1416,7 @@ class Py4(object):
                 False
         )
         if (not '--explain' in p4args):
-            (lastarg, p4args, noqry) = self.define_lastarg(tablename, *p4args) #4
+            (lastarg, p4args, noqry) = self.define_lastarg(tablename, *p4args)
             if isinstance(lastarg, str):
                 p4args.append(lastarg)
         if (
@@ -1492,7 +1467,7 @@ class Py4(object):
                 (kwargs.lastarg is not None) &
                 (kwargs.lastarg != p4args(-1))
             ):
-                (specname, p4args, noqry) = self.define_lastarg(tablename, *p4args) #3
+                (specname, p4args, noqry) = self.define_lastarg(tablename, *p4args)
                 if (
                         (isinstance(specname, str) is True) &
                         (specname != p4args[-1])
@@ -1702,7 +1677,6 @@ class Py4(object):
                         (noneempty(tabledata[okey]) is True)
                 ):
                     tabledata.merge({okey: ovalue})
-            #self.loginfo(f'p4table memoized: {tablename}')
         if (
                 (tabledata.specfield is not None) &
                 (tabledata.altarg is not None)

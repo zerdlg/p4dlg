@@ -20,8 +20,8 @@ from libdlg.dlgError import *
 from libsh import varsdata
 from libsh.shVars import clsVars
 
-'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 707 $] [$Revision: #28 $]
-     [$DateTime: 2025/05/14 13:55:49 $]
+'''  [$File: //dev/p4dlg/libsql/sqlRecords.py $] [$Change: 724 $] [$Revision: #29 $]
+     [$DateTime: 2025/05/19 20:19:42 $]
      [$Author: zerdlg $]
 '''
 
@@ -313,11 +313,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         if (len(records) == 0):
             return Records(Lst(), self.cols, self.objp4)
         tablename = self.tabledata.tablename
-        #recordsvars = self.p4recordsvars \
-        #    if (is_Py4(self.objp4) is True) \
-        #    else self.jnlrecordsvars
-        #if (recordsvars(tablename) is None):
-        #    recordsvars(tablename, Records())
         i = 0
         while (i < len(self)):
             record = self.records[i]
@@ -326,9 +321,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                     del record
             else:
                 del record
-            #if (recordsvars(tablename) is None):
-            #    recordsvars(tablename, Records())
-            #recordsvars(tablename).insert(-1, record)
             i += 1
 
     def update(self, func=None, **update_fields):
@@ -392,7 +384,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
         #if (self.tablename is not None):
         #    keying = self.tabledata.keying or []
         #    records = self.orderby(*keying, records)
-
         for rec in records:
             if (start <= idx):
                 outrecords.append(rec)
@@ -427,11 +418,9 @@ Our record fields: {cols}\nYour record fields: {othercols}'
     ):
         ''' returns a new set of P4Records / does not modify the original.
         '''
-
         records = self
         if (len(records) == 0):
             return Records(Lst(), self.cols, self.objp4)
-
         outrecords = Lst()
         (start, end) = limitby or (0, len(self))
         idx = 0
@@ -490,10 +479,8 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             else Records(records, self.cols, self.objp4) \
             if (is_recordsType(records) is False) \
             else records
-
         if (len(records) == 0):
             return records
-
         if (limitby is not None):
             if (isinstance(limitby, tuple) is True):
                 records = records.limitby(limitby)
@@ -534,9 +521,6 @@ Our record fields: {cols}\nYour record fields: {othercols}'
             else Records(records, self.cols, self.objp4) \
             if (is_recordsType(records) is False) \
             else records
-
-        ''' 
-        '''
         orderedlist = Lst()
         if (func is not None):
             i = 0
@@ -548,30 +532,15 @@ Our record fields: {cols}\nYour record fields: {othercols}'
                 else:
                     i += 1
             records = Records(orderedlist, self.cols, self.objp4)
-
         if (len(records) == 0):
             return records
-
         if (limitby is not None):
             if (isinstance(limitby, tuple) is True):
                 records = records.limitby(limitby)
             else:
                 bail('limitby must be of type `tuple`')
-
         if (len(fields) > 0):
             records = self.sortby(*fields, reverse=reverse, records=records)
-        #for field in fields:
-        #    fieldname = field.fieldname \
-        #        if (is_fieldType(field) is True) \
-        #        else field
-        #    recordfields = records.records(0).getkeys()
-        #    if fieldname not in recordfields:
-        #        raise FieldNotInRecord(fieldname, recordfields)
-        #    records = sorted(
-        #        records,
-        #        key=lambda k: k[fieldname],
-        #        reverse=reverse
-        #    )
         if (is_recordsType(records) is False):
             records = Records(records, self.cols, self.objp4)
         return records

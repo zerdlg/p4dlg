@@ -19,8 +19,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 708 $] [$Revision: #24 $]
-     [$DateTime: 2025/05/15 10:59:26 $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 724 $] [$Revision: #25 $]
+     [$DateTime: 2025/05/19 20:19:42 $]
      [$Author: zerdlg $]
 '''
 
@@ -137,14 +137,12 @@ class DLGSql(DLGControl):
                 self.tablename = qry.left.tablename
             elif (is_tableType(qry) is True):
                 self.tablename = self.objp4.qry.tablename
-
         if (self.fieldsmap is None):
             if (
                     (self.tablename is not None) &
                     (self.fieldsmap is None)
             ):
                 self.fieldsmap = self.objp4.tablememo[self.tablename].fieldsmap
-
         self.reference = None
         super(DLGSql, self).__init__()
 
@@ -802,6 +800,8 @@ class DLGSql(DLGControl):
              sub,
              mul,
              mod,
+             div,
+             truediv,
              substr,
              lower,
              upper,
@@ -837,6 +837,8 @@ class DLGSql(DLGControl):
                 kwargs.sub,
                 kwargs.mul,
                 kwargs.mod,
+                kwargs.div,
+                kwargs.truediv,
                 kwargs.substr,
                 kwargs('lower'),
                 kwargs('upper'),
@@ -971,6 +973,16 @@ class DLGSql(DLGControl):
                 mul = getattr(mul, 'mul')()
             kwargs.delete('mul')
             return mul.op(mul, records, **kwargs)
+        if (div is not None):
+            if (is_fieldType(div) is True):
+                div = getattr(div, 'div')()
+            kwargs.delete('div')
+            return div.op(div, records, **kwargs)
+        if (truediv is not None):
+            if (is_fieldType(truediv) is True):
+                truediv = getattr(truediv, 'truediv')()
+            kwargs.delete('truediv')
+            return truediv.op(truediv, records, **kwargs)
         if (mod is not None):
             if (is_fieldType(mod) is True):
                 mod = getattr(mod, 'mod')()
@@ -988,8 +1000,8 @@ class DLGSql(DLGControl):
                 if (limitby is None) \
                 else records.orderby(*orderby, limitby=limitby)
         if (groupby is not None):
-            if (is_fieldType(groupby) is True):
-                groupby = getattr(groupby, 'groupby')()
+            #if (is_fieldType(groupby) is True):
+            #    groupby = getattr(groupby, 'groupby')()
             kwargs.delete('groupby')
             records = records.groupby(groupby, **kwargs)  # as_groups=as_groups, **kwargs)
         if (exclude is not None):

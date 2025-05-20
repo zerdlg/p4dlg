@@ -6,8 +6,8 @@ from libsql.sqlRecord import Record
 from libdlg.dlgUtilities import isnum, bail
 from libdlg.dlgStore import Storage
 
-'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 707 $] [$Revision: #17 $]
-     [$DateTime: 2025/05/14 13:55:49 $]
+'''  [$File: //dev/p4dlg/libsql/sqlJoin.py $] [$Change: 724 $] [$Revision: #18 $]
+     [$DateTime: 2025/05/19 20:19:42 $]
      [$Author: zerdlg $]
 '''
 
@@ -173,11 +173,9 @@ class Join(object):
         cTabledata = self.objp4.memoizetable(cTablename)
         [
             cTabledata.update(**{kitem: self.objp4[kitem]}) for kitem in (
-            #'recordchunks',
             'schemadir',
             'oSchemaType',
             'logger',
-            #'maxrows'
         )
         ]
         cTabledata.update(
@@ -268,7 +266,10 @@ class Join(object):
                             }
                         )
                     outrecords.insert(updt_record)
-        if (len(outrecords.cols) == 0):
+        if (
+                (len(outrecords) > 0) &
+                (len(outrecords.cols) == 0)
+        ):
             outrecords.cols = outrecords(0).getkeys()
         return outrecords
 

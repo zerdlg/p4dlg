@@ -1,12 +1,12 @@
 import re
 
-from libdlg.dlgStore import Lst, Storage, objectify
-from libdlg.dlgUtilities import decode_bytes, ALLLOWER
+from libdlg.dlgStore import Lst, Storage
+from libdlg.dlgUtilities import decode_bytes, bail
 from libpy4.py4SpecIO import SpecIO
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 707 $] [$Revision: #34 $]
-     [$DateTime: 2025/05/14 13:55:49 $]
+'''  [$File: //dev/p4dlg/libpy4/py4Run.py $] [$Change: 724 $] [$Revision: #35 $]
+     [$DateTime: 2025/05/19 20:19:42 $]
      [$Author: zerdlg $]
 '''
 
@@ -22,8 +22,8 @@ class Py4Run(object):
     def __repr__(self):
         return f'<Py4Run {self.tabledata.tablename}>'
 
-    def __iter__(self):
-        iter(self)
+    #def __iter__(self):
+    #    iter(self)
 
     def __init__(self, objp4, *args, **tabledata):
         ''' objp4 is an instance of class Py4
@@ -69,7 +69,6 @@ class Py4Run(object):
             ''' don't bother if this command doesn't take/need a last position arg 
             '''
             return
-
         noargs_cmds = Lst(
             set(
                 self.objp4.nocommands +
@@ -78,13 +77,11 @@ class Py4Run(object):
             )
         )
         lastarg = cmdkwargs.lastarg
-        if (is_spec is True):
-            if (
-                    (lastarg is None) &
-                    (not tablename in noargs_cmds)
-            ):
-                (lastarg, cmdargs, noqry) = self.objp4.define_lastarg(tablename, *cmdargs) #0
-
+        if (
+                (lastarg is None) &
+                (not tablename in noargs_cmds)
+        ):
+            (lastarg, cmdargs, noqry) = self.objp4.define_lastarg(tablename, *cmdargs)
         self.objp4.p4globals += self.objp4.supglobals
         ''' tablename must be cmdargs' 1st argument. so either insert 
             if missing or, if suspected to be in the wrong position, 
@@ -128,15 +125,12 @@ class Py4Run(object):
                         both cmdkwargs and in specinput. Delete from cmdkwargs
                         as needed
                     '''
-
                     [cmdkwargs.delete(ckey) for ckey in cmdkwargs.copy().keys() if
                      (ckey.lower() in [key.lower() for key in specinput.keys()])]
-
                 ''' temp fix - need o fix this issue in parseInputKeys (or before)
                 '''
                 if (specname == tablename):
                     specname = None
-
                 ''' input (-i) can't happen without output (-o),
                     remove those io flags for now.
                 '''
@@ -228,7 +222,14 @@ class Py4Run(object):
                         *cmdargs,
                         **cmdkwargs
                     )
-
+                    if (len(output) == 1):
+                        if (
+                                (output(0).code == 'error') &
+                                (output(0).severity is not None)
+                        ):
+                            ''' a p4 exception! bail now.
+                            '''
+                            bail(output(0).data)
                     if (
                             (tablename == 'print') &
                             (len(output) >= 2)
