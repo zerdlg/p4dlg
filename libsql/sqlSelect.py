@@ -8,8 +8,8 @@ from libdlg.dlgUtilities import (
 from libsql.sqlControl import *
 from libsql.sqlValidate import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 707 $] [$Revision: #36 $]
-     [$DateTime: 2025/05/14 13:55:49 $]
+'''  [$File: //dev/p4dlg/libsql/sqlSelect.py $] [$Change: 726 $] [$Revision: #37 $]
+     [$DateTime: 2025/05/21 11:16:03 $]
      [$Author: zerdlg $]
 '''
 
@@ -71,6 +71,7 @@ class Select(DLGSql):
             query,
             cols,
             records,
+            tablename,
             fieldname,
             distinct,
             kwargs
@@ -258,6 +259,7 @@ class Select(DLGSql):
                                         | time     | '00:00:00'            |
                                         +----------+-----------------------+
                                 '''
+                                '''
                                 record = (
                                     DLGDateTimeConvert(self.objp4)
                                           (
@@ -266,6 +268,7 @@ class Select(DLGSql):
                                         datetype=datetype
                                     )
                                 )
+                                '''
                                 record = fields2ints(record)
                                 ''' check if any other field values need to be converted from 
                                     field flags or masks (as per the p4 schema definition) 

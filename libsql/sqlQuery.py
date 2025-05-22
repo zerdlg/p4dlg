@@ -5,7 +5,7 @@ from types import FunctionType
 from difflib import ndiff, unified_diff, context_diff, Differ
 
 from libdlg.dlgStore import Lst, Storage, StorageIndex
-from libdlg.dlgDateTime import DLGDateTime
+from libdlg.dlgDateTime import DLGDateTime, DLGDateTimeConvert
 from libdlg.dlgUtilities import (
     getTableOpKeyValue,
     bail,
@@ -21,9 +21,9 @@ from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 725 $] 
-     [$Revision: #41 $]
-     [$DateTime: 2025/05/20 05:51:05 $]
+     [$Change: 727 $] 
+     [$Revision: #43 $]
+     [$DateTime: 2025/05/22 11:24:09 $]
      [$Author: zerdlg $]
 '''
 
@@ -56,7 +56,7 @@ __all__ = [
 
             'PRIMARYKEY', 'EXTRACT',
 
-            'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND',
+            'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND', 'EPOCH', 'DATETIME',
 ]
 
 ''' TODO: add these useful operators:
@@ -661,6 +661,9 @@ class DLGExpression(object):
     def replace(self, left, right):
         return DLGExpression(self.objp4, REPLACE, self, (left, right), type=self.type)
 
+    def datetime(self):
+        return DLGExpression(self.objp4, DATETIME, self, 'datetime', type='datetime')
+
     def year(self):
         return DLGExpression(self.objp4, YEAR, self, 'year', type='integer')
 
@@ -725,14 +728,11 @@ class DLGExpression(object):
         '''
         return DLGExpression(self.objp4, ON, self, reference)
 
-
 def EQAND(*args, **kwargs):
     ''' a = a & b'''
 
-
 def EQOR(*args, **kwargs):
     ''' a = a | b'''
-
 
 def EQXOR(*args, **kwargs):
     ''' a = a ^ b'''
@@ -740,24 +740,20 @@ def EQXOR(*args, **kwargs):
 def AND(*args, **kwargs):
     return clsAND()(*args, **kwargs)
 
-
 def OR(*args, **kwargs):
     return clsOR()(*args, **kwargs)
 
 def XOR(*args, **kwargs):
     return clsXOR()(*args, **kwargs)
 
-
 def NOT(*args, **kwargs):
     return clsNOT()(*args, **kwargs)
-
 
 def INVERT(*args, **kwargs):
     return clsINVERT()(*args, **kwargs)
 
 def EQ(*args, **kwargs):
     return clsEQ()(*args, **kwargs)
-
 
 def NE(*args, **kwargs):
     return clsNE()(*args, **kwargs)
@@ -768,22 +764,17 @@ def LT(*args, **kwargs):
 def LE(*args, **kwargs):
     return clsLE()(*args, **kwargs)
 
-
 def GT(*args, **kwargs):
     return clsGT()(*args, **kwargs)
-
 
 def GE(*args, **kwargs):
     return clsGE()(*args, **kwargs)
 
-
 def CONTAINS(*args, **kwargs):
     return clsCONTAINS()(*args, **kwargs)
 
-
 def STARTSWITH(*args, **kwargs):
     return clsSTARTSWITH()(*args, **kwargs)
-
 
 def ENDSWITH(*args, **kwargs):
     return clsENDSWITH()(*args, **kwargs)
@@ -794,168 +785,131 @@ def REGEXP(*args, **kwargs):
 def MATCH(*args, **kwargs):
     return clsMATCH()(*args, **kwargs)
 
-
 def SEARCH(*args, **kwargs):
     return clsSEARCH()(*args, **kwargs)
-
 
 def DIFF(*args, **kwargs):
     return clsDIFF()(*args, **kwargs)
 
-
 def LEN(*args, **kwargs):
     return clsLEN()(*args, **kwargs)
-
 
 def MIN(*args, **kwargs):
     return clsMIN()(*args, **kwargs)
 
-
 def MAX(*args, **kwargs):
     return clsMAX()(*args, **kwargs)
-
 
 def ABS(*args, **kwargs):
     return clsABS(**kwargs)(*args)
 
-
 def AVG(*args, **kwargs):
     return clsAVG()(*args, **kwargs)
-
 
 def LOWER(*args, **kwargs):
     return clsLOWER()(*args, **kwargs)
 
-
 def UPPER(*args, **kwargs):
     return clsUPPER()(*args, **kwargs)
-
 
 def LIKE(*args, **kwargs):
     return clsLIKE()(*args, **kwargs)
 
-
 def ILIKE(*args, **kwargs):
     return clsILIKE()(*args, **kwargs)
-
 
 def ADD(*args, **kwargs):
     return clsADD()(*args, **kwargs)
 
-
 def SUB(*args, **kwargs):
     return clsSUB()(*args, **kwargs)
-
 
 def MUL(*args, **kwargs):
     return clsMUL()(*args, **kwargs)
 
-
 def DIV(*args, **kwargs):
     return clsTRUEDIV()(*args, **kwargs)
-
 
 def TRUEDIV(*args, **kwargs):
     return clsTRUEDIV()(*args, **kwargs)
 
-
 def MOD(*args, **kwargs):
     return clsMOD()(*args, **kwargs)
-
 
 def BELONGS(*args, **kwargs):
     return clsBELONGS()(*args, **kwargs)
 
-
 def IN(*args, **kwargs):
     return clsIN()(*args, **kwargs)
-
 
 def ON(*args, **kwargs):
     return clsON()(*args, **kwargs)
 
-
 def SUM(*args, **kwargs):
     return clsSUM()(*args, **kwargs)
-
 
 def COUNT(*args, **kwargs):
     return clsCOUNT()(*args,**kwargs)
 
-
 def SUBSTR(*args, **kwargs):
     return clsSUBSTR()(*args, **kwargs)
-
 
 def COALESCE(*args, **kwargs):
     return clsCOALESCE()(*args, **kwargs)
 
-
 def COALESCE_ZERO(*args, **kwargs):
     return clsCOALESCE_ZERO()(*args, **kwargs)
-
 
 def REPLACE(*args, **kwargs):
     return clsREPLACE()(*args, **kwargs)
 
+def DATETIME(*args, **kwargs):
+    return clsDATETIME()(*args, **kwargs)
 
 def YEAR(*args, **kwargs):
     return clsYEAR()(*args, **kwargs)
 
-
 def MONTH(*args, **kwargs):
     return clsMONTH()(*args, **kwargs)
-
 
 def DAY(*args, **kwargs):
     return clsDAY(**kwargs)(*args)
 
-
 def HOUR(*args, **kwargs):
     return clsHOUR()(*args, **kwargs)
-
 
 def MINUTE(*args, **kwargs):
     return clsMINUTE()(*args, **kwargs)
 
-
 def SECOND(*args, **kwargs):
     return clsSECOND()(*args, **kwargs)
 
-
 def EPOCH(*args, **kwargs):
     return clsEPOCH()(*args, **kwargs)
-
 
 def JOIN(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsJOIN()(*args, **kwargs)
 
-
 def JOIN_LEFT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsJOIN_LEFT()(*args, **kwargs)
-
 
 def ALLOW_NONE(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsALLOW_NONE()(*args, **kwargs)
 
-
 def PRIMARYKEY(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsPRIMARYKEY()(*args, **kwargs)
-
 
 def EXTRACT(*args, **kwargs):
     return clsNOTIMPLEMENTED(**kwargs)(*args)
     #return clsEXTRACT()(*args, **kwargs)
 
-
 def BETWEEN(*args, **kwargs):
     #return clsBETWEEN()(*args, **kwargs)
     return clsNOTIMPLEMENTED(**kwargs)(*args)
-
 
 class QClass(object):
     expcache = {}
@@ -1531,7 +1485,7 @@ class clsNE(QClass):
         (exps, kwargs) = (Lst(exps), Storage(kwargs))
         (left, right) = (exps(0), exps(1))
         bif = self.is_bool_int_or_float(*exps)
-        if (bif is True):
+        if ((bif is True) | (type(left) == type(right))):
             if (
                     (len(exps) == 2) &
                     (type(left) == type(right))
@@ -1547,16 +1501,12 @@ class clsEQ(QClass):
         (exps, kwargs) = (Lst(exps), Storage(kwargs))
         (left, right) = (exps(0), exps(1))
         bif = self.is_bool_int_or_float(*exps)
-        if (bif is True):
-            if (
-                    (len(exps) == 2) &
-                    (type(left) == type(right))
-            ):
+        if ((bif is True) | (type(left) == type(right))):
+            if (len(exps) == 2):
                 return reduce(lambda left, right: (left == right), exps)
             else:
                 allres = sum(i and 1 or 0 for i in exps)
                 return (len(exps) == allres)
-
         ''' as with many others, it would be nice to take advantage of `self.define_type`
             instead of the bloc of code below, but... since we can compare types other than 
             `str`, and since `self.define_type' does in fact compare both the left and right 
@@ -1573,11 +1523,11 @@ class clsEQ(QClass):
         try:
             if (type(left).__name__ == 'Storage'):
                 qres = Storage({'op': EQ, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'DLGQuery'):
+            elif (is_queryType(left) is True):
                 qres = DLGQuery(left.objp4, EQ, left, right)
-            elif (type(left).__name__ == 'DLGExpression'):
+            elif (is_expressionType(left) is True):
                 qres = DLGExpression(left.objp4, EQ, left, right)
-            elif (type(left).__name__ in ('Py4Field', 'JNLField')):
+            elif (is_fieldType(left) is True):
                  qres = DLGQuery(
                                  **objectify({
                                     'objp4': left.objp4,
@@ -1765,8 +1715,6 @@ class clsON(QClass):
                 return (len(exps) == allres)
         return self.define_type(left, right, ON)
 
-clsIN = type('clsIN', clsBELONGS.__bases__, dict(clsBELONGS.__dict__))
-
 class clsSTARTSWITH(QClass):
     def __call__(self, *exps, **kwargs):
         (exps, kwargs) = (Lst(exps), Storage(kwargs))
@@ -1914,7 +1862,60 @@ class clsMOD(QClass):
             else:
                 allres = sum(i and 1 or 0 for i in exps)
                 return (len(exps) == allres)
-        return self.define_type(left, right, MOD)
+        if (
+                (isinstance(left, list) is True) &
+                (right is None)
+        ):
+            bail(f'First argument must be a number or an expression, got `{type(left)}`.')
+        try:
+            if (isinstance(left, dict) is True):
+                return Storage({'op': MOD, 'left': left, 'right': right})
+            elif (is_queryType(left) is True):
+                return DLGQuery(left.objp4, MOD, left, right)
+            elif (is_fieldType_or_expressionType(left) is True):
+                fieldname = left.fieldname if (hasattr(left, 'fieldname')) else left
+                leftvalue = float(left.right)
+                if (
+                        (is_recordsType(right) is True) |
+                        (isinstance(right, list) is True)
+                ):
+                    #res = []
+                    for record in right:
+                        if (
+                                (is_recordType(record) is True) |
+                                (isinstance(record, dict) is True)
+                        ):
+                            nvalue = int(record[fieldname] % leftvalue)
+                            #res.append(res)
+                            #record.update(**{'add': total})
+                            record[fieldname] = nvalue
+                    return right
+                    #return res
+                elif (
+                        (
+                                (is_recordType(right) is True),
+                                (isinstance(right, dict) is True),
+                                (is_recordType(left))
+                        ) & (isnum(left) is True)
+                ):
+                    return int(right[fieldname] % leftvalue)
+            elif (isinstance(left, str) is True):
+                (tablename, fieldname, value, op) = self.strQryItems(left)
+                if (
+                        (tablename, fieldname) == (None, None)
+                ):
+                    return reduce(lambda left, right: (left % right), exps)
+            return right
+        except ValueError as err:
+            self.op_error(
+                lambda left, right, op: (
+                    left,
+                    right,
+                    op or SUM
+                ),
+                name='SUM',
+                err=err
+            )
 
 class clsSUM(QClass):
     def __call__(self, *exps, **kwargs):
@@ -2042,6 +2043,11 @@ class clsLEN(QClass):
         (left, right) = (exps(0), exps(1))
         if (
                 (right is None) &
+                (is_fieldType(left) is True)
+        ):
+                return DLGExpression(left.objp4, LEN, left, type='integer')
+        if (
+                (right is None) &
                 (
                         (isinstance(left, (str, bool)) is True) |
                         (is_array(left) is True)
@@ -2119,7 +2125,7 @@ class clsABS(QClass):
                                 absvalues.append(absvalue)
                     return absvalues
                 else:
-                    updated_records = Lst()
+                    #updated_records = Lst()
                     for record in right:
                         if (
                                 (is_recordType(record) is True) |
@@ -2129,10 +2135,10 @@ class clsABS(QClass):
                             current_type = type(current_value)
                             updvalue = abs(float(current_value))
                             updvalue = current_type(updvalue)
-                            record.merge({fieldname: updvalue})
-                            updated_records.append(record)
-                    updated_records = Records(updated_records)
-                    return updated_records
+                            record[fieldname] = updvalue
+                            #updated_records.append(record)
+                    #updated_records = Records(updated_records)
+                    return right
         except Exception as err:
             self.op_error(lambda left, right, op: (
                 left,
@@ -2256,32 +2262,35 @@ class clsADD(QClass):
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, ADD, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
-                #if (hasattr(left, 'left')):
-                #    if (is_fieldType(left.left) is True):
-                #        return DLGExpression(left.objp4, ADD, left, right)
-                fieldname = left.fieldname if (hasattr(left, 'fieldname')) else left
-                leftvalue = float(left.right)
+                (fieldname, leftvalue) = (None, None)
                 if (
                         (is_recordsType(right) is True) |
                         (isinstance(right, list) is True)
                 ):
+                    fieldname = left.fieldname if (hasattr(left, 'fieldname')) else left
+                    leftvalue = float(left.right)
+                    #res = []
                     for record in right:
                         if (
                                 (is_recordType(record) is True) |
                                 (isinstance(record, dict) is True)
                         ):
                             nvalue = int(record[fieldname] + leftvalue)
+                            #res.append(res)
                             #record.update(**{'add': total})
                             record[fieldname] = nvalue
                     return right
+                    #$return res
                 elif (
                         (
-                                (is_recordType(right) is True),
-                                (isinstance(right, dict) is True),
-                                (is_recordType(left))
-                        ) & (isnum(left) is True)
+                                (is_recordType(right) is True) |
+                                (isinstance(right, dict) is True)
+                        ) &
+                        (isnum(left) is True)
                 ):
                     return int(right[fieldname] + leftvalue)
+                else:
+                    return DLGExpression(left.objp4, ADD, left, right)
             elif (isinstance(left, str) is True):
                 (tablename, fieldname, value, op) = self.strQryItems(left)
                 if (
@@ -2318,9 +2327,6 @@ class clsSUB(QClass):
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, SUB, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
-                #if (hasattr(left, 'left')):
-                #    if (is_fieldType(left.left) is True):
-                #        return DLGExpression(left.objp4, SUB, left, right)
                 fieldname = left.fieldname \
                     if (hasattr(left, 'fieldname')) \
                     else left
@@ -2337,15 +2343,14 @@ class clsSUB(QClass):
                         ):
                             nvalue = int(record[fieldname] - leftvalue)
                             record[fieldname] = nvalue
-                            #ints.append(total)
+                            #ints.append(nvalue)
                             #record.update(**{'sub': total})
                     return right
                     #return ints
                 elif (
                         (
                                 (is_recordType(right) is True) |
-                                (isinstance(right, dict) is True) |
-                                (is_recordType(left) is True)
+                                (isinstance(right, dict) is True)
                         ) &
                         (isnum(left) is True)
                 ):
@@ -2386,9 +2391,6 @@ class clsMUL(QClass):
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, MUL, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
-                #if (hasattr(left, 'left')):
-                #    if (is_fieldType(left.left) is True):
-                #        return DLGExpression(left.objp4, MUL, left, right)
                 fieldname = left.fieldname if (hasattr(left, 'fieldname')) else left
                 leftvalue = float(left.right)
                 if (
@@ -2403,9 +2405,10 @@ class clsMUL(QClass):
                         ):
                             nvalue = int(record[fieldname] * leftvalue)
                             record[fieldname] = nvalue
-                            #ints.append(total)
+                            #ints.append(nvalue)
                             #record.update(**{'sub': total})
                     return right
+                    #return ints
                 elif (
                         (
                                 (is_recordType(right) is True),
@@ -2466,9 +2469,6 @@ class clsTRUEDIV(QClass):
             elif (is_queryType(left) is True):
                 return DLGQuery(left.objp4, TRUEDIV, left, right)
             elif (is_fieldType_or_expressionType(left) is True):
-                #if (hasattr(left, 'left')):
-                #    if (is_fieldType(left.left) is True):
-                #        return DLGExpression(left.objp4, TRUEDIV, left, right)
                 fieldname = left.fieldname if (hasattr(left, 'fieldname')) else left
                 leftvalue = int(left.right)
                 if (
@@ -2486,9 +2486,10 @@ class clsTRUEDIV(QClass):
                                 if (force_int is True) \
                                 else (record[fieldname] / leftvalue)
                             record[fieldname] = nvalue
-                            #ints.append(total)
+                            #ints.append(nvalue)
                             #record.update(**{'TRUEDIV': total})
                     return right
+                    #return ints
                 elif (
                         (
                                 (is_recordType(right) is True),
@@ -2646,7 +2647,7 @@ class clsLOWER(QClass):
                         (is_recordsType(right) is True) |
                         (isinstance(right, list) is True)
                 ):
-                    res = Lst()
+                    #res = Lst()
                     for record in right:
                         #if (update_records is True):
                         record.update(**{fieldname: record[fieldname].lower()})
@@ -2720,38 +2721,6 @@ class clsUPPER(QClass):
                     op or UPPER
                 ), name='UPPER', err=err)
 
-class clsEPOCH(QClass):
-    def __call__(self, *exps, **kwargs):
-        (exps, kwargs) = (Lst(exps), Storage(kwargs))
-        (left, right) = (exps(0), exps(1))
-        oDateTime = DLGDateTime()
-        try:
-            if (type(left).__name__ == 'Storage'):
-                qres = Storage({'op': EPOCH, 'left': left, 'right': right})
-            elif (type(left).__name__ == 'DLGQuery'):
-                qres = DLGQuery(left.objp4, EPOCH, left, right)
-            elif (type(left).__name__ in ('DLGExpression', 'Py4Field', 'JNLField')):
-                qres = DLGExpression(left.objp4, EPOCH, left, right)
-            elif (isinstance(left, (int, float, datetime)) is True):
-                qres = oDateTime.to_epoch(left)
-            elif (isinstance(left, str) is True):
-                (tablename, fieldname, value, op) = self.strQryItems(left)
-                if ((tablename, fieldname) == (None, None)):
-                    qres = oDateTime.to_epoch(left)
-                else:
-                    qres = Storage({'op': EPOCH, 'left':
-                        {'tablename': tablename, 'fieldname': fieldname},
-                                    'right': value})
-            else:
-                qres = self.breakdown_query(left, right, EPOCH)
-            return qres
-        except Exception as err:
-            self.op_error(lambda left, right, op: (
-                left,
-                right,
-                op or EPOCH
-            ), name='EPOCH', err=err)
-
 class clsDIFF(QClass):
     ''' An easy-peasy field differ. You can diff a str against a specified record field value.
 
@@ -2823,7 +2792,7 @@ class clsDIFF(QClass):
                     right_diffitems = left.right.split('\n')
                     diff = '\n'.join([line for line in difftype(left_diffitems, right_diffitems)])
                     if (update_record is True):
-                        rec.merge({fieldname: diff})
+                        rec[fieldname] = diff
                     else:
                         setattr(rec, 'diff', diff)
                 return right
@@ -2890,6 +2859,59 @@ class clsCOALESCE_ZERO(QClass):
         (exps, kwargs) = (Lst(exps), Storage(kwargs))
         (left, right) = (exps(0), exps(1))
 
+class clsEPOCH(QClass):
+    def __call__(self, *exps, **kwargs):
+        (exps, kwargs) = (Lst(exps), Storage(kwargs))
+        (left, right) = (exps(0), exps(1))
+        oDateTime = DLGDateTime()
+        try:
+            if (isinstance(left, dict) is True):
+                return Storage({'op': EPOCH, 'left': left, 'right': right})
+            elif (is_queryType(left) is True):
+                return DLGQuery(left.objp4, EPOCH, left, right)
+            elif (isinstance(left, (int, float, datetime)) is True):
+                return oDateTime.to_epoch(left)
+            elif (
+                    (isinstance(left, str) is True) &
+                    (right in ('epoch', None))
+            ):
+                (tablename, fieldname, value, op) = self.strQryItems(left)
+                if ((tablename, fieldname) == (None, None)):
+                    return oDateTime.to_epoch(left)
+                #dt = oDateTime.to_datetime(left)
+                #return oDateTime.to_epoch(dt)
+                return oDateTime.to_epoch(left)
+            elif (is_fieldType_or_expressionType(left) is True):
+                fieldname = left.fieldname \
+                    if (is_fieldType_or_expressionType(left) is True) \
+                    else left
+                if (
+                        (is_recordType(right) is True) |
+                        (isinstance(right, dict) is True)
+                ):
+                    epoch = oDateTime.to_epoch(right[fieldname])
+                    return epoch
+                elif (
+                        (is_recordsType(right) is True) |
+                        (isinstance(right, list) is True) |
+                        (type(right) == enumerate)
+                ):
+                    #epochs = Lst()
+                    for record in right:
+                        epoch = oDateTime.to_epoch(record[fieldname])
+                        record[fieldname] = epoch
+                        #epochs.append(epoch)
+                    #return epochs
+                    return right
+            else:
+                return self.breakdown_query(left, right, EPOCH)
+        except Exception as err:
+            self.op_error(lambda left, right, op: (
+                left,
+                right,
+                op or EPOCH
+            ), name='EPOCH', err=err)
+
 class clsYEAR(QClass):
     def __call__(self, *exps, **kwargs):
         (exps, kwargs) = (Lst(exps), Storage(kwargs))
@@ -2921,11 +2943,86 @@ class clsYEAR(QClass):
                         (isinstance(right, list) is True) |
                         (type(right) == enumerate)
                 ):
-                    years = Lst()
+                    #years = Lst()
                     for record in right:
                         dt = oDateTime.to_datetime(record[fieldname])
-                        years.append(dt.year)
-                    return years
+                        record[fieldname] = dt.year
+                    #    years.append(dt.year)
+                    #return years
+        except Exception as err:
+            self.op_error(lambda left, right, op: (
+                left,
+                right,
+                op or YEAR
+            ), name='YEAR', err=err)
+
+class clsDATETIME(QClass):
+    def __call__(self, *exps, **kwargs):
+        (exps, kwargs) = (Lst(exps), Storage(kwargs))
+        (left, right) = (exps(0), exps(1))
+        oDateTime = DLGDateTime()
+        ''' convert date/time related record field values.
+
+                                            datetype:
+
+                                                Is the date/time stamp's default return value.
+
+                                                eg.
+                                                +----------+-----------------------+
+                                                | datetime | '2024/06/29 00:00:00' |
+                                                +----------+-----------------------+
+                                                | date     | '2014/06/29'          |
+                                                +----------+-----------------------+
+                                                | time     | '00:00:00'            |
+                                                +----------+-----------------------+
+                                        '''
+        '''
+        record = (
+            DLGDateTimeConvert(self.objp4)
+                  (
+                record=record,
+                tablename=tablename,
+                datetype=datetype
+            )
+        )
+        '''
+        try:
+            if (isinstance(left, dict) is True):
+                return Storage({'op': DATETIME, 'left': left, 'right': right})
+            elif (is_queryType(left) is True):
+                return DLGQuery(left.objp4, DATETIME, left, right)
+            elif (
+                    (isinstance(left, str) is True) &
+                    (right in ('datetime', None))
+            ):
+                dt = oDateTime.to_datetime(left)
+                return dt.year
+            elif (is_fieldType_or_expressionType(left) is True):
+                fieldname = left.fieldname \
+                    if (is_fieldType_or_expressionType(left) is True) \
+                    else left
+                if (
+                        (is_recordType(right) is True) |
+                        (isinstance(right, dict) is True)
+                ):
+                    dt = oDateTime.to_datetime(right[fieldname])
+                    return dt.year
+                elif (
+                        (is_recordsType(right) is True) |
+                        (isinstance(right, list) is True) |
+                        (type(right) == enumerate)
+                ):
+                    #datetimes = Lst()
+                    oDateTimeConvert = DLGDateTimeConvert(left.objp4)
+                    for record in right:
+                        #dt = oDateTime.to_datetime(record[fieldname])
+                        record = oDateTimeConvert(
+                            record=record,
+                            tablename=left.tablename,
+                            datetype='datetime')
+                    return right
+                        #datetimes.append(dt)
+                    #return datetimes
         except Exception as err:
             self.op_error(lambda left, right, op: (
                 left,
@@ -2965,18 +3062,19 @@ class clsMONTH(QClass):
                         (isinstance(right, list) is True) |
                         (type(right) == enumerate)
                 ):
-                    months = Lst()
+                    #months = Lst()
                     for record in right:
                         dt = oDateTime.to_datetime(record[fieldname])
-                        months.append(dt.month)
-                    return months
+                        record[fieldname] = dt.month
+                        #months.append(dt.month)
+                    #return months
+                    return right
         except Exception as err:
             self.op_error(lambda left, right, op: (
                 left,
                 right,
                 op or MONTH
             ), name='MONTH', err=err)
-
 
 class clsDAY(QClass):
     def __call__(self, *exps, **kwargs):
@@ -3012,8 +3110,10 @@ class clsDAY(QClass):
                     days = Lst()
                     for record in right:
                         dt = oDateTime.to_datetime(record[fieldname])
-                        days.append(dt.day)
-                    return days
+                        record[fieldname] = dt.day
+                        #days.append(dt.day)
+                    #return days
+                    return right
         except Exception as err:
             self.op_error(lambda left, right, op: (
                 left,
@@ -3053,11 +3153,13 @@ class clsHOUR(QClass):
                         (isinstance(right, list) is True) |
                         (type(right) == enumerate)
                 ):
-                    hours = Lst()
+                    #hours = Lst()
                     for record in right:
                         dt = oDateTime.to_datetime(record[fieldname])
-                        hours.append(dt.hour)
-                    return hours
+                        record[fieldname] = dt.hour
+                    #    hours.append(dt.hour)
+                    #return hours
+                    return right
         except Exception as err:
             self.op_error(lambda left, right, op: (
                 left,
@@ -3097,11 +3199,13 @@ class clsMINUTE(QClass):
                         (isinstance(right, list) is True) |
                         (type(right) == enumerate)
                 ):
-                    minutes = Lst()
+                    #minutes = Lst()
                     for record in right:
                         dt = oDateTime.to_datetime(record[fieldname])
-                        minutes.append(dt.minute)
-                    return minutes
+                        record[fieldname] = dt.minute
+                    #    minutes.append(dt.minute)
+                    #return minutes
+                    return right
         except Exception as err:
             self.op_error(lambda left, right, op: (
                 left,
@@ -3140,11 +3244,13 @@ class clsSECOND(QClass):
                         (isinstance(right, list) is True) |
                         (type(right) == enumerate)
                 ):
-                    seconds = Lst()
+                    #seconds = Lst()
                     for record in right:
                         dt = oDateTime.to_datetime(record[fieldname])
-                        seconds.append(dt.second)
-                    return seconds
+                        record[fieldname] = dt.second
+                    #    seconds.append(dt.second)
+                    #return seconds
+                    return right
         except Exception as err:
             self.op_error(lambda left, right, op: (
                 left,

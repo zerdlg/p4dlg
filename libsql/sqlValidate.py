@@ -4,9 +4,9 @@ from libdlg.dlgStore import Lst, Storage, objectify
 from libdlg.dlgUtilities import serializable
 
 '''  [$File: //dev/p4dlg/libsql/sqlValidate.py $] 
-     [$Change: 717 $] 
-     [$Revision: #14 $]
-     [$DateTime: 2025/05/15 11:21:30 $]
+     [$Change: 727 $] 
+     [$Revision: #15 $]
+     [$DateTime: 2025/05/22 11:24:09 $]
      [$Author: zerdlg $]
 '''
 
@@ -18,6 +18,7 @@ __all__ = [
     'is_sqlObjectType',
     'is_fieldType_or_queryType',
     'is_fieldType_or_expressionType',
+    'is_fieldType_or_queryType_or_expressionType',
     'is_fieldType_or_tableType',
     'is_tableType',
     'is_list_of_fields',
@@ -118,6 +119,37 @@ def is_strType(left, right=None):
     else:
         ret = True \
             if (isinstance(left, str) is True) \
+            else False
+    return ret
+
+def is_fieldType_or_queryType_or_expressionType(left, right=None):
+    if (
+            (isinstance(left, (int, bool)) is True) |
+            (isinstance(right, (int, bool)) is True)
+    ):
+        return False
+    if (right is not None):
+        ret = True \
+            if (
+                    (
+                        (is_queryType(left) is True) |
+                        (is_fieldType(left) is True) |
+                        (is_expressionType(left) is True)
+                    ) &
+                    (
+                        (is_queryType(right) is True) |
+                        (is_fieldType(right) is True) |
+                        (is_expressionType(right) is True)
+                    )
+                ) \
+            else False
+    else:
+        ret = True \
+            if (
+                    (is_queryType(left) is True) |
+                    (is_fieldType(left) is True) |
+                    (is_expressionType(left) is True)
+                ) \
             else False
     return ret
 

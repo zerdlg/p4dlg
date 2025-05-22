@@ -19,8 +19,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 724 $] [$Revision: #25 $]
-     [$DateTime: 2025/05/19 20:19:42 $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 727 $] [$Revision: #27 $]
+     [$DateTime: 2025/05/22 11:24:09 $]
      [$Author: zerdlg $]
 '''
 
@@ -571,16 +571,18 @@ class DLGSql(DLGControl):
         value = None
         if (
                 (isinstance(left, dict) is True) |
-                (is_fieldType_or_queryType(left) is True)
+                (is_query_or_expressionType(left) is True)
         ):
             value = left.op(left, record) \
                 if (is_queryType(left) is True) \
                 else record[left.fieldname]
+        elif (is_fieldType(left) is True):
+            value = op(record[left.fieldname])
         if (value is not None):
             left = value
         if (op in comparison_ops):
             if (
-                    (right is not None) &
+                    #(right is not None) &
                     (isnum(left) is True) &
                     (isnum(right) is True)
             ):
@@ -661,6 +663,8 @@ class DLGSql(DLGControl):
                     self.build_results(left, record),
                     None
                 )
+            if (isinstance(buildleft, bool) is True):
+                return buildleft
             if (right is not None):
                 buildright = self.build_results(right, record)
                 if (isinstance(buildright, (int, bool)) is False):
@@ -687,22 +691,23 @@ class DLGSql(DLGControl):
                         buildleft ^
                         buildright
                 )
-            elif (
-                    opname in notops
-            ):
-                if (left is not None):
-                    ''' This looks like a dumb idea... 
-                        But I have no clue what I was thinking...
-                        Come back and check it out.
-                    '''
-                    built = self.parse_qry(
-                        buildleft.op,
-                        buildleft.left,
-                        buildleft.right,
-                        record
-                    )
-                elif not (left or right):
-                    built = DLGExpression(self.objp4, op)
+            #elif (
+            #        opname in notops
+            #):
+                #if (left is not None):
+                #if (is_query_or_expressionType(left) is True):
+                #    ''' This looks like a dumb idea...
+                #        But I have no clue what I was thinking...
+                #        Come back and check it out.
+                #    '''
+                #    built = self.parse_qry(
+                #        buildleft.op,
+                #        buildleft.left,
+                #        buildleft.right,
+                #        record
+                #    )
+                #elif not (left or right):
+                #    built = DLGExpression(self.objp4, op, left, right)
 
         elif (exp_func is not None):
             for (akey, avalue) in Storage(
@@ -782,41 +787,43 @@ class DLGSql(DLGControl):
         (
             orderby,
             limitby,
-             groupby,
-             sortby,
-             find,
-             filter,
-             exclude,
-             search,
-             count,
-             dlgsum,        # not to confuse with builtin sum
-             dlgavg,        # not to confuse with builtin avg
-             dlgmin,        # not to confuse with builtin max
-             dlgmax,        # not to confuse with builtin len
-             dlglen,        # not to confuse with builtin len
-             as_groups,
-             distinct,
-             add,
-             sub,
-             mul,
-             mod,
-             div,
-             truediv,
-             substr,
-             lower,
-             upper,
-             replace,
-             year,
-             month,
-             day,
-             hour,
-             minute,
-             second,
-             epoch,
-             coalesce,
-             coalesce_zero,
+            groupby,
+            sortby,
+            find,
+            filter,
+            exclude,
+            search,
+            count,
+            dlgsum,        # not to confuse with builtin sum
+            dlgavg,        # not to confuse with builtin avg
+            dlgmin,        # not to confuse with builtin max
+            dlgmax,        # not to confuse with builtin len
+            dlglen,        # not to confuse with builtin len
+            as_groups,
+            distinct,
+            add,
+            sub,
+            mul,
+            mod,
+            div,
+            truediv,
+            substr,
+            lower,
+            upper,
+            replace,
+            datetime,
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            epoch,
+            coalesce,
+            coalesce_zero,
             diff
-             ) = (
+        ) = \
+            (
                 kwargs.orderby,
                 kwargs.limitby,
                 kwargs.groupby,
@@ -843,6 +850,7 @@ class DLGSql(DLGControl):
                 kwargs('lower'),
                 kwargs('upper'),
                 kwargs('replace'),
+                kwargs('datetime'),
                 kwargs.year,
                 kwargs.month,
                 kwargs.day,
@@ -903,6 +911,11 @@ class DLGSql(DLGControl):
                 replace = getattr(replace, 'replace')()
             kwargs.delete('replace')
             return replace.op(replace, records, **kwargs)
+        if (datetime is not None):
+            if (is_fieldType(datetime) is True):
+                datetime = getattr(datetime, 'datetime')()
+            kwargs.delete('year')
+            return datetime.op(datetime, records, **kwargs)
         if (year is not None):
             if (is_fieldType(year) is True):
                 year = getattr(year, 'year')()
@@ -1140,11 +1153,13 @@ class DLGSql(DLGControl):
         (
             kwargs,
             fieldnames,
+            tablename,
             fieldname,
             expression,
         ) = (
             Storage(kwargs),
             Lst(fieldnames),
+            None,
             None,
             None,
         )
@@ -1175,12 +1190,15 @@ class DLGSql(DLGControl):
                             if (callable(expression.op) is True) \
                             else expression.op.lower()
                         fieldname = expression.fieldname
+                        tablename = expression.tablename
                         kwargs.update(**{opname: expression})
                     else:
+                        tablename = expression.tablename
                         fieldname = expression.fieldname
                 elif (is_expressionType(distinct) is True):
                     expression = distinct
                     if (is_substrType(distinct) is True):
+                        tablename = expression.tablename
                         fieldname = expression.fieldname
                         distinct = True
             elif (is_queryType(cfieldnames[fidx]) is True):
@@ -1279,6 +1297,7 @@ class DLGSql(DLGControl):
             query,
             cols,
             records,
+            tablename,
             fieldname,
             distinct,
             kwargs
