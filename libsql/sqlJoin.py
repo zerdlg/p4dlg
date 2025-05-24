@@ -210,7 +210,7 @@ class Join(object):
             if (fsum > 0) \
             else False
 
-    def join_record(self, jointype=None, flat=False):
+    def join_record(self, jointype=None, flat=False, maxrows=0):
         outrecords = Records(
             records=[],
             cols=[],
@@ -246,26 +246,40 @@ class Join(object):
         reffield = self.cField.fieldname \
             if (is_fieldType(self.cField) is True) \
             else self.cField
-
         refkeys = set(recitem[reffield] for recitem in filter(lambda rec: rec[reffield], leftrecords))
+        (eor, recordscount) = (False, 0)
         for refkey in refkeys:
+            if (eor is True):
+                break
             ''' `exclude` will retrieve the target records while 
                 removing them from the original Records.
+                
+                if maxrows > 0, we can assume at this point that 
+                the number of left records has already reached its 
+                maxrows - so we work on rigt_records
             '''
             left_records = leftrecords.exclude(lambda rec: (rec[reffield] == refkey))
             right_records = rightrecords.exclude(lambda rec: (rec[reffield] == refkey))
             for leftrecord in left_records:
-                for rightrecord in right_records:
-                    if (flat is True):
-                        updt_record = Record(leftrecord.merge(**rightrecord))
-                    else:
-                        updt_record = Record(
-                            {
-                                lefttable.tablename: leftrecord,
-                                righttable.tablename: rightrecord
-                            }
-                        )
-                    outrecords.insert(updt_record)
+                if (eor is False):
+                    for rightrecord in right_records:
+                        if (maxrows > 0):
+                            recordscount += 1
+                            if (recordscount > maxrows):
+                                eor = True
+                                break
+                        if (flat is True):
+                            updt_record = Record(leftrecord.merge(**rightrecord))
+                        else:
+                            updt_record = Record(
+                                {
+                                    lefttable.tablename: leftrecord,
+                                    righttable.tablename: rightrecord
+                                }
+                            )
+                        outrecords.insert(updt_record)
+                else:
+                    break
         if (
                 (len(outrecords) > 0) &
                 (len(outrecords.cols) == 0)
@@ -315,15 +329,24 @@ class Join(object):
             if (is_fieldType(self.cField) is True) \
             else self.cField
 
+        (eor, recordscount) = (False, 0)
         refkeys = set(recitem[reffield] for recitem in filter(lambda rec: rec[reffield], leftrecords))
         for refkey in refkeys:
+            if (eor is True):
+                break
             ''' `exclude` will retrieve the target records while 
                 removing them from the original Records.
             '''
             left_records = leftrecords.exclude(lambda rec: (rec[reffield] == refkey))
             right_records = rightrecords.exclude(lambda rec: (rec[reffield] == refkey))
             for leftrecord in left_records:
-                for rightrecord in right_records:
+                if (eor is False):
+                    for rightrecord in right_records:
+                        if (maxrows > 0):
+                            recordscount += 1
+                            if (recordscount > maxrows):
+                                eor = True
+                                break
                     if (flat is True):
                         updt_record = Record(leftrecord.merge(**rightrecord))
                     else:
@@ -334,10 +357,11 @@ class Join(object):
                             }
                         )
                     outrecords.insert(updt_record)
+                else:
+                    break
         if (len(outrecords.cols) == 0):
             outrecords.cols = outrecords(0).getkeys()
-        return outrecords
-
+        return outrecords0
 
     def merge_records(self, flat=True):
         return self.join_record(
@@ -350,10 +374,11 @@ class Join(object):
             flat=flat
         )
 
-    def join(self, flat=False):
+    def join(self, flat=False, maxrows=0):
         return self.join_record(
             jointype='inner',
-            flat=flat
+            flat=flat,
+            maxrows=maxrows
         )
 
     def left(self, flat=False):

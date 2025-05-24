@@ -1,7 +1,8 @@
 import sys
 import argparse
 from libdlg.dlgStore import Storage, objectify, Lst
-
+from libfs.fsFileIO import loadconfig, loaddumpconfig
+from libdlg.dlgUtilities import bail
 ''' a parser to handle cmd line options
 
         combining options:  -a -b -c  -> -abc
@@ -28,8 +29,8 @@ from libdlg.dlgStore import Storage, objectify, Lst
                                    "If you mess up, try try again!"},                           
 '''
 
-'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 707 $] [$Revision: #7 $]
-     [$DateTime: 2025/05/14 13:55:49 $]
+'''  [$File: //dev/p4dlg/libdlg/dlgOptions.py $] [$Change: 728 $] [$Revision: #8 $]
+     [$DateTime: 2025/05/23 02:44:52 $]
      [$Author: zerdlg $]
 '''
 
@@ -62,7 +63,26 @@ __all__ = ['ArgsParser', ]
 '''
 
 class ArgsParser(object):
+    def getconfig(self, configname):
+        return loadconfig(self.configfiles[configname]) or {}
+
+    def setconfig(self, configname, value):
+        return loaddumpconfig(self.configfiles[configname], value) or {}
+
+    def defineconfigs(self, configname):
+        dconfigs = self.getconfig(configname)
+        try:
+            return {key: {'default': value,
+                          'required': False,
+                          'const': '/',
+                          'nargs': '?',
+                          'help': f"{configname} config"} \
+                    for (key, value) in dconfigs.items()}
+        except Exception as err:
+            bail(err)
+
     def __init__(self, *args, **kwargs):
+        self.configfiles = Storage(kwargs).configfiles
         '''  referenced & inheritable options and subparsers definitions:
 
     USAGE:
@@ -151,17 +171,17 @@ class ArgsParser(object):
                 'subparser':
                 # ---- CREATE OPTIONS THAT READ CONFIG JSON FILES AND GENERATE RELATED OPTIONS (for p4braider)
                     {'accel': {
-                        'reference': ['p4'],                       #p4braider
+                        'reference': ['p4'],                       #p4braider stuff
                         'help': '- accel help -',
                         'private': {}
                     },#"self.defineconfigs('accel')"},
                      'archive': {
-                         'reference': ['p4'],                      #p4braider
+                         'reference': ['p4'],                      #p4braider stuff
                          'help': '- archive help -',
                          'private': {}
                      },#"self.defineconfigs('archive')"},
                      'artist_workspace': {
-                         'reference': ['p4'],                      #p4braider
+                         'reference': ['p4'],                      #p4braider stuff
                          'help': '- artist_workspace help -',
                          'private': {}
                      },#"self.defineconfigs('artist_workspace')"},

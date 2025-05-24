@@ -21,9 +21,9 @@ from libsql.sqlValidate import *
 from libsql.sqlRecords import Records
 
 '''  [$File: //dev/p4dlg/libsql/sqlQuery.py $] 
-     [$Change: 727 $] 
-     [$Revision: #43 $]
-     [$DateTime: 2025/05/22 11:24:09 $]
+     [$Change: 728 $] 
+     [$Revision: #44 $]
+     [$DateTime: 2025/05/23 02:44:52 $]
      [$Author: zerdlg $]
 '''
 
@@ -838,9 +838,6 @@ def MOD(*args, **kwargs):
 
 def BELONGS(*args, **kwargs):
     return clsBELONGS()(*args, **kwargs)
-
-def IN(*args, **kwargs):
-    return clsIN()(*args, **kwargs)
 
 def ON(*args, **kwargs):
     return clsON()(*args, **kwargs)

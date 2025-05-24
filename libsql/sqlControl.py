@@ -19,8 +19,8 @@ from libdlg.dlgUtilities import (
 )
 from libsql.sqlQuery import *
 
-'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 727 $] [$Revision: #27 $]
-     [$DateTime: 2025/05/22 11:24:09 $]
+'''  [$File: //dev/p4dlg/libsql/sqlControl.py $] [$Change: 728 $] [$Revision: #28 $]
+     [$DateTime: 2025/05/23 02:44:52 $]
      [$Author: zerdlg $]
 '''
 
@@ -571,22 +571,29 @@ class DLGSql(DLGControl):
         value = None
         if (
                 (isinstance(left, dict) is True) |
-                (is_query_or_expressionType(left) is True)
+                (is_fieldType_or_queryType(left) is True)
         ):
-            value = left.op(left, record) \
-                if (is_queryType(left) is True) \
-                else record[left.fieldname]
-        elif (is_fieldType(left) is True):
-            value = op(record[left.fieldname])
+            value = None
+            if (is_queryType(left) is True):
+                op = left.op
+                value = left.op(left, record)
+            elif (is_fieldType(left) is True):
+                value = record[left.fieldname]
         if (value is not None):
             left = value
         if (op in comparison_ops):
             if (
-                    #(right is not None) &
                     (isnum(left) is True) &
                     (isnum(right) is True)
             ):
-                (left, right) = (float(left), float(right))
+                (
+                    left,
+                    right
+                ) = \
+                    (
+                        float(left),
+                        float(right)
+                    )
         if (right is None):
             right = record
         receval = op(left, right)

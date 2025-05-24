@@ -58,6 +58,10 @@ class Select(DLGSql):
                 False
             )
 
+        self.loginfo(f'maxrow: {maxrows}')
+        self.loginfo(f'recordchunks: {recordchunks}')
+        self.loginfo(f'compute: {compute}')
+
         if (distinct is None):
             distinct = kwargs.distinct
         ''' define, resolve & get relevant record components 
@@ -352,6 +356,8 @@ class Select(DLGSql):
                                         eor = True
                                 elif (maxrows > 0):
                                     recordcounter += 1
+                                    if recordcounter == 50:
+                                        h = 'here'
                                     if (recordcounter <= maxrows):
                                         outrecords.insert(idx, record)
                                     else:
@@ -387,9 +393,9 @@ class Select(DLGSql):
                     if (jointype == 'outer')
                     else 'braid'
                             ),
-                    {'flat': flat}
+                    {'flat': flat, 'maxrows': maxrows}
                  )
-            outrecords = joiner(**joinargs)
+            outrecords = joiner(**joinargs) # HERE, 50 turns into 60!
         if (len(kwargs) > 0):
             outrecords = self.sql_aggregates_expressions_and_other_stuff(outrecords, **kwargs)
         if (close_session is True):

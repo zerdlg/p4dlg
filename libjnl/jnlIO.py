@@ -28,8 +28,8 @@ import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
 
-'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 707 $] [$Revision: #48 $]
-     [$DateTime: 2025/05/14 13:55:49 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 728 $] [$Revision: #49 $]
+     [$DateTime: 2025/05/23 02:44:52 $]
      [$Author: zerdlg $]
 '''
 
@@ -229,6 +229,7 @@ class P4Jnl(object):
                 * IMHO, I wouldn't recommend it, so setting the default @r16.2            
         '''
         self.schemaversion = self.version = version or self.oSchema.version
+        #self.loginfo(f'schemaversion: {self.schemaverion}')
         self.schemadir = schemadir
         self.excludetables = Lst()
         ''' A list of tables to exclude.
@@ -636,9 +637,14 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         (hasattr(left, 'right'))
                 ):
                     qry = self.resolve_datatype_value(left)
+        elif (is_query_or_expressionType(left, right) is True):
+            left = self.resolve_datatype_value(left)
+            qry.left = left
+            right = self.resolve_datatype_value(right)
+            qry.right = right
         elif (
-                (hasattr(left, 'left')) &
-                (hasattr(left, 'right'))
+            (hasattr(left, 'left')) &
+            (hasattr(left, 'right'))
         ):
             qry = self.resolve_datatype_value(left)
         return qry
@@ -751,6 +757,7 @@ Select among the following fieldnames:\n{tabledata.fieldnames}\n"
                         self.breakdown_query(qry, tabledata=tabledata, inversion=qry.inversion)
                     )
                 jnlQueries.append(qry)
+                self.loginfo(f'query: {qry}')
         [
             setattr(self, item, kwargs[item]) for item in
             ('maxrows', 'compute') if (kwargs[item] is not None)

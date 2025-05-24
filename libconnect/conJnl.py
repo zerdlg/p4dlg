@@ -104,9 +104,11 @@ Manage connections to journals and checkpoints.
             [oJnl, other_jnlobject, freds_jnlobject,]
             """
 
-    def __init__(self, shellObj, loglevel='DEBUG'):
+    def __init__(self, shellObj, loglevel='INFO'):
         self.shellObj = shellObj
-        self.loglevel = loglevel.upper()
+        if (loglevel is not None):
+            loglevel = loglevel.upper()
+        self.loglevel = loglevel
         self.stored = None
         self.varsdef = self.shellObj.cmd_jnlvars
         self.setstored()

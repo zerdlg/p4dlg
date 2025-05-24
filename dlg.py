@@ -91,7 +91,6 @@ def test():
 
 '''
 
-
 __all__ = [
             'Serve',
             'ServeLib',
@@ -99,9 +98,9 @@ __all__ = [
 ]
 mdata = """
         --[$File: //dev/p4dlg/dlg.py $]
-        --[$Change: 724 $] 
-        --[$Revision: #8 $]
-        --[$DateTime: 2025/05/19 20:19:42 $]
+        --[$Change: 728 $] 
+        --[$Revision: #9 $]
+        --[$DateTime: 2025/05/23 02:44:52 $]
         --[$Author: zerdlg $]
         """
 
@@ -326,7 +325,7 @@ class DLGShell(object):
 
     def funcVars(
             self,
-            configname,
+            configname=None,
             *args,
             **kwargs
     ):
@@ -446,9 +445,7 @@ class DLGShell(object):
                                         print(err)
                         else:
                             dirImport(filename)
-        for moddir in self.var_libsearchdirs:
-            dirImport(moddir)
-
+        [dirImport(moddir) for moddir in self.var_libsearchdirs]
         otherthings = {
                         'term': self.cmdcls_shterm(self),
             # Python modules
@@ -507,7 +504,8 @@ class DLGShell(object):
                     eos = True
                 if (i.startswith(f'{pfxdata.prefix}_')):
                     (
-                        k, v
+                        k,
+                        v
                     ) = \
                         (
                             Lst(i.split('_'))(1),
@@ -728,7 +726,7 @@ def initprog(**opts):
     if (len(opts) > 0):
         if (opts.which is None):
             opts.which = 'shell'
-        opts.update(**{'root_path': root_path})
+        #opts.update(**{'root_path': root_path})
         if (opts.which == 'shell'):
             Serve()(**opts)
         elif (opts.which == 'query'):
@@ -740,29 +738,18 @@ def initprog(**opts):
 
 if (__name__ == '__main__'):
     root_path = os.path.abspath('.')
-    #opts = Storage({'root_path': root_path})
-    args = []
-    oParser = ArgsParser()
-    domainargs = oParser().parse_args(args if (len(sys.argv) == 1) else None)
-    opts = Storage(
-        {
-            k: v for (k, v) in dict(
-            vars(
-                ArgsParser()().parse_args())).items() if (v not in (None, False, 'unset'))
-        }
-    )
-
-
-
+    args = []   # fill for testing instead of sys.argv
     if (len(sys.argv) > 1):
-        '''  arg options from cmd line
-             ** ignore arg where values are set to `None, False or unset`
+        opts = Storage({'root_path': root_path})
+        oParser = ArgsParser()
+        domainargs = oParser().parse_args(
+            args if (len(sys.argv) == 1) else None
+        )
+        ''' ignore args with these values: None, False or unset
         '''
-        opts = Storage(
-            {
-                k: v for (k, v) in dict(
-                    vars(
-                        ArgsParser()().parse_args())).items() if (v not in (None, False, 'unset'))
+        opts.update(
+            **{
+                k: v for (k, v) in vars(domainargs).items() if (v not in (None, False, 'unset'))
             }
         )
         initprog(**opts)
