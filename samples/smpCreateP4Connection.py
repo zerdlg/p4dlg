@@ -1,5 +1,6 @@
 from libconnect.conP4 import ObjP4
-from libsh.shell import ServeLib
+#from libsh.shell import ServeLib
+from dlg import ServeLib
 from libpy4.py4IO import Py4
 
 from libsql.sqlSchema import SchemaXML, to_releasename

@@ -61,7 +61,6 @@ def p4d_backup(**opts):
     remote_dst_filename = opts.remote_dst_filename
     local_src_filename = opts.local_src_filename
     local_dst_filename = opts.local_dst_filename
-
     ''' remote src options 
     '''
     remote_src_user = opts.remote_src_user
@@ -69,7 +68,6 @@ def p4d_backup(**opts):
     remote_src = opts.remote_src_dir
     if (remote_src_filename is not None):
         remote_src = path.join(remote_src, remote_src_filename)
-
     ''' remote dst options
     '''
     remote_dst_user = opts.remote_dst_user

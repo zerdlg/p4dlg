@@ -24,7 +24,7 @@ def jnlconnect(jnlfile, oSchema=None, version=None):
             the journal.
 
             get_schemaObject() will always return a tuple with a length of 2 (oSchema, version). It is also
-            possible that getObjChema() can figure it out, in which case (None, None) is returned.
+            possible that getObjSchema() can figure it out, in which case (None, None) is returned.
 
 
     '''

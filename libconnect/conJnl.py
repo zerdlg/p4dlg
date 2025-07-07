@@ -4,8 +4,8 @@ from libdlg.dlgStore import Storage, Lst
 from libfs.fsFileIO import is_writable, make_writable
 from libsql.sqlSchema import get_schemaObject
 
-'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 707 $] [$Revision: #24 $]
-     [$DateTime: 2025/05/14 13:55:49 $]
+'''  [$File: //dev/p4dlg/libconnect/conJnl.py $] [$Change: 729 $] [$Revision: #25 $]
+     [$DateTime: 2025/06/13 15:49:54 $]
      [$Author: zerdlg $]
 '''
 

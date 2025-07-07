@@ -28,8 +28,8 @@ import schemaxml
 from os.path import dirname
 schemadir = dirname(schemaxml.__file__)
 
-'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 728 $] [$Revision: #49 $]
-     [$DateTime: 2025/05/23 02:44:52 $]
+'''  [$File: //dev/p4dlg/libjnl/jnlIO.py $] [$Change: 729 $] [$Revision: #50 $]
+     [$DateTime: 2025/06/13 15:49:54 $]
      [$Author: zerdlg $]
 '''
 
